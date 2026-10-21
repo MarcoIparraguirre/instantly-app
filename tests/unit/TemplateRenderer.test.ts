@@ -51,6 +51,22 @@ describe('TemplateRenderer (Unit Tests)', () => {
     expect(result).toBe('Hello John, checking  and .');
   });
 
+  it('interpolates Spanish aliases and sheet columns (Nombre, Empresa, Cargo) seamlessly', () => {
+    const template = 'Hola {{Nombre}}, vi tu rol de {{Cargo}} en {{Empresa}} en la ciudad de {{Ciudad}}.';
+    const lead = {
+      firstName: 'Mateo',
+      companyName: 'Innova SL',
+      email: 'mateo@innova.es',
+      customVariables: {
+        Cargo: 'Director Comercial',
+        Ciudad: 'Barcelona'
+      }
+    };
+
+    const result = renderer.render(template, lead);
+    expect(result).toBe('Hola Mateo, vi tu rol de Director Comercial en Innova SL en la ciudad de Barcelona.');
+  });
+
   it('handles empty template gracefully', () => {
     expect(renderer.render('', {})).toBe('');
   });

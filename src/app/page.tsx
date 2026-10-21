@@ -112,6 +112,7 @@ export default function Home() {
                     onUpdateCampaign={handleCampaignUpdated}
                     openCopilot={() => setIsCopilotOpen(true)}
                     leads={leads}
+                    onRefreshLeads={handleLeadsUpdated}
                   />
                 ) : (
                   <CampaignEditor
@@ -119,6 +120,7 @@ export default function Home() {
                     onUpdateCampaign={handleCampaignUpdated}
                     openCopilot={() => setIsCopilotOpen(true)}
                     leads={leads}
+                    onRefreshLeads={handleLeadsUpdated}
                   />
                 )
               )}

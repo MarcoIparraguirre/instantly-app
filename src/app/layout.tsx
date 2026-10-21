@@ -3,8 +3,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Instantly Copilot — Outbound & Deliverability",
-  description: "AI Copilot and Cold Outreach sequence automation platform",
+  title: "MiSender — Cold Email & Deliverability Platform",
+  description: "Plataforma de prospección en frío, secuencias automatizadas y entregabilidad B2B con Supabase.",
 };
 
 export default function RootLayout({

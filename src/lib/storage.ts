@@ -3,21 +3,21 @@ import { Campaign, Lead, SenderAccount, CopilotMessage } from '@/types';
 
 // Backward-compatible façade delegating to the SOLID container repositories
 export const db = {
-  getCampaigns: (): Campaign[] => container.campaignRepo.getCampaigns(),
-  saveCampaigns: (campaigns: Campaign[]): void => container.campaignRepo.saveCampaigns(campaigns),
-  getCampaignById: (id: string): Campaign | undefined => container.campaignRepo.getCampaignById(id),
-  saveCampaign: (campaign: Campaign): void => container.campaignRepo.saveCampaign(campaign),
+  getCampaigns: async (): Promise<Campaign[]> => await container.campaignRepo.getCampaigns(),
+  saveCampaigns: async (campaigns: Campaign[]): Promise<void> => await container.campaignRepo.saveCampaigns(campaigns),
+  getCampaignById: async (id: string): Promise<Campaign | undefined> => await container.campaignRepo.getCampaignById(id),
+  saveCampaign: async (campaign: Campaign): Promise<void> => await container.campaignRepo.saveCampaign(campaign),
 
-  getLeads: (campaignId?: string): Lead[] => container.leadRepo.getLeads(campaignId),
-  saveLeads: (leads: Lead[]): void => container.leadRepo.saveLeads(leads),
-  addLeads: (newLeads: Lead[]): void => container.leadRepo.addLeads(newLeads),
-  updateLead: (lead: Lead): void => container.leadRepo.updateLead(lead),
+  getLeads: async (campaignId?: string): Promise<Lead[]> => await container.leadRepo.getLeads(campaignId),
+  saveLeads: async (leads: Lead[]): Promise<void> => await container.leadRepo.saveLeads(leads),
+  addLeads: async (newLeads: Lead[]): Promise<void> => await container.leadRepo.addLeads(newLeads),
+  updateLead: async (lead: Lead): Promise<void> => await container.leadRepo.updateLead(lead),
 
-  getAccounts: (): SenderAccount[] => container.accountRepo.getAccounts(),
-  saveAccounts: (accounts: SenderAccount[]): void => container.accountRepo.saveAccounts(accounts),
-  saveAccount: (account: SenderAccount): void => container.accountRepo.saveAccount(account),
+  getAccounts: async (): Promise<SenderAccount[]> => await container.accountRepo.getAccounts(),
+  saveAccounts: async (accounts: SenderAccount[]): Promise<void> => await container.accountRepo.saveAccounts(accounts),
+  saveAccount: async (account: SenderAccount): Promise<void> => await container.accountRepo.saveAccount(account),
 
-  getCopilotMessages: (): CopilotMessage[] => container.copilotRepo.getMessages(),
-  saveCopilotMessages: (messages: CopilotMessage[]): void => container.copilotRepo.saveMessages(messages),
-  addCopilotMessage: (msg: CopilotMessage): void => container.copilotRepo.addMessage(msg)
+  getCopilotMessages: async (): Promise<CopilotMessage[]> => await container.copilotRepo.getMessages(),
+  saveCopilotMessages: async (messages: CopilotMessage[]): Promise<void> => await container.copilotRepo.saveMessages(messages),
+  addCopilotMessage: async (msg: CopilotMessage): Promise<void> => await container.copilotRepo.addMessage(msg)
 };

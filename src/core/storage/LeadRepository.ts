@@ -60,4 +60,10 @@ export class LeadRepository implements ILeadRepository {
       this.saveLeads(existing);
     }
   }
+
+  deleteLeads(campaignId?: string): void {
+    const existing = this.getLeads();
+    const remaining = campaignId ? existing.filter(l => l.campaignId !== campaignId) : [];
+    this.saveLeads(remaining);
+  }
 }

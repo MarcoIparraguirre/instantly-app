@@ -78,7 +78,7 @@ export default function Sidebar({
             </div>
             <div>
               <div className="font-bold text-white text-sm tracking-wide flex items-center gap-1.5">
-                Instantly <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">AI</span>
+                MiSender <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">PRO</span>
               </div>
               <div className="text-[10px] text-slate-400 font-medium">
                 {mode === 'simple' ? (language === 'es' ? 'Modo Simple' : 'Simple Mode') : 'Outbound Scale'}

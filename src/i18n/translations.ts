@@ -1,7 +1,7 @@
 export const translations = {
   en: {
     common: {
-      appName: 'Instantly',
+      appName: 'MiSender',
       tagline: 'Outbound & Copilot',
       active: 'Active',
       paused: 'Paused',
@@ -260,10 +260,10 @@ export const translations = {
       colHealth: 'Health Status',
     },
     copilot: {
-      title: 'Instantly Copilot',
+      title: 'MiSender Copilot',
       context: 'Context:',
       generalAssistant: 'General Assistant',
-      welcome: "👋 Hi! I'm your **Instantly Copilot**.\n\nI can help you build high-converting cold email sequences, scan for spam words, generate spintax, configure sender rotation, and control your campaigns using plain English.\n\nWhat would you like to work on?",
+      welcome: "👋 Hi! I'm your **MiSender Copilot**.\n\nI can help you build high-converting cold email sequences, scan for spam words, generate spintax, configure sender rotation, and control your campaigns using plain English.\n\nWhat would you like to work on?",
       thinking: 'Copilot is thinking...',
       placeholder: 'Ask Copilot (e.g. Generate follow-ups, fix spam words)...',
       actionRequiresApproval: 'Action Requires Approval',
@@ -308,7 +308,7 @@ export const translations = {
   },
   es: {
     common: {
-      appName: 'Instantly',
+      appName: 'MiSender',
       tagline: 'Prospección & Copilot',
       active: 'Activa',
       paused: 'Pausada',
@@ -567,10 +567,10 @@ export const translations = {
       colHealth: 'Estado de Salud',
     },
     copilot: {
-      title: 'Instantly Copilot',
+      title: 'MiSender Copilot',
       context: 'Contexto:',
       generalAssistant: 'Asistente General',
-      welcome: "👋 ¡Hola! Soy tu **Copilot de Instantly**.\n\nPuedo ayudarte a crear secuencias de prospección de alta conversión, escanear palabras spam, generar variaciones spintax, rotar buzones y gestionar tus campañas con lenguaje natural.\n\n¿En qué te gustaría trabajar hoy?",
+      welcome: "👋 ¡Hola! Soy tu **Copilot de MiSender**.\n\nPuedo ayudarte a crear secuencias de prospección de alta conversión, escanear palabras spam, generar variaciones spintax, rotar buzones y gestionar tus campañas con lenguaje natural.\n\n¿En qué te gustaría trabajar hoy?",
       thinking: 'Copilot está pensando...',
       placeholder: 'Pregunta a Copilot (ej. Generar seguimiento, eliminar palabras spam)...',
       actionRequiresApproval: 'Acción Requiere Aprobación',

@@ -30,7 +30,7 @@ export default function ModeSelectionModal() {
             <Sparkles className="w-6 h-6" />
           </div>
           <h2 className="text-xl font-bold text-white tracking-tight">
-            {language === 'es' ? '¿Cómo prefieres usar Instantly?' : 'How would you like to use Instantly?'}
+            {language === 'es' ? '¿Cómo prefieres usar MiSender?' : 'How would you like to use MiSender?'}
           </h2>
           <p className="text-xs text-slate-400 leading-relaxed">
             {language === 'es'

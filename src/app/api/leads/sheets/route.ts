@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
     const sheetsService = new GoogleSheetsService();
     const rows = await sheetsService.fetchSheetRows(sheetUrlOrId, accessToken);
     const mapped = sheetsService.mapRowsToLeads(rows);
+    const detectedColumns = sheetsService.getDetectedColumns(rows);
 
     if (mapped.length === 0) {
       return NextResponse.json(
@@ -39,11 +40,13 @@ export async function POST(req: NextRequest) {
       customVariables: item.customVariables || {}
     }));
 
-    container.leadRepo.addLeads(newLeads);
+    await container.leadRepo.addLeads(newLeads);
 
     return NextResponse.json({
       success: true,
       importedCount: newLeads.length,
+      detectedColumns,
+      leads: newLeads,
       sample: newLeads.slice(0, 3)
     });
   } catch (err: any) {

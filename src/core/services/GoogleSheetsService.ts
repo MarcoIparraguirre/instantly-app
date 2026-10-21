@@ -160,6 +160,19 @@ export class GoogleSheetsService implements IGoogleSheetsService {
   }
 
   /**
+   * Returns list of unique column headers detected across all rows.
+   */
+  getDetectedColumns(rows: Record<string, string>[]): string[] {
+    const colSet = new Set<string>();
+    for (const r of rows) {
+      for (const k of Object.keys(r)) {
+        if (k && k.trim()) colSet.add(k.trim());
+      }
+    }
+    return Array.from(colSet);
+  }
+
+  /**
    * Intelligently maps Sheet columns (English and Spanish variations) to Lead properties.
    */
   mapRowsToLeads(rows: Record<string, string>[]): SheetLeadRow[] {
@@ -179,7 +192,10 @@ export class GoogleSheetsService implements IGoogleSheetsService {
 
         if (!val) continue;
 
-        if (key === 'email' || key === 'correo' || key === 'mail' || key === 'e-mail') {
+        // Keep all non-empty columns as custom variables so ANY header like {{Cargo}}, {{Nombre}}, {{Ciudad}} works!
+        customVariables[rawKey] = val;
+
+        if (key === 'email' || key === 'correo' || key === 'mail' || key === 'emailaddress') {
           email = val;
         } else if (
           key === 'firstname' ||
@@ -200,9 +216,6 @@ export class GoogleSheetsService implements IGoogleSheetsService {
           companyName = val;
         } else if (key === 'website' || key === 'url' || key === 'sitio' || key === 'web') {
           website = val;
-        } else {
-          // Keep all extra columns as customVariables for email interpolation {{tag}}
-          customVariables[rawKey] = val;
         }
       }
 

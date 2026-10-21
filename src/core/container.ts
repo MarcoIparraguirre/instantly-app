@@ -10,6 +10,11 @@ import { LeadRepository } from './storage/LeadRepository';
 import { AccountRepository } from './storage/AccountRepository';
 import { CopilotRepository } from './storage/CopilotRepository';
 
+import { SupabaseCampaignRepository } from './storage/supabase/SupabaseCampaignRepository';
+import { SupabaseLeadRepository } from './storage/supabase/SupabaseLeadRepository';
+import { SupabaseAccountRepository } from './storage/supabase/SupabaseAccountRepository';
+import { SupabaseCopilotRepository } from './storage/supabase/SupabaseCopilotRepository';
+
 import { ITemplateRenderer, TemplateRenderer } from './services/TemplateRenderer';
 import { ISpintaxService, SpintaxService } from './services/SpintaxService';
 import { ISpamDetectorService, SpamDetectorService } from './services/SpamDetectorService';
@@ -51,10 +56,27 @@ export interface AppContainer {
 export function createContainer(customDriver?: IJsonStorageDriver): AppContainer {
   const storageDriver = customDriver || new JsonStorageDriver();
 
-  const campaignRepo = new CampaignRepository(storageDriver);
-  const leadRepo = new LeadRepository(storageDriver);
-  const accountRepo = new AccountRepository(storageDriver);
-  const copilotRepo = new CopilotRepository(storageDriver);
+  const isSupabaseConfigured = Boolean(
+    !customDriver &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+
+  const campaignRepo: ICampaignRepository = isSupabaseConfigured
+    ? new SupabaseCampaignRepository()
+    : new CampaignRepository(storageDriver);
+
+  const leadRepo: ILeadRepository = isSupabaseConfigured
+    ? new SupabaseLeadRepository()
+    : new LeadRepository(storageDriver);
+
+  const accountRepo: IAccountRepository = isSupabaseConfigured
+    ? new SupabaseAccountRepository()
+    : new AccountRepository(storageDriver);
+
+  const copilotRepo: ICopilotRepository = isSupabaseConfigured
+    ? new SupabaseCopilotRepository()
+    : new CopilotRepository(storageDriver);
 
   const templateRenderer = new TemplateRenderer();
   const spintaxService = new SpintaxService();

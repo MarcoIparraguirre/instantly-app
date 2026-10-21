@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Mail, ShieldCheck, Plus, CheckCircle, Flame, Server, AlertCircle 
+  Mail, ShieldCheck, Plus, CheckCircle, Flame, Server, AlertCircle, Trash2, ExternalLink 
 } from 'lucide-react';
 import { SenderAccount } from '@/types';
 import { initialEmailAccountsWithWarmup } from '@/core/storage/mockData';
@@ -12,6 +12,7 @@ export default function SimpleAccountsView() {
   const { t, language } = useLanguage();
   const [accounts, setAccounts] = useState<SenderAccount[]>(initialEmailAccountsWithWarmup);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: 'Sales Mailbox',
     email: '',
@@ -22,28 +23,60 @@ export default function SimpleAccountsView() {
     dailyLimit: '50'
   });
 
-  const handleAddAccount = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const fetchAccounts = async () => {
+    try {
+      const res = await fetch('/api/accounts');
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setAccounts(data);
+      }
+    } catch (err) {
+      console.error('Error fetching accounts:', err);
+    }
+  };
+
+  const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newAcc: SenderAccount = {
-      id: `acc-${Date.now()}`,
-      name: formData.name,
-      email: formData.email,
-      provider: 'smtp',
-      smtpHost: formData.smtpHost,
-      smtpPort: Number(formData.smtpPort) || 587,
-      smtpUser: formData.smtpUser,
-      smtpPass: formData.smtpPass,
-      dailyLimit: Number(formData.dailyLimit) || 50,
-      sentToday: 0,
-      status: 'active',
-      warmupEnabled: true,
-      warmupToday: 2,
-      warmupTotal: 2,
-      warmupRescueRate: 100,
-      healthScore: 95
-    };
-    setAccounts([...accounts, newAcc]);
-    setShowAddModal(false);
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) {
+        setShowAddModal(false);
+        setFormData({
+          name: 'Sales Mailbox',
+          email: '',
+          smtpHost: 'smtp.gmail.com',
+          smtpPort: '587',
+          smtpUser: '',
+          smtpPass: '',
+          dailyLimit: '50'
+        });
+        await fetchAccounts();
+      }
+    } catch (err) {
+      console.error('Error saving account:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(language === 'es' ? '¿Deseas desvincular esta casilla de correo?' : 'Disconnect this email account?')) return;
+    try {
+      await fetch(`/api/accounts?id=${id}`, { method: 'DELETE' });
+      await fetchAccounts();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -91,69 +124,90 @@ export default function SimpleAccountsView() {
                   </div>
                 </div>
 
-                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1.5 ${
-                  isOptimal
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${isOptimal ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-                  {isOptimal
-                    ? (language === 'es' ? 'Lista para Enviar' : 'Ready to Send')
-                    : (language === 'es' ? 'En Preparación' : 'Warming up')}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1.5 ${
+                    isOptimal
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isOptimal ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                    {isOptimal
+                      ? (language === 'es' ? '🟢 Lista para Enviar' : '🟢 Ready')
+                      : (language === 'es' ? '🟡 Calentando' : '🟡 Warming')}
+                  </span>
+                  <button
+                    onClick={(e) => handleDeleteAccount(acc.id, e)}
+                    className="p-1 text-slate-500 hover:text-rose-400 transition"
+                    title={language === 'es' ? 'Desconectar cuenta' : 'Disconnect mailbox'}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
 
-              {/* Friendly Health Banner */}
-              <div className="bg-slate-950/70 rounded-xl p-3 border border-slate-800/80 text-xs space-y-2">
-                <div className="flex items-center justify-between text-slate-300">
-                  <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    {language === 'es' ? 'Salud del Dominio' : 'Domain Health Score'}
+              {/* Friendly Health Diagnostic */}
+              <div className="bg-slate-950/70 rounded-xl p-3 border border-slate-800/80 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">
+                    {language === 'es' ? 'Salud de Entrega (Inbox Placement):' : 'Inbox Placement Health:'}
                   </span>
-                  <span className="font-bold text-white font-mono">{acc.healthScore}% (Excelente)</span>
+                  <span className="font-bold text-emerald-400 font-mono">{acc.healthScore || 95}%</span>
                 </div>
-
-                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-emerald-500 rounded-full"
-                    style={{ width: `${acc.healthScore}%` }}
+                    className="bg-emerald-500 h-full rounded-full"
+                    style={{ width: `${acc.healthScore || 95}%` }}
                   />
                 </div>
-
-                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                  <span>{language === 'es' ? 'Enviados hoy:' : 'Sent today:'}</span>
-                  <span className="text-white font-mono">{acc.sentToday} / {acc.dailyLimit}</span>
-                </div>
+                <p className="text-[11px] text-slate-400 pt-1">
+                  {isOptimal
+                    ? (language === 'es'
+                        ? '✓ Autenticación correcta (SPF/DKIM). Tus correos no caen en SPAM.'
+                        : '✓ SPF/DKIM authenticated. Emails reach primary inbox.')
+                    : (language === 'es'
+                        ? '⏳ El sistema está aumentando su reputación progresivamente.'
+                        : '⏳ Warmup in progress to raise sender domain reputation.')}
+                </p>
               </div>
 
-              {/* Automatic Warmup Indicator */}
-              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                <span className="flex items-center gap-1 text-amber-400 font-medium">
-                  <Flame className="w-3.5 h-3.5" />
-                  {language === 'es' ? 'Calentamiento automático activo' : 'Auto-warmup active'}
-                </span>
-                <span className="text-slate-500">
-                  {language === 'es' ? 'Protege contra spam' : 'Guards against spam'}
-                </span>
+              {/* Status footer */}
+              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">
+                <div className="flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{language === 'es' ? 'Protección Activa' : 'Warmup Guard Active'}</span>
+                </div>
+                <div className="font-mono text-slate-300">
+                  {acc.sentToday} / {acc.dailyLimit} {language === 'es' ? 'hoy' : 'today'}
+                </div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Connect Mailbox Modal */}
+      {/* Add Account Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Server className="w-4 h-4 text-blue-400" />
-              {language === 'es' ? 'Conectar Cuenta de Correo (SMTP)' : 'Connect Email Account (SMTP)'}
-            </h2>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0f172a] border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Mail className="w-5 h-5 text-blue-500" />
+                <h3 className="font-bold text-white text-sm">
+                  {language === 'es' ? 'Conectar Cuenta de Correo (Gmail / SMTP)' : 'Connect Email Account'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="text-slate-400 hover:text-white text-sm"
+              >
+                ✕
+              </button>
+            </div>
 
             <form onSubmit={handleAddAccount} className="space-y-3">
               <div>
                 <label className="text-xs text-slate-300 font-medium">
-                  {language === 'es' ? 'Nombre o Remitente' : 'Sender Name'}
+                  {language === 'es' ? 'Nombre o Identificador' : 'Mailbox Nickname'}
                 </label>
                 <input
                   type="text"
@@ -161,19 +215,21 @@ export default function SimpleAccountsView() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
-                  placeholder="ej. Alex Ventas"
+                  placeholder="Ej: Ventas Gmail"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-slate-300 font-medium">Email</label>
+                <label className="text-xs text-slate-300 font-medium">
+                  {language === 'es' ? 'Correo Electrónico' : 'Email Address'}
+                </label>
                 <input
                   type="email"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value, smtpUser: e.target.value })}
                   className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
-                  placeholder="alex@tuempresa.com"
+                  placeholder="tunombre@gmail.com o empresa.com"
                 />
               </div>
 
@@ -187,8 +243,29 @@ export default function SimpleAccountsView() {
                   value={formData.smtpPass}
                   onChange={(e) => setFormData({ ...formData, smtpPass: e.target.value })}
                   className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
-                  placeholder="Contraseña de aplicación generada en Google o Outlook"
+                  placeholder={language === 'es' ? 'Contraseña de 16 letras generada en Google' : '16-character app password'}
                 />
+              </div>
+
+              {/* Google App Password Tip */}
+              <div className="bg-blue-950/40 border border-blue-500/30 rounded-xl p-3 text-[11px] text-blue-200 space-y-1">
+                <div className="font-semibold flex items-center justify-between">
+                  <span>💡 {language === 'es' ? 'Para cuentas de Gmail:' : 'For Gmail accounts:'}</span>
+                  <a
+                    href="https://myaccount.google.com/apppasswords"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:underline flex items-center gap-1 font-normal text-[10px]"
+                  >
+                    <span>{language === 'es' ? 'Crear Contraseña' : 'Create Password'}</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
+                <p className="text-slate-300 leading-relaxed text-[10px]">
+                  {language === 'es'
+                    ? 'No uses tu contraseña normal. Google requiere una "Contraseña de Aplicación" de 16 caracteres desde Cuenta de Google > Seguridad.'
+                    : 'Google requires a 16-character App Password generated under Google Account > Security.'}
+                </p>
               </div>
 
               <div className="flex justify-end gap-2 pt-3">
@@ -201,9 +278,10 @@ export default function SimpleAccountsView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg shadow transition"
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow transition"
                 >
-                  {language === 'es' ? 'Conectar y Activar' : 'Connect & Activate'}
+                  {isSaving ? (language === 'es' ? 'Guardando...' : 'Saving...') : (language === 'es' ? 'Conectar y Guardar' : 'Connect & Save')}
                 </button>
               </div>
             </form>

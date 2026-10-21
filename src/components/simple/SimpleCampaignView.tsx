@@ -3,32 +3,36 @@
 import React, { useState } from 'react';
 import { 
   Send, Sparkles, CheckCircle2, ShieldCheck, Clock, FileSpreadsheet, 
-  ChevronDown, ChevronUp, Play, Pause, RefreshCw, Eye, AlertTriangle
+  ChevronDown, ChevronUp, Play, Pause, RefreshCw, Eye, AlertTriangle,
+  Upload, Trash2, Tag, Plus
 } from 'lucide-react';
 import { Campaign, Lead } from '@/types';
 import { NOVICE_TEMPLATES } from '@/core/templates';
 import { checkSpamWords, applySpamFixes } from '@/lib/spamDetector';
 import { useLanguage } from '@/context/LanguageContext';
+import LeadImportModal from '../LeadImportModal';
 
 interface SimpleCampaignViewProps {
   campaign: Campaign;
   onUpdateCampaign: (updated: Campaign) => void;
   openCopilot: () => void;
   leads?: Lead[];
+  onRefreshLeads?: () => void;
 }
 
 export default function SimpleCampaignView({
   campaign,
   onUpdateCampaign,
   openCopilot,
-  leads = []
+  leads = [],
+  onRefreshLeads
 }: SimpleCampaignViewProps) {
   const { t, language } = useLanguage();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('template-pitch');
   const [isSending, setIsSending] = useState(false);
   const [dispatchResult, setDispatchResult] = useState<any | null>(null);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
-  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const activeStep = campaign.steps[0];
   const activeVariant = activeStep?.variants[0];
@@ -38,6 +42,22 @@ export default function SimpleCampaignView({
   const totalSpam = [...subjectSpam, ...bodySpam];
 
   const campaignLeads = leads.filter(l => l.campaignId === campaign.id);
+
+  // Extract detected unique variables from campaign leads' customVariables
+  const detectedVariables = Array.from(
+    new Set(
+      campaignLeads.flatMap(l => Object.keys(l.customVariables || {}))
+    )
+  );
+
+  // Standard variables list combined with sheet variables
+  const availableTags = Array.from(
+    new Set([
+      language === 'es' ? 'Nombre' : 'firstName',
+      language === 'es' ? 'Empresa' : 'companyName',
+      ...detectedVariables
+    ])
+  );
 
   // Apply selected template
   const applyTemplate = (templateId: string) => {
@@ -65,6 +85,20 @@ export default function SimpleCampaignView({
     const updated = { ...campaign, steps: newSteps };
     onUpdateCampaign(updated);
     saveToServer(updated);
+  };
+
+  const insertVariableIntoBody = (varName: string) => {
+    if (!activeVariant) return;
+    const tag = `{{${varName}}}`;
+    const newBody = activeVariant.body ? `${activeVariant.body} ${tag}` : tag;
+    handleUpdateContent({ body: newBody });
+  };
+
+  const insertVariableIntoSubject = (varName: string) => {
+    if (!activeVariant) return;
+    const tag = `{{${varName}}}`;
+    const newSub = activeVariant.subject ? `${activeVariant.subject} ${tag}` : tag;
+    handleUpdateContent({ subject: newSub });
   };
 
   const saveToServer = async (updated: Campaign) => {
@@ -97,6 +131,7 @@ export default function SimpleCampaignView({
       setDispatchResult(data);
       const refreshed = await fetch(`/api/campaigns/${campaign.id}`).then(r => r.json());
       onUpdateCampaign(refreshed);
+      if (onRefreshLeads) onRefreshLeads();
     } catch (err) {
       console.error(err);
     } finally {
@@ -104,24 +139,45 @@ export default function SimpleCampaignView({
     }
   };
 
+  const handleClearLeads = async () => {
+    if (!confirm(language === 'es' ? '¿Deseas vaciar la lista de destinatarios de esta campaña?' : 'Clear all leads in this campaign?')) return;
+    try {
+      await fetch(`/api/leads?campaignId=${campaign.id}`, { method: 'DELETE' });
+      if (onRefreshLeads) onRefreshLeads();
+    } catch (e) {}
+  };
+
+  const handleImportSuccess = () => {
+    if (onRefreshLeads) onRefreshLeads();
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#0b0f17] p-8 max-w-4xl mx-auto w-full space-y-6">
-      {/* Friendly Hero Banner */}
-      <div className="bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-purple-950/20 border border-blue-500/30 rounded-3xl p-6 shadow-xl flex items-center justify-between">
-        <div className="space-y-1">
+      {/* Modal to Import Leads (Google Sheets / CSV) */}
+      <LeadImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        campaignId={campaign.id}
+        onImportSuccess={handleImportSuccess}
+      />
+
+      {/* Top Banner: Novice Campaign Header */}
+      <div className="flex items-center justify-between border-b border-slate-800 pb-5">
+        <div>
           <div className="flex items-center gap-2">
-            <span className="text-xl">✉️</span>
-            <h1 className="text-lg font-bold text-white">
-              {language === 'es' ? 'Crear y Enviar Campaña de Correo' : 'Create & Send Email Campaign'}
-            </h1>
-            <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-bold">
-              {language === 'es' ? 'Modo Guiado' : 'Guided Mode'}
+            <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20">
+              {language === 'es' ? 'Modo Simple (Paso a Paso)' : 'Simple Mode (Guided)'}
             </span>
+            <span className="text-slate-500 text-xs">•</span>
+            <span className="text-xs text-slate-400 font-medium">{campaign.name}</span>
           </div>
-          <p className="text-xs text-slate-300 max-w-xl">
+          <h1 className="text-xl font-bold text-white mt-1">
+            {language === 'es' ? 'Crear y Lanzar Campaña de Correo' : 'Draft & Launch Outreach Campaign'}
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
             {language === 'es'
-              ? 'Elige una plantilla probada, personalízala a tu gusto y el sistema se encargará de programar los horarios de entrega seguros automáticamente.'
-              : 'Choose a proven template, customize it, and the system handles safe sending schedules automatically.'}
+              ? 'Conecta tus contactos, escribe tu mensaje y el sistema enviará en horario laboral seguro sin caer en spam.'
+              : 'Connect your contacts, choose your message, and let automated safeguards deliver safely without spam flags.'}
           </p>
         </div>
 
@@ -134,8 +190,8 @@ export default function SimpleCampaignView({
         </button>
       </div>
 
-      {/* Step 1: Recipients Card */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-3 shadow-sm">
+      {/* Step 1: Recipients Card & Google Sheets Import */}
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-400 font-bold text-xs flex items-center justify-center">
@@ -143,19 +199,74 @@ export default function SimpleCampaignView({
             </div>
             <div>
               <h3 className="text-sm font-bold text-white">
-                {language === 'es' ? '¿A quién le escribes?' : 'Who are you emailing?'}
+                {language === 'es' ? '¿A quién le escribes? (Destinatarios)' : 'Who are you emailing? (Recipients)'}
               </h3>
               <p className="text-xs text-slate-400">
-                {language === 'es' ? 'Contactos cargados para esta campaña' : 'Contacts targeted for this campaign'}
+                {language === 'es' ? 'Base de contactos asignada a esta campaña' : 'Contacts targeted for this campaign'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs">
-            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-semibold px-3 py-1 rounded-xl">
-              ✓ {campaignLeads.length > 0 ? `${campaignLeads.length} prospectos listos` : '2 prospectos demo'}
-            </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md transition"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>
+                {campaignLeads.length > 0
+                  ? (language === 'es' ? 'Importar más desde Sheets / CSV' : 'Import more from Sheets / CSV')
+                  : (language === 'es' ? '📥 Conectar Google Sheet / Cargar Leads' : '📥 Connect Google Sheet / Upload Leads')}
+              </span>
+            </button>
+
+            {campaignLeads.length > 0 && (
+              <button
+                onClick={handleClearLeads}
+                title={language === 'es' ? 'Vaciar lista' : 'Clear leads'}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-700/80 transition"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
+        </div>
+
+        {/* Status of Loaded Contacts */}
+        <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <div>
+              <span className="font-semibold text-white">
+                {campaignLeads.length > 0
+                  ? `${campaignLeads.length} ${language === 'es' ? 'contactos listos para recibir correos' : 'contacts ready to receive emails'}`
+                  : (language === 'es' ? 'No hay contactos cargados aún' : 'No contacts loaded yet')}
+              </span>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {campaignLeads.length > 0
+                  ? (language === 'es' ? 'Se respetan todas las columnas de tu hoja para personalización' : 'All spreadsheet columns are mapped for personalized variables')
+                  : (language === 'es' ? 'Haz clic en "Conectar Google Sheet" para subir tu base en segundos' : 'Click "Connect Google Sheet" to upload your list in seconds')}
+              </p>
+            </div>
+          </div>
+
+          {detectedVariables.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[11px] text-slate-400 font-medium">
+                {language === 'es' ? 'Columnas de tu hoja:' : 'Your Sheet Columns:'}
+              </span>
+              {detectedVariables.map((v, i) => (
+                <button
+                  key={i}
+                  onClick={() => insertVariableIntoBody(v)}
+                  title={language === 'es' ? `Insertar {{${v}}} en el mensaje` : `Insert {{${v}}} in message`}
+                  className="bg-emerald-950/80 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 font-mono text-[10px] px-2 py-0.5 rounded transition"
+                >
+                  +{`{{${v}}}`}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -222,17 +333,59 @@ export default function SimpleCampaignView({
           </div>
         </div>
 
+        {/* Variable Insertion Pills Toolbar */}
+        <div className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3 space-y-1.5">
+          <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
+            <Tag className="w-3.5 h-3.5 text-blue-400" />
+            <span>
+              {language === 'es' ? 'Haz clic en una variable para insertarla en tu correo:' : 'Click any variable tag to insert into your email:'}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {availableTags.map((tag, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => insertVariableIntoBody(tag)}
+                className="bg-blue-950/50 hover:bg-blue-900/60 border border-blue-500/30 hover:border-blue-400 text-blue-300 font-mono text-[11px] px-2.5 py-1 rounded-lg transition flex items-center gap-1"
+              >
+                <Plus className="w-3 h-3 text-blue-400" />
+                <span>{`{{${tag}}}`}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Subject Field */}
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-300">
-            {language === 'es' ? 'Asunto del Correo' : 'Email Subject Line'}
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-300">
+              {language === 'es' ? 'Asunto del Correo' : 'Email Subject Line'}
+            </label>
+            <div className="text-[11px] text-slate-500 flex items-center gap-1">
+              <span>{language === 'es' ? 'Variables rápidas para asunto:' : 'Subject tags:'}</span>
+              <button
+                type="button"
+                onClick={() => insertVariableIntoSubject(language === 'es' ? 'Nombre' : 'firstName')}
+                className="text-blue-400 hover:underline font-mono"
+              >
+                +&#123;&#123;{language === 'es' ? 'Nombre' : 'firstName'}&#125;&#125;
+              </button>
+              <button
+                type="button"
+                onClick={() => insertVariableIntoSubject(language === 'es' ? 'Empresa' : 'companyName')}
+                className="text-blue-400 hover:underline font-mono ml-1"
+              >
+                +&#123;&#123;{language === 'es' ? 'Empresa' : 'companyName'}&#125;&#125;
+              </button>
+            </div>
+          </div>
           <input
             type="text"
             value={activeVariant?.subject || ''}
             onChange={(e) => handleUpdateContent({ subject: e.target.value })}
             className="w-full bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none transition"
-            placeholder={language === 'es' ? 'Consulta breve sobre {{companyName}}...' : 'Quick question regarding {{companyName}}...'}
+            placeholder={language === 'es' ? 'Consulta breve sobre {{Empresa}}...' : 'Quick question regarding {{companyName}}...'}
           />
         </div>
 
@@ -243,7 +396,7 @@ export default function SimpleCampaignView({
               {language === 'es' ? 'Cuerpo del Mensaje' : 'Email Content'}
             </label>
             <div className="text-[11px] text-slate-500">
-              {language === 'es' ? 'Las variables como {{firstName}} se reemplazan automáticamente' : 'Variables like {{firstName}} are automatically replaced'}
+              {language === 'es' ? 'Cualquier columna de tu hoja (ej: {{Cargo}}, {{Ciudad}}) se reemplazará automáticamente' : 'Any column like {{Cargo}}, {{Ciudad}} is dynamically populated'}
             </div>
           </div>
           <textarea
@@ -251,7 +404,7 @@ export default function SimpleCampaignView({
             value={activeVariant?.body || ''}
             onChange={(e) => handleUpdateContent({ body: e.target.value })}
             className="w-full bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-xl p-4 text-xs text-white focus:outline-none transition leading-relaxed font-sans"
-            placeholder={language === 'es' ? 'Hola {{firstName}}, te escribo porque...' : 'Hi {{firstName}}, reaching out because...'}
+            placeholder={language === 'es' ? 'Hola {{Nombre}}, te escribo porque...' : 'Hi {{firstName}}, reaching out because...'}
           />
         </div>
       </div>
@@ -326,8 +479,8 @@ export default function SimpleCampaignView({
 
         <button
           onClick={() => handleRunCampaign(false)}
-          disabled={isSending}
-          className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-blue-600/30 transition"
+          disabled={isSending || campaignLeads.length === 0}
+          className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-blue-600/30 transition"
         >
           <Send className="w-4 h-4" />
           <span>{language === 'es' ? 'Activar y Enviar Campaña 🚀' : 'Launch Campaign 🚀'}</span>

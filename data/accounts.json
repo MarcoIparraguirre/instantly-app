@@ -1,14 +1,52 @@
 [
   {
     "id": "acc-1",
-    "name": "Primary Outbound Mailbox",
-    "email": "outbound@growthpilot.io",
-    "smtpHost": "smtp.ethereal.email",
+    "name": "Growth Outreach Mailbox 1",
+    "email": "alex.morgan@growthpilot.io",
+    "provider": "google",
+    "smtpHost": "smtp.gmail.com",
     "smtpPort": 587,
-    "smtpUser": "outbound@growthpilot.io",
-    "smtpPass": "demo-pass",
+    "smtpUser": "alex.morgan@growthpilot.io",
+    "smtpPass": "demo-app-pass",
     "dailyLimit": 50,
-    "sentToday": 2,
-    "status": "active"
+    "sentToday": 18,
+    "status": "active",
+    "warmupEnabled": true,
+    "warmupToday": 24,
+    "warmupTotal": 640,
+    "warmupRescueRate": 98.5,
+    "healthScore": 98,
+    "dnsChecks": [
+      { "type": "SPF", "expected": "v=spf1 include:_spf.google.com ~all", "current": "v=spf1 include:_spf.google.com ~all", "valid": true, "description": "Authorizes mail server to send on behalf of domain." },
+      { "type": "DKIM", "expected": "google._domainkey.growthpilot.io (2048-bit RSA)", "current": "google._domainkey.growthpilot.io", "valid": true, "description": "Cryptographic signature proving message integrity." },
+      { "type": "DMARC", "expected": "v=DMARC1; p=quarantine; pct=100", "current": "v=DMARC1; p=quarantine", "valid": true, "description": "Policy telling receiving servers how to handle non-aligned emails." },
+      { "type": "MX", "expected": "ASPMX.L.GOOGLE.COM (Priority 1)", "current": "ASPMX.L.GOOGLE.COM", "valid": true, "description": "Directs incoming emails to mail servers." },
+      { "type": "CTD", "expected": "inst.growthpilot.io CNAME prox.instantly.ai", "current": "inst.growthpilot.io CNAME prox.instantly.ai", "valid": true, "description": "Custom Tracking Domain isolates open/click tracking from main brand domain." }
+    ]
+  },
+  {
+    "id": "acc-2",
+    "name": "Sales Direct Mailbox 2",
+    "email": "outbound@growthpilot-team.com",
+    "provider": "microsoft",
+    "smtpHost": "smtp.office365.com",
+    "smtpPort": 587,
+    "smtpUser": "outbound@growthpilot-team.com",
+    "smtpPass": "demo-app-pass",
+    "dailyLimit": 40,
+    "sentToday": 12,
+    "status": "active",
+    "warmupEnabled": true,
+    "warmupToday": 16,
+    "warmupTotal": 410,
+    "warmupRescueRate": 96.0,
+    "healthScore": 94,
+    "dnsChecks": [
+      { "type": "SPF", "expected": "v=spf1 include:spf.protection.outlook.com -all", "current": "v=spf1 include:spf.protection.outlook.com -all", "valid": true, "description": "Microsoft 365 SPF validation." },
+      { "type": "DKIM", "expected": "selector1._domainkey.growthpilot-team.com", "current": "selector1._domainkey.growthpilot-team.com", "valid": true, "description": "DKIM key 2048-bit verification." },
+      { "type": "DMARC", "expected": "v=DMARC1; p=reject", "current": "v=DMARC1; p=none", "valid": false, "description": "Warning: DMARC policy is set to 'none'. Change to quarantine or reject." },
+      { "type": "MX", "expected": "growthpilotteam-com.mail.protection.outlook.com", "current": "growthpilotteam-com.mail.protection.outlook.com", "valid": true, "description": "MX routing configured correctly." },
+      { "type": "CTD", "expected": "track.growthpilot-team.com CNAME prox.instantly.ai", "current": "track.growthpilot-team.com CNAME prox.instantly.ai", "valid": true, "description": "Custom Tracking Domain active." }
+    ]
   }
 ]

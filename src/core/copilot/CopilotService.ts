@@ -30,8 +30,8 @@ export class CopilotService {
   async process(input: CopilotChatInput): Promise<CopilotChatOutput> {
     const { message, campaignId, actionApproval } = input;
     const campaign = campaignId
-      ? this.campaignRepo.getCampaignById(campaignId)
-      : this.campaignRepo.getCampaigns()[0];
+      ? await this.campaignRepo.getCampaignById(campaignId)
+      : (await this.campaignRepo.getCampaigns())[0];
 
     if (!campaign) {
       throw new Error('No campaign found');
@@ -42,7 +42,7 @@ export class CopilotService {
       const { toolName, parameters, status } = actionApproval;
       if (status === 'approved') {
         const result = await this.registry.execute(toolName, parameters || {}, campaign);
-        this.campaignRepo.saveCampaign(result.updatedCampaign);
+        await this.campaignRepo.saveCampaign(result.updatedCampaign);
         return {
           reply: result.reply,
           updatedCampaign: result.updatedCampaign
@@ -280,8 +280,8 @@ export class CopilotService {
       userText.includes('health') ||
       userText.includes('salud')
     ) {
-      const leads = this.leadRepo.getLeads(campaign.id);
-      const accounts = this.accountRepo.getAccounts();
+      const leads = await this.leadRepo.getLeads(campaign.id);
+      const accounts = await this.accountRepo.getAccounts();
       const pendingLeads = leads.filter(l => l.status === 'pending').length;
 
       if (isSpanish) {
@@ -310,14 +310,14 @@ export class CopilotService {
     // F. Fallback / Overview
     else {
       if (isSpanish) {
-        reply = `¡Hola! Soy tu **Copilot de Instantly**. Aquí tienes algunas acciones que puedo realizar por ti:\n\n` +
+        reply = `¡Hola! Soy tu **Copilot de MiSender**. Aquí tienes algunas acciones que puedo realizar por ti:\n\n` +
           `1. *"Ayúdame a crear una secuencia completa de prospección"*\n` +
           `2. *"Revisar palabras de spam en esta campaña"*\n` +
           `3. *"Aplicar variaciones spintax para evitar filtros"*\n` +
           `4. *"Diagnóstico de salud y entregabilidad"*\n` +
           `5. *"Activar o pausar la campaña"*`;
       } else {
-        reply = `I'm your **Instantly Copilot**. Here are some things I can do for you right now:\n\n` +
+        reply = `I'm your **MiSender Copilot**. Here are some things I can do for you right now:\n\n` +
           `1. *"Help me create a complete cold email sequence"*\n` +
           `2. *"Check this campaign for spam words"*\n` +
           `3. *"Apply spintax to prevent spam filters"*\n` +

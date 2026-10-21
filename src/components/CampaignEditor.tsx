@@ -11,19 +11,22 @@ import { checkSpamWords, applySpamFixes } from '@/lib/spamDetector';
 import { resolveSpintax, generateSpintax } from '@/lib/spintax';
 import { useLanguage } from '@/context/LanguageContext';
 import { v4 as uuidv4 } from 'uuid';
+import LeadImportModal from './LeadImportModal';
 
 interface CampaignEditorProps {
   campaign: Campaign;
   onUpdateCampaign: (updated: Campaign) => void;
   openCopilot: () => void;
   leads?: Lead[];
+  onRefreshLeads?: () => void;
 }
 
 export default function CampaignEditor({
   campaign,
   onUpdateCampaign,
   openCopilot,
-  leads = []
+  leads = [],
+  onRefreshLeads
 }: CampaignEditorProps) {
   const { t, language } = useLanguage();
   const [activePhase, setActivePhase] = useState<'leads' | 'sequences' | 'schedule' | 'options'>('sequences');
@@ -33,6 +36,7 @@ export default function CampaignEditor({
   const [spintaxPreviews, setSpintaxPreviews] = useState<string[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [dispatchResult, setDispatchResult] = useState<any | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const activeStep = campaign.steps[activeStepIndex] || campaign.steps[0];
   const activeVariant = activeStep?.variants[activeVariantIndex] || activeStep?.variants[0];
@@ -43,6 +47,31 @@ export default function CampaignEditor({
   const totalSpamWords = [...subjectSpam, ...bodySpam];
 
   const campaignLeads = leads.filter(l => l.campaignId === campaign.id);
+
+  // Extract detected unique variables from campaign leads' customVariables
+  const detectedVariables = Array.from(
+    new Set(
+      campaignLeads.flatMap(l => Object.keys(l.customVariables || {}))
+    )
+  );
+
+  const availableTags = Array.from(
+    new Set([
+      'firstName',
+      'lastName',
+      'companyName',
+      'email',
+      ...detectedVariables
+    ])
+  );
+
+  const handleClearLeads = async () => {
+    if (!confirm(language === 'es' ? '¿Deseas vaciar los leads de esta campaña?' : 'Clear leads in this campaign?')) return;
+    try {
+      await fetch(`/api/leads?campaignId=${campaign.id}`, { method: 'DELETE' });
+      if (onRefreshLeads) onRefreshLeads();
+    } catch (e) {}
+  };
 
   const saveToServer = async (updated: Campaign) => {
     try {
@@ -303,8 +332,28 @@ export default function CampaignEditor({
                 <p className="text-xs text-slate-400 mt-0.5">{t('campaignWizard.leadsPhaseDesc')}</p>
               </div>
 
-              <div className="text-xs text-slate-400 font-mono">
-                {campaignLeads.length} leads in campaign
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl shadow-md transition"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>{language === 'es' ? 'Importar (Google Sheets / CSV)' : 'Import (Google Sheets / CSV)'}</span>
+                </button>
+
+                {campaignLeads.length > 0 && (
+                  <button
+                    onClick={handleClearLeads}
+                    className="p-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-700/80 transition"
+                    title={language === 'es' ? 'Vaciar leads' : 'Clear leads'}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
+                <div className="text-xs text-slate-400 font-mono pl-2 border-l border-slate-800">
+                  {campaignLeads.length} leads
+                </div>
               </div>
             </div>
 
@@ -473,9 +522,9 @@ export default function CampaignEditor({
                 <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
                   {t('campaignWizard.subjectLine')}
                 </label>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-[11px] text-slate-500 mr-1">{t('campaignWizard.insertTag')}</span>
-                  {['firstName', 'companyName'].map((tag) => (
+                  {availableTags.slice(0, 6).map((tag) => (
                     <button
                       key={tag}
                       type="button"
@@ -521,16 +570,18 @@ export default function CampaignEditor({
 
                   <div className="h-4 w-px bg-slate-800" />
 
-                  {['firstName', 'companyName'].map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => insertVariable(tag, 'body')}
-                      className="text-[10px] bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 px-2 py-0.5 rounded transition"
-                    >
-                      +{tag}
-                    </button>
-                  ))}
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {availableTags.slice(0, 8).map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => insertVariable(tag, 'body')}
+                        className="text-[10px] bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 px-2 py-0.5 rounded transition"
+                      >
+                        +{tag}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -748,6 +799,15 @@ export default function CampaignEditor({
             </div>
           </div>
         )}
+        {/* Lead Import Modal (Google Sheets / CSV) */}
+        <LeadImportModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          campaignId={campaign.id}
+          onImportSuccess={() => {
+            if (onRefreshLeads) onRefreshLeads();
+          }}
+        />
       </div>
     </div>
   );

@@ -1,21 +1,9 @@
 import { SenderAccount } from '@/types';
 import { IAccountRepository } from '../interfaces/storage';
 import { IJsonStorageDriver } from './JsonDriver';
+import { initialEmailAccountsWithWarmup } from './mockData';
 
-export const initialAccountsSeed: SenderAccount[] = [
-  {
-    id: 'acc-1',
-    name: 'Primary Outbound Mailbox',
-    email: 'outbound@growthpilot.io',
-    smtpHost: 'smtp.ethereal.email',
-    smtpPort: 587,
-    smtpUser: 'outbound@growthpilot.io',
-    smtpPass: 'demo-pass',
-    dailyLimit: 50,
-    sentToday: 0,
-    status: 'active'
-  }
-];
+export const initialAccountsSeed: SenderAccount[] = initialEmailAccountsWithWarmup;
 
 export class AccountRepository implements IAccountRepository {
   private driver: IJsonStorageDriver;
@@ -47,5 +35,11 @@ export class AccountRepository implements IAccountRepository {
       existing.push(account);
     }
     this.saveAccounts(existing);
+  }
+
+  deleteAccount(id: string): void {
+    const existing = this.getAccounts();
+    const filtered = existing.filter(a => a.id !== id);
+    this.saveAccounts(filtered);
   }
 }

@@ -1,45 +1,48 @@
 import { Campaign, Lead, SenderAccount, CopilotMessage } from '@/types';
 
 // Interface Segregation Principle (ISP): Split Read and Write interfaces
+// Compatible with both asynchronous (Supabase, PostgreSQL) and synchronous (JSON, memory) drivers
 export interface ICampaignReader {
-  getCampaigns(): Campaign[];
-  getCampaignById(id: string): Campaign | undefined;
+  getCampaigns(): Promise<Campaign[]> | Campaign[];
+  getCampaignById(id: string): Promise<Campaign | undefined> | (Campaign | undefined);
 }
 
 export interface ICampaignWriter {
-  saveCampaigns(campaigns: Campaign[]): void;
-  saveCampaign(campaign: Campaign): void;
+  saveCampaigns(campaigns: Campaign[]): Promise<void> | void;
+  saveCampaign(campaign: Campaign): Promise<void> | void;
 }
 
 export interface ICampaignRepository extends ICampaignReader, ICampaignWriter {}
 
 export interface ILeadReader {
-  getLeads(campaignId?: string): Lead[];
-  getLeadById(id: string): Lead | undefined;
+  getLeads(campaignId?: string): Promise<Lead[]> | Lead[];
+  getLeadById(id: string): Promise<Lead | undefined> | (Lead | undefined);
 }
 
 export interface ILeadWriter {
-  saveLeads(leads: Lead[]): void;
-  addLeads(newLeads: Lead[]): void;
-  updateLead(lead: Lead): void;
+  saveLeads(leads: Lead[]): Promise<void> | void;
+  addLeads(newLeads: Lead[]): Promise<void> | void;
+  updateLead(lead: Lead): Promise<void> | void;
+  deleteLeads(campaignId?: string): Promise<void> | void;
 }
 
 export interface ILeadRepository extends ILeadReader, ILeadWriter {}
 
 export interface IAccountReader {
-  getAccounts(): SenderAccount[];
-  getAccountById(id: string): SenderAccount | undefined;
+  getAccounts(): Promise<SenderAccount[]> | SenderAccount[];
+  getAccountById(id: string): Promise<SenderAccount | undefined> | (SenderAccount | undefined);
 }
 
 export interface IAccountWriter {
-  saveAccounts(accounts: SenderAccount[]): void;
-  saveAccount(account: SenderAccount): void;
+  saveAccounts(accounts: SenderAccount[]): Promise<void> | void;
+  saveAccount(account: SenderAccount): Promise<void> | void;
+  deleteAccount(id: string): Promise<void> | void;
 }
 
 export interface IAccountRepository extends IAccountReader, IAccountWriter {}
 
 export interface ICopilotRepository {
-  getMessages(): CopilotMessage[];
-  saveMessages(messages: CopilotMessage[]): void;
-  addMessage(message: CopilotMessage): void;
+  getMessages(): Promise<CopilotMessage[]> | CopilotMessage[];
+  saveMessages(messages: CopilotMessage[]): Promise<void> | void;
+  addMessage(message: CopilotMessage): Promise<void> | void;
 }

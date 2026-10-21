@@ -50,6 +50,19 @@ describe('GoogleSheetsService (Unit Tests)', () => {
     expect(leads[0].lastName).toBe('Santana');
     expect(leads[0].companyName).toBe('Guitarras SL');
     expect(leads[0].customVariables?.sector).toBe('Música');
+    expect(leads[0].customVariables?.empresa).toBe('Guitarras SL');
+  });
+
+  it('detects all unique columns across rows accurately', () => {
+    const rows: Record<string, string>[] = [
+      { Email: 'a@a.com', Nombre: 'Ana', Cargo: 'CEO' },
+      { Email: 'b@b.com', Nombre: 'Bob', Telefono: '12345' }
+    ];
+    const columns = service.getDetectedColumns(rows);
+    expect(columns).toContain('Email');
+    expect(columns).toContain('Nombre');
+    expect(columns).toContain('Cargo');
+    expect(columns).toContain('Telefono');
   });
 
   it('filters out rows without valid email addresses', () => {

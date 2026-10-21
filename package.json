@@ -13,6 +13,7 @@
   "dependencies": {
     "@ai-sdk/google": "^4.0.101",
     "@ai-sdk/openai": "^4.0.98",
+    "@supabase/supabase-js": "^2.118.0",
     "ai": "^7.0.146",
     "clsx": "^2.1.1",
     "lucide-react": "^1.60.0",

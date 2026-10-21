@@ -30,13 +30,14 @@ export class CampaignDispatcher implements ICampaignDispatcher {
   ) {}
 
   async dispatchStep(campaignId: string, options?: DispatchOptions): Promise<CampaignRunResult> {
-    const campaign = this.campaignRepo.getCampaignById(campaignId);
+    const campaign = await this.campaignRepo.getCampaignById(campaignId);
     if (!campaign) {
       throw new Error(`Campaign ${campaignId} not found`);
     }
 
-    const leads = this.leadRepo.getLeads(campaignId).filter(l => l.status === 'pending');
-    const allAccounts = this.accountRepo.getAccounts();
+    const allLeads = await this.leadRepo.getLeads(campaignId);
+    const leads = allLeads.filter(l => l.status === 'pending');
+    const allAccounts = await this.accountRepo.getAccounts();
     const accounts = allAccounts.filter(
       a => campaign.senderAccountIds.length === 0 || campaign.senderAccountIds.includes(a.id)
     );
@@ -98,11 +99,11 @@ export class CampaignDispatcher implements ICampaignDispatcher {
         // Update lead state
         lead.status = 'sent';
         lead.lastContactedAt = new Date().toISOString();
-        this.leadRepo.updateLead(lead);
+        await this.leadRepo.updateLead(lead);
 
         sentCount++;
         sender.sentToday = (sender.sentToday || 0) + 1;
-        this.accountRepo.saveAccount(sender);
+        await this.accountRepo.saveAccount(sender);
       } else {
         logs.push({
           timestamp: new Date().toISOString(),
@@ -118,7 +119,7 @@ export class CampaignDispatcher implements ICampaignDispatcher {
 
     // Update campaign stats
     campaign.stats.sent += sentCount;
-    this.campaignRepo.saveCampaign(campaign);
+    await this.campaignRepo.saveCampaign(campaign);
 
     return {
       campaignId,

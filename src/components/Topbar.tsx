@@ -25,6 +25,7 @@ export default function Topbar({
   const { t, language } = useLanguage();
   const { mode, setMode, openModePicker } = useViewMode();
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
@@ -134,7 +135,7 @@ export default function Topbar({
           <span className="text-[10px] text-indigo-400/80 font-normal">{t('topbar.creditsAvailable')}</span>
         </div>
 
-        {/* Instantly Copilot Trigger */}
+        {/* MiSender Copilot Trigger */}
         <button
           onClick={openCopilot}
           className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-md shadow-indigo-600/20 transition"
@@ -147,10 +148,31 @@ export default function Topbar({
         <LanguageToggle />
 
         {/* User Profile Avatar */}
-        <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
+        <div className="relative flex items-center gap-2 pl-2 border-l border-slate-800">
+          <button
+            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+            title="Alex Morgan (Account Manager) - AM"
+            className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 hover:scale-105 active:scale-95 flex items-center justify-center text-white font-bold text-xs shadow-md transition cursor-pointer"
+          >
             AM
-          </div>
+          </button>
+
+          {isProfileMenuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-60 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-3.5 z-50 space-y-2 animate-in fade-in">
+              <div className="border-b border-slate-800/80 pb-2">
+                <div className="font-bold text-white text-xs">Alex Morgan</div>
+                <div className="text-[11px] text-slate-400 font-mono">alex.morgan@growthpilot.io</div>
+                <span className="inline-block mt-1 text-[9px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded uppercase font-semibold">
+                  {language === 'es' ? 'Administrador de Cuenta' : 'Account Manager'}
+                </span>
+              </div>
+              <div className="text-[10px] text-slate-400 leading-tight">
+                {language === 'es' 
+                  ? 'Iniciales: AM (Alex Morgan - Usuario activo)' 
+                  : 'Initials: AM (Alex Morgan - Active User)'}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

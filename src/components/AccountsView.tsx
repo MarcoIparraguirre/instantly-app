@@ -1,20 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Mail, Plus, ShieldCheck, Server, Flame, 
-  X, CheckCircle, AlertTriangle, Activity
+  X, CheckCircle, AlertTriangle, Activity, Trash2, ExternalLink
 } from 'lucide-react';
 import { SenderAccount } from '@/types';
 import { initialEmailAccountsWithWarmup } from '@/core/storage/mockData';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function AccountsView() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [accounts, setAccounts] = useState<SenderAccount[]>(initialEmailAccountsWithWarmup);
   const [selectedAccount, setSelectedAccount] = useState<SenderAccount | null>(null);
   const [drawerTab, setDrawerTab] = useState<'general' | 'warmup' | 'dns'>('dns');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     name: 'Sales Mailbox 1',
@@ -26,6 +27,22 @@ export default function AccountsView() {
     dailyLimit: '50'
   });
 
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const fetchAccounts = async () => {
+    try {
+      const res = await fetch('/api/accounts');
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setAccounts(data);
+      }
+    } catch (err) {
+      console.error('Error fetching accounts:', err);
+    }
+  };
+
   const toggleWarmup = (accountId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setAccounts(prev =>
@@ -35,36 +52,45 @@ export default function AccountsView() {
     );
   };
 
-  const handleAddAccount = (e: React.FormEvent) => {
+  const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newAcc: SenderAccount = {
-      id: `acc-${Date.now()}`,
-      name: formData.name,
-      email: formData.email,
-      provider: 'smtp',
-      smtpHost: formData.smtpHost,
-      smtpPort: Number(formData.smtpPort) || 587,
-      smtpUser: formData.smtpUser,
-      smtpPass: formData.smtpPass,
-      dailyLimit: Number(formData.dailyLimit) || 50,
-      sentToday: 0,
-      status: 'active',
-      warmupEnabled: true,
-      warmupToday: 2,
-      warmupTotal: 2,
-      warmupRescueRate: 100,
-      healthScore: 92,
-      dnsChecks: [
-        { type: 'SPF', expected: 'v=spf1 ~all', current: 'v=spf1 ~all', valid: true, description: 'SPF record authorized' },
-        { type: 'DKIM', expected: 'default._domainkey', current: 'default._domainkey', valid: true, description: 'DKIM key valid' },
-        { type: 'DMARC', expected: 'v=DMARC1; p=quarantine', current: 'v=DMARC1; p=none', valid: false, description: 'DMARC policy warning' },
-        { type: 'MX', expected: 'mx.domain.com', current: 'mx.domain.com', valid: true, description: 'MX active' },
-        { type: 'CTD', expected: 'track.domain.com CNAME prox.instantly.ai', current: 'track.domain.com', valid: true, description: 'Custom Tracking Domain enabled' }
-      ]
-    };
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) {
+        setShowAddModal(false);
+        setFormData({
+          name: 'Sales Mailbox',
+          email: '',
+          smtpHost: 'smtp.gmail.com',
+          smtpPort: '587',
+          smtpUser: '',
+          smtpPass: '',
+          dailyLimit: '50'
+        });
+        await fetchAccounts();
+      }
+    } catch (err) {
+      console.error('Error saving account:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-    setAccounts([...accounts, newAcc]);
-    setShowAddModal(false);
+  const handleDeleteAccount = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(language === 'es' ? '¿Deseas desvincular esta casilla de correo?' : 'Disconnect this email account?')) return;
+    try {
+      await fetch(`/api/accounts?id=${id}`, { method: 'DELETE' });
+      await fetchAccounts();
+      if (selectedAccount?.id === id) setSelectedAccount(null);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -155,15 +181,24 @@ export default function AccountsView() {
                     </div>
                   </td>
                   <td className="py-4 px-5 text-right">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedAccount(acc);
-                      }}
-                      className="text-blue-400 hover:text-blue-300 text-xs font-semibold"
-                    >
-                      Audit DNS →
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedAccount(acc);
+                        }}
+                        className="text-blue-400 hover:text-blue-300 text-xs font-semibold"
+                      >
+                        Audit DNS →
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteAccount(acc.id, e)}
+                        className="p-1 text-slate-500 hover:text-rose-400 transition"
+                        title={language === 'es' ? 'Eliminar cuenta' : 'Delete mailbox'}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -401,8 +436,29 @@ export default function AccountsView() {
                   value={formData.smtpPass}
                   onChange={(e) => setFormData({ ...formData, smtpPass: e.target.value })}
                   className="w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
-                  placeholder={t('accounts.passwordPlaceholder')}
+                  placeholder={language === 'es' ? 'Contraseña de Aplicación (16 letras)' : 'App Password (16 characters)'}
                 />
+              </div>
+
+              {/* Google App Password Tip */}
+              <div className="bg-blue-950/40 border border-blue-500/30 rounded-xl p-3 text-[11px] text-blue-200 space-y-1">
+                <div className="font-semibold flex items-center justify-between">
+                  <span>💡 {language === 'es' ? '¿Usas Gmail o Google Workspace?' : 'Using Gmail or Google Workspace?'}</span>
+                  <a
+                    href="https://myaccount.google.com/apppasswords"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:underline flex items-center gap-1 font-normal text-[10px]"
+                  >
+                    <span>{language === 'es' ? 'Generar Contraseña de App' : 'Generate App Password'}</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
+                <p className="text-slate-300 leading-relaxed text-[10px]">
+                  {language === 'es'
+                    ? 'Google bloquea las contraseñas habituales en SMTP. Debes generar una Contraseña de Aplicación de 16 letras en Seguridad de tu cuenta de Google.'
+                    : 'Google blocks normal account passwords on SMTP. Generate a 16-character App Password in Google Account Security.'}
+                </p>
               </div>
 
               <div>
@@ -427,9 +483,10 @@ export default function AccountsView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg shadow transition"
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow transition"
                 >
-                  {t('accounts.saveAndVerify')}
+                  {isSaving ? (language === 'es' ? 'Guardando...' : 'Saving...') : t('accounts.saveAndVerify')}
                 </button>
               </div>
             </form>
