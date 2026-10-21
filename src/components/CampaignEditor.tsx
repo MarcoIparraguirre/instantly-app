@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, Layers, Clock, Settings, Plus, Trash2, Send, Play, Pause, 
-  AlertTriangle, CheckCircle, Sparkles, Eye, ShieldCheck, RefreshCw, 
-  FileSpreadsheet, Upload, CheckSquare, Square, Tag
+  AlertTriangle, CheckCircle, CheckCircle2, Sparkles, Eye, ShieldCheck, RefreshCw, 
+  FileSpreadsheet, Upload, CheckSquare, Square, Tag, Mail
 } from 'lucide-react';
-import { Campaign, SequenceStep, StepVariant, Lead } from '@/types';
+import { Campaign, SequenceStep, StepVariant, Lead, SenderAccount } from '@/types';
 import { checkSpamWords, applySpamFixes } from '@/lib/spamDetector';
 import { resolveSpintax, generateSpintax } from '@/lib/spintax';
 import { useLanguage } from '@/context/LanguageContext';
@@ -37,6 +37,40 @@ export default function CampaignEditor({
   const [isSending, setIsSending] = useState(false);
   const [dispatchResult, setDispatchResult] = useState<any | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [accounts, setAccounts] = useState<SenderAccount[]>([]);
+
+  useEffect(() => {
+    fetch('/api/accounts')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setAccounts(data);
+          const currentIds = campaign.senderAccountIds || [];
+          const validIds = currentIds.filter(id => data.some(a => a.id === id));
+          if (validIds.length === 0) {
+            const autoSelected = [data[0].id];
+            const updated = { ...campaign, senderAccountIds: autoSelected };
+            onUpdateCampaign(updated);
+            saveToServer(updated);
+          }
+        }
+      })
+      .catch(() => {});
+  }, [campaign.id]);
+
+  const handleToggleAccount = (accountId: string) => {
+    const current = campaign.senderAccountIds || [];
+    let updatedIds: string[];
+    if (current.includes(accountId)) {
+      if (current.length === 1) return;
+      updatedIds = current.filter(id => id !== accountId);
+    } else {
+      updatedIds = [...current, accountId];
+    }
+    const updated = { ...campaign, senderAccountIds: updatedIds };
+    onUpdateCampaign(updated);
+    saveToServer(updated);
+  };
 
   const activeStep = campaign.steps[activeStepIndex] || campaign.steps[0];
   const activeVariant = activeStep?.variants[activeVariantIndex] || activeStep?.variants[0];
@@ -706,10 +740,74 @@ export default function CampaignEditor({
             </div>
 
             <div className="space-y-4">
-              {/* Inbox Rotation */}
-              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-2 text-xs">
-                <h4 className="font-bold text-white text-sm">{t('campaignWizard.inboxRotationTitle')}</h4>
-                <p className="text-slate-400">{t('campaignWizard.inboxRotationDesc')}</p>
+              {/* Sender Accounts / Inbox Selection */}
+              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-blue-400" />
+                      <span>{language === 'es' ? 'Casillas de Correo Remitentes (Sender Accounts)' : t('campaignWizard.inboxRotationTitle')}</span>
+                    </h4>
+                    <p className="text-slate-400 mt-0.5">
+                      {language === 'es' 
+                        ? 'Selecciona las cuentas de correo desde las cuales se enviarán los mensajes de esta campaña.'
+                        : t('campaignWizard.inboxRotationDesc')}
+                    </p>
+                  </div>
+                </div>
+
+                {accounts.length === 0 ? (
+                  <div className="p-3 bg-amber-950/30 border border-amber-500/30 rounded-xl text-amber-300 text-xs">
+                    {language === 'es' ? 'No tienes casillas de correo conectadas.' : 'No sender accounts connected.'}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {accounts.map((acc) => {
+                      const isSelected = (campaign.senderAccountIds || []).includes(acc.id);
+                      return (
+                        <div
+                          key={acc.id}
+                          onClick={() => handleToggleAccount(acc.id)}
+                          className={`p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 ${
+                            isSelected
+                              ? 'bg-blue-600/10 border-blue-500/60 shadow-sm'
+                              : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-400'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold uppercase shrink-0 ${
+                              isSelected ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'bg-slate-800 text-slate-400'
+                            }`}>
+                              {acc.provider === 'google' ? 'G' : acc.provider === 'microsoft' ? 'M' : 'SMTP'}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-bold text-white truncate text-xs flex items-center gap-2">
+                                <span>{acc.name || acc.email}</span>
+                                {isSelected && (
+                                  <span className="text-[9px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.2 rounded font-semibold uppercase">
+                                    {language === 'es' ? 'Activa' : 'Active'}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[11px] text-slate-400 font-mono truncate">{acc.email}</div>
+                              <div className="text-[10px] text-emerald-400 font-medium">
+                                ✓ {language === 'es' ? 'Conectada' : 'Connected'} • {acc.dailyLimit || 50}/día
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0">
+                            {isSelected ? (
+                              <CheckCircle2 className="w-5 h-5 text-blue-400" />
+                            ) : (
+                              <div className="w-5 h-5 rounded-full border border-slate-700" />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Toggles */}

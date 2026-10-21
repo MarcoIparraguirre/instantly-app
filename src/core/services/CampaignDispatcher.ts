@@ -38,9 +38,17 @@ export class CampaignDispatcher implements ICampaignDispatcher {
     const allLeads = await this.leadRepo.getLeads(campaignId);
     const leads = allLeads.filter(l => l.status === 'pending');
     const allAccounts = await this.accountRepo.getAccounts();
-    const accounts = allAccounts.filter(
+    let accounts = allAccounts.filter(
       a => campaign.senderAccountIds.length === 0 || campaign.senderAccountIds.includes(a.id)
     );
+
+    // If campaign senderAccountIds are not matching any account, fallback gracefully to all active accounts
+    if (accounts.length === 0 && allAccounts.length > 0) {
+      accounts = allAccounts.filter(a => a.status === 'active' || !a.status);
+      if (accounts.length === 0) {
+        accounts = allAccounts;
+      }
+    }
 
     if (accounts.length === 0) {
       throw new Error('No active sender accounts (mailboxes) found for this campaign.');

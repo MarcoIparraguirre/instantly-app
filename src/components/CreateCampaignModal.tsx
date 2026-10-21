@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Mail, Plus, X, Sparkles, Check, Send } from 'lucide-react';
-import { Campaign } from '@/types';
+import React, { useState, useEffect } from 'react';
+import { Mail, Plus, X, Sparkles, Check, Send, CheckCircle2 } from 'lucide-react';
+import { Campaign, SenderAccount } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAdminProfile } from '@/context/AdminProfileContext';
 
@@ -24,8 +24,24 @@ export default function CreateCampaignModal({
   const [name, setName] = useState('');
   const [templateType, setTemplateType] = useState<'b2b' | 'short' | 'blank'>('b2b');
   const [dailyLimit, setDailyLimit] = useState(50);
+  const [accounts, setAccounts] = useState<SenderAccount[]>([]);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch('/api/accounts')
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            setAccounts(data);
+            setSelectedAccountIds([data[0].id]);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -76,7 +92,10 @@ export default function CreateCampaignModal({
             timezone: 'America/New_York',
             dailyLimit,
             strategy: 'office-hours'
-          }
+          },
+          senderAccountIds: selectedAccountIds.length > 0 
+            ? selectedAccountIds 
+            : (accounts.length > 0 ? [accounts[0].id] : [])
         })
       });
 
@@ -203,6 +222,53 @@ export default function CreateCampaignModal({
               </button>
             </div>
           </div>
+
+          {/* Sender Account Selection */}
+          {accounts.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-blue-400" />
+                <span>{isEs ? 'Casilla de Correo Remitente' : 'Sender Email Account'}</span>
+              </label>
+              <div className="space-y-1.5">
+                {accounts.map(acc => {
+                  const isSelected = selectedAccountIds.includes(acc.id);
+                  return (
+                    <div
+                      key={acc.id}
+                      onClick={() => {
+                        if (isSelected && selectedAccountIds.length > 1) {
+                          setSelectedAccountIds(prev => prev.filter(id => id !== acc.id));
+                        } else if (!isSelected) {
+                          setSelectedAccountIds(prev => [...prev, acc.id]);
+                        }
+                      }}
+                      className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition ${
+                        isSelected 
+                          ? 'bg-blue-600/15 border-blue-500/50 text-white' 
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-6 h-6 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold text-[10px]">
+                          {acc.provider === 'google' ? 'G' : 'M'}
+                        </div>
+                        <div>
+                          <span className="font-semibold text-white">{acc.name || acc.email}</span>
+                          <span className="text-[11px] text-slate-400 ml-2 font-mono">({acc.email})</span>
+                        </div>
+                      </div>
+                      {isSelected ? (
+                        <CheckCircle2 className="w-4 h-4 text-blue-400" />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border border-slate-700" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Daily Sending Limit */}
           <div>
