@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Send, Sparkles, CheckCircle2, ShieldCheck, Clock, FileSpreadsheet, 
   ChevronDown, ChevronUp, Play, Pause, RefreshCw, Eye, AlertTriangle,
-  Upload, Trash2, Tag, Plus
+  Upload, Trash2, Tag, Plus, Edit3
 } from 'lucide-react';
 import { Campaign, Lead } from '@/types';
 import { NOVICE_TEMPLATES } from '@/core/templates';
@@ -33,6 +33,10 @@ export default function SimpleCampaignView({
   const [dispatchResult, setDispatchResult] = useState<any | null>(null);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [lastFocusedField, setLastFocusedField] = useState<'subject' | 'body'>('body');
+
+  const subjectInputRef = useRef<HTMLInputElement>(null);
+  const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const activeStep = campaign.steps[0];
   const activeVariant = activeStep?.variants[0];
@@ -67,9 +71,20 @@ export default function SimpleCampaignView({
     setSelectedTemplateId(templateId);
     const langKey = language === 'es' ? 'es' : 'en';
 
-    const newSteps = [...campaign.steps];
-    newSteps[0].variants[0].subject = tmpl.subject[langKey];
-    newSteps[0].variants[0].body = tmpl.body[langKey];
+    const newSteps = campaign.steps.map((step, sIdx) => {
+      if (sIdx !== 0) return step;
+      return {
+        ...step,
+        variants: step.variants.map((v, vIdx) => {
+          if (vIdx !== 0) return v;
+          return {
+            ...v,
+            subject: tmpl.subject[langKey],
+            body: tmpl.body[langKey]
+          };
+        })
+      };
+    });
 
     const updated = { ...campaign, steps: newSteps };
     onUpdateCampaign(updated);
@@ -78,27 +93,74 @@ export default function SimpleCampaignView({
 
   const handleUpdateContent = (updates: { subject?: string; body?: string }) => {
     if (!activeStep || !activeVariant) return;
-    const newSteps = [...campaign.steps];
-    if (updates.subject !== undefined) newSteps[0].variants[0].subject = updates.subject;
-    if (updates.body !== undefined) newSteps[0].variants[0].body = updates.body;
+    const newSteps = campaign.steps.map((step, sIdx) => {
+      if (sIdx !== 0) return step;
+      return {
+        ...step,
+        variants: step.variants.map((v, vIdx) => {
+          if (vIdx !== 0) return v;
+          return {
+            ...v,
+            ...(updates.subject !== undefined ? { subject: updates.subject } : {}),
+            ...(updates.body !== undefined ? { body: updates.body } : {})
+          };
+        })
+      };
+    });
 
     const updated = { ...campaign, steps: newSteps };
     onUpdateCampaign(updated);
     saveToServer(updated);
   };
 
-  const insertVariableIntoBody = (varName: string) => {
-    if (!activeVariant) return;
+  const handleInsertVariable = (varName: string, targetField?: 'subject' | 'body') => {
+    const target = targetField || lastFocusedField;
     const tag = `{{${varName}}}`;
-    const newBody = activeVariant.body ? `${activeVariant.body} ${tag}` : tag;
-    handleUpdateContent({ body: newBody });
+
+    if (target === 'subject') {
+      const el = subjectInputRef.current;
+      const currentVal = activeVariant?.subject || '';
+      let newVal = '';
+      if (el && typeof el.selectionStart === 'number') {
+        const start = el.selectionStart;
+        const end = el.selectionEnd || start;
+        newVal = currentVal.substring(0, start) + tag + currentVal.substring(end);
+      } else {
+        newVal = currentVal ? `${currentVal} ${tag}` : tag;
+      }
+      handleUpdateContent({ subject: newVal });
+      setTimeout(() => {
+        if (el) el.focus();
+      }, 50);
+    } else {
+      const el = bodyTextareaRef.current;
+      const currentVal = activeVariant?.body || '';
+      let newVal = '';
+      if (el && typeof el.selectionStart === 'number') {
+        const start = el.selectionStart;
+        const end = el.selectionEnd || start;
+        newVal = currentVal.substring(0, start) + tag + currentVal.substring(end);
+      } else {
+        newVal = currentVal ? `${currentVal} ${tag}` : tag;
+      }
+      handleUpdateContent({ body: newVal });
+      setTimeout(() => {
+        if (el) el.focus();
+      }, 50);
+    }
   };
 
-  const insertVariableIntoSubject = (varName: string) => {
-    if (!activeVariant) return;
-    const tag = `{{${varName}}}`;
-    const newSub = activeVariant.subject ? `${activeVariant.subject} ${tag}` : tag;
-    handleUpdateContent({ subject: newSub });
+  const handleToggleStatus = async () => {
+    const nextStatus = campaign.status === 'active' ? 'paused' : 'active';
+    const updated = { ...campaign, status: nextStatus as any };
+    onUpdateCampaign(updated);
+    await saveToServer(updated);
+  };
+
+  const handleRenameCampaign = (newName: string) => {
+    const updated = { ...campaign, name: newName.trim() || campaign.name };
+    onUpdateCampaign(updated);
+    saveToServer(updated);
   };
 
   const saveToServer = async (updated: Campaign) => {
@@ -162,16 +224,27 @@ export default function SimpleCampaignView({
       />
 
       {/* Top Banner: Novice Campaign Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20">
               {language === 'es' ? 'Modo Simple (Paso a Paso)' : 'Simple Mode (Guided)'}
             </span>
             <span className="text-slate-500 text-xs">•</span>
-            <span className="text-xs text-slate-400 font-medium">{campaign.name}</span>
+            {/* Inline Editable Campaign Name */}
+            <div className="flex items-center gap-1.5 group bg-slate-900/80 hover:bg-slate-900 border border-slate-700/80 hover:border-blue-500/60 focus-within:border-blue-500 rounded-xl px-2.5 py-1 transition">
+              <input
+                type="text"
+                value={campaign.name}
+                onChange={(e) => handleRenameCampaign(e.target.value)}
+                className="text-xs font-bold text-white bg-transparent focus:outline-none min-w-[200px]"
+                placeholder={language === 'es' ? 'Nombre de la campaña...' : 'Campaign name...'}
+                title={language === 'es' ? 'Haz clic para editar el nombre de la campaña' : 'Click to edit campaign name'}
+              />
+              <Edit3 className="w-3 h-3 text-slate-500 group-hover:text-blue-400 transition" />
+            </div>
           </div>
-          <h1 className="text-xl font-bold text-white mt-1">
+          <h1 className="text-xl font-bold text-white mt-1.5">
             {language === 'es' ? 'Crear y Lanzar Campaña de Correo' : 'Draft & Launch Outreach Campaign'}
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -181,13 +254,41 @@ export default function SimpleCampaignView({
           </p>
         </div>
 
-        <button
-          onClick={openCopilot}
-          className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg transition shrink-0"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>{language === 'es' ? 'Ayuda de Copilot IA' : 'Copilot AI Assistant'}</span>
-        </button>
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Status Toggle (Active / Paused) */}
+          <button
+            onClick={handleToggleStatus}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-bold transition shadow-sm cursor-pointer ${
+              campaign.status === 'active'
+                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30'
+                : campaign.status === 'paused'
+                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30'
+                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+            }`}
+            title={language === 'es' ? 'Haz clic para pausar o activar la campaña' : 'Click to toggle status'}
+          >
+            {campaign.status === 'active' ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{language === 'es' ? 'Campaña Activa' : 'Campaign Active'}</span>
+                <Pause className="w-3.5 h-3.5 ml-1 opacity-70" />
+              </>
+            ) : (
+              <>
+                <Play className="w-3.5 h-3.5 text-blue-400" />
+                <span>{language === 'es' ? 'Activar Campaña' : 'Activate Campaign'}</span>
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={openCopilot}
+            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg transition shrink-0 cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>{language === 'es' ? 'Copilot IA' : 'Copilot AI'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Step 1: Recipients Card & Google Sheets Import */}
@@ -258,9 +359,10 @@ export default function SimpleCampaignView({
               {detectedVariables.map((v, i) => (
                 <button
                   key={i}
-                  onClick={() => insertVariableIntoBody(v)}
+                  type="button"
+                  onClick={() => handleInsertVariable(v)}
                   title={language === 'es' ? `Insertar {{${v}}} en el mensaje` : `Insert {{${v}}} in message`}
-                  className="bg-emerald-950/80 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 font-mono text-[10px] px-2 py-0.5 rounded transition"
+                  className="bg-emerald-950/80 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 font-mono text-[10px] px-2 py-0.5 rounded transition cursor-pointer"
                 >
                   +{`{{${v}}}`}
                 </button>
@@ -334,20 +436,29 @@ export default function SimpleCampaignView({
         </div>
 
         {/* Variable Insertion Pills Toolbar */}
-        <div className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3 space-y-1.5">
-          <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
-            <Tag className="w-3.5 h-3.5 text-blue-400" />
-            <span>
-              {language === 'es' ? 'Haz clic en una variable para insertarla en tu correo:' : 'Click any variable tag to insert into your email:'}
+        <div className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3.5 space-y-2">
+          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <Tag className="w-3.5 h-3.5 text-blue-400" />
+              <span>
+                {language === 'es' ? 'Haz clic en una variable para insertarla en tu correo:' : 'Click any variable tag to insert into your email:'}
+              </span>
+            </span>
+            <span className="text-[10px] text-blue-400/90 font-medium bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
+              {language === 'es' 
+                ? (lastFocusedField === 'subject' ? '🎯 Se insertará en: Asunto' : '🎯 Se insertará en: Cuerpo')
+                : (lastFocusedField === 'subject' ? '🎯 Target: Subject' : '🎯 Target: Body')}
             </span>
           </div>
+
           <div className="flex flex-wrap gap-1.5">
             {availableTags.map((tag, idx) => (
               <button
                 key={idx}
                 type="button"
-                onClick={() => insertVariableIntoBody(tag)}
-                className="bg-blue-950/50 hover:bg-blue-900/60 border border-blue-500/30 hover:border-blue-400 text-blue-300 font-mono text-[11px] px-2.5 py-1 rounded-lg transition flex items-center gap-1"
+                onClick={() => handleInsertVariable(tag)}
+                className="bg-blue-950/50 hover:bg-blue-900/60 border border-blue-500/30 hover:border-blue-400 text-blue-300 font-mono text-[11px] px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer active:scale-95"
+                title={language === 'es' ? `Insertar {{${tag}}}` : `Insert {{${tag}}}`}
               >
                 <Plus className="w-3 h-3 text-blue-400" />
                 <span>{`{{${tag}}}`}</span>
@@ -366,22 +477,24 @@ export default function SimpleCampaignView({
               <span>{language === 'es' ? 'Variables rápidas para asunto:' : 'Subject tags:'}</span>
               <button
                 type="button"
-                onClick={() => insertVariableIntoSubject(language === 'es' ? 'Nombre' : 'firstName')}
-                className="text-blue-400 hover:underline font-mono"
+                onClick={() => handleInsertVariable(language === 'es' ? 'Nombre' : 'firstName', 'subject')}
+                className="text-blue-400 hover:underline font-mono cursor-pointer"
               >
                 +&#123;&#123;{language === 'es' ? 'Nombre' : 'firstName'}&#125;&#125;
               </button>
               <button
                 type="button"
-                onClick={() => insertVariableIntoSubject(language === 'es' ? 'Empresa' : 'companyName')}
-                className="text-blue-400 hover:underline font-mono ml-1"
+                onClick={() => handleInsertVariable(language === 'es' ? 'Empresa' : 'companyName', 'subject')}
+                className="text-blue-400 hover:underline font-mono ml-1 cursor-pointer"
               >
                 +&#123;&#123;{language === 'es' ? 'Empresa' : 'companyName'}&#125;&#125;
               </button>
             </div>
           </div>
           <input
+            ref={subjectInputRef}
             type="text"
+            onFocus={() => setLastFocusedField('subject')}
             value={activeVariant?.subject || ''}
             onChange={(e) => handleUpdateContent({ subject: e.target.value })}
             className="w-full bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none transition"
@@ -396,11 +509,13 @@ export default function SimpleCampaignView({
               {language === 'es' ? 'Cuerpo del Mensaje' : 'Email Content'}
             </label>
             <div className="text-[11px] text-slate-500">
-              {language === 'es' ? 'Cualquier columna de tu hoja (ej: {{Cargo}}, {{Ciudad}}) se reemplazará automáticamente' : 'Any column like {{Cargo}}, {{Ciudad}} is dynamically populated'}
+              {language === 'es' ? 'Cualquier columna de tu hoja (ej: {{DOLOR}}, {{MAIL}}) se reemplazará automáticamente' : 'Any column like {{Cargo}}, {{Ciudad}} is dynamically populated'}
             </div>
           </div>
           <textarea
+            ref={bodyTextareaRef}
             rows={8}
+            onFocus={() => setLastFocusedField('body')}
             value={activeVariant?.body || ''}
             onChange={(e) => handleUpdateContent({ body: e.target.value })}
             className="w-full bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-xl p-4 text-xs text-white focus:outline-none transition leading-relaxed font-sans"
@@ -477,14 +592,24 @@ export default function SimpleCampaignView({
           <span>{language === 'es' ? 'Simular Envío Seguro (Prueba)' : 'Safe Test Simulation'}</span>
         </button>
 
-        <button
-          onClick={() => handleRunCampaign(false)}
-          disabled={isSending || campaignLeads.length === 0}
-          className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-blue-600/30 transition"
-        >
-          <Send className="w-4 h-4" />
-          <span>{language === 'es' ? 'Activar y Enviar Campaña 🚀' : 'Launch Campaign 🚀'}</span>
-        </button>
+        {campaignLeads.length === 0 ? (
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-600/20 transition cursor-pointer"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>{language === 'es' ? 'Cargar Leads de Sheets para Enviar' : 'Load Leads to Send'}</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => handleRunCampaign(false)}
+            disabled={isSending}
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-blue-600/30 transition cursor-pointer"
+          >
+            <Send className="w-4 h-4" />
+            <span>{language === 'es' ? 'Activar y Enviar Campaña 🚀' : 'Launch Campaign 🚀'}</span>
+          </button>
+        )}
       </div>
 
       {/* Execution Results Banner */}

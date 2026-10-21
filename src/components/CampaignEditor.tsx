@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { 
   Users, Layers, Clock, Settings, Plus, Trash2, Send, Play, Pause, 
   AlertTriangle, CheckCircle, Sparkles, Eye, ShieldCheck, RefreshCw, 
-  FileSpreadsheet, Upload, CheckSquare, Square
+  FileSpreadsheet, Upload, CheckSquare, Square, Tag
 } from 'lucide-react';
 import { Campaign, SequenceStep, StepVariant, Lead } from '@/types';
 import { checkSpamWords, applySpamFixes } from '@/lib/spamDetector';
@@ -223,7 +223,7 @@ export default function CampaignEditor({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-screen overflow-hidden bg-[#0b0f17]">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#0b0f17]">
       {/* Top Header with Campaign Name, Status and Controls */}
       <div className="h-16 px-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/40 shrink-0">
         <div className="flex items-center gap-4">
@@ -319,11 +319,11 @@ export default function CampaignEditor({
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full">
+      <div className="flex-1 overflow-y-auto p-6 lg:p-8 max-w-7xl mx-auto w-full">
         {/* PHASE 1: LEADS */}
         {activePhase === 'leads' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div className="space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Users className="w-4 h-4 text-blue-400" />
@@ -335,7 +335,7 @@ export default function CampaignEditor({
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setIsImportModalOpen(true)}
-                  className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl shadow-md transition"
+                  className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl shadow-md transition cursor-pointer"
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5" />
                   <span>{language === 'es' ? 'Importar (Google Sheets / CSV)' : 'Import (Google Sheets / CSV)'}</span>
@@ -344,7 +344,7 @@ export default function CampaignEditor({
                 {campaignLeads.length > 0 && (
                   <button
                     onClick={handleClearLeads}
-                    className="p-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-700/80 transition"
+                    className="p-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-700/80 transition cursor-pointer"
                     title={language === 'es' ? 'Vaciar leads' : 'Clear leads'}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -357,37 +357,70 @@ export default function CampaignEditor({
               </div>
             </div>
 
-            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-xs text-slate-400 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>{t('campaignWizard.deduplicationNotice')}</span>
+            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-xs text-slate-400 flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{t('campaignWizard.deduplicationNotice')}</span>
+              </span>
+              {detectedVariables.length > 0 && (
+                <span className="text-[11px] text-blue-400 font-medium bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20 shrink-0">
+                  {detectedVariables.length} {language === 'es' ? 'columnas detectadas' : 'sheet columns detected'}
+                </span>
+              )}
             </div>
 
-            {/* Leads Table Preview */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950/80 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800">
-                  <tr>
-                    <th className="py-3 px-4">Email</th>
-                    <th className="py-3 px-4">Name</th>
-                    <th className="py-3 px-4">Company</th>
-                    <th className="py-3 px-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/80 text-slate-200">
-                  {campaignLeads.map((l) => (
-                    <tr key={l.id} className="hover:bg-slate-800/40">
-                      <td className="py-2.5 px-4 font-mono text-white">{l.email}</td>
-                      <td className="py-2.5 px-4 text-slate-300">{l.firstName} {l.lastName}</td>
-                      <td className="py-2.5 px-4 text-slate-400">{l.companyName}</td>
-                      <td className="py-2.5 px-4">
-                        <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                          {l.status}
-                        </span>
-                      </td>
+            {/* Leads Table Preview with Full Horizontal Scroll and Dynamic Sheet Columns */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto w-full max-w-full">
+                <table className="w-full text-left text-xs whitespace-nowrap min-w-max">
+                  <thead className="bg-slate-950/80 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="py-3 px-4 font-bold text-white">#</th>
+                      <th className="py-3 px-4 font-bold text-white">Email</th>
+                      <th className="py-3 px-4 font-bold text-white">Nombre / Name</th>
+                      <th className="py-3 px-4 font-bold text-white">Empresa / Company</th>
+                      <th className="py-3 px-4 font-bold text-white">Estado / Status</th>
+                      {detectedVariables.map((col) => (
+                        <th key={col} className="py-3 px-4 text-blue-400 bg-blue-950/30 border-l border-slate-800/80 font-mono font-bold">
+                          &#123;&#123;{col}&#125;&#125;
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80 text-slate-200">
+                    {campaignLeads.length === 0 ? (
+                      <tr>
+                        <td colSpan={5 + detectedVariables.length} className="py-8 text-center text-slate-500">
+                          {language === 'es' ? 'No hay destinatarios cargados en esta campaña.' : 'No leads loaded in this campaign.'}
+                        </td>
+                      </tr>
+                    ) : (
+                      campaignLeads.map((l, i) => (
+                        <tr key={l.id} className="hover:bg-slate-800/40 transition">
+                          <td className="py-2.5 px-4 text-slate-500 font-mono text-[10px]">{i + 1}</td>
+                          <td className="py-2.5 px-4 font-mono text-white font-medium">{l.email}</td>
+                          <td className="py-2.5 px-4 text-slate-300">{l.firstName} {l.lastName}</td>
+                          <td className="py-2.5 px-4 text-slate-400">{l.companyName || '-'}</td>
+                          <td className="py-2.5 px-4">
+                            <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-semibold">
+                              {l.status}
+                            </span>
+                          </td>
+                          {detectedVariables.map((col) => (
+                            <td 
+                              key={col} 
+                              className="py-2.5 px-4 font-mono text-slate-300 border-l border-slate-800/60 bg-slate-950/20 max-w-xs truncate" 
+                              title={String(l.customVariables?.[col] ?? '')}
+                            >
+                              {l.customVariables?.[col] !== undefined ? String(l.customVariables[col]) : '-'}
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}

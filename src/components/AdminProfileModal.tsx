@@ -1,9 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
-import { User, Mail, Building, ShieldCheck, X, Check, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Mail, Building, ShieldCheck, X, Check, Sparkles, Database } from 'lucide-react';
 import { useAdminProfile, calculateInitials } from '@/context/AdminProfileContext';
 import { useLanguage } from '@/context/LanguageContext';
+
+interface RoleOption {
+  id: string;
+  name: string;
+  description: string;
+}
 
 export default function AdminProfileModal() {
   const { profile, updateProfile, isProfileModalOpen, setIsProfileModalOpen } = useAdminProfile();
@@ -12,26 +18,56 @@ export default function AdminProfileModal() {
   const [name, setName] = useState(profile.name);
   const [email, setEmail] = useState(profile.email);
   const [company, setCompany] = useState(profile.company);
-  const [role, setRole] = useState(profile.role);
+  const [roleId, setRoleId] = useState(profile.roleId || 'super_admin');
+  const [roles, setRoles] = useState<RoleOption[]>([]);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // Sync inputs with the latest profile whenever the modal opens or profile changes
+  useEffect(() => {
+    if (isProfileModalOpen) {
+      setName(profile.name);
+      setEmail(profile.email);
+      setCompany(profile.company);
+      setRoleId(profile.roleId || 'super_admin');
+    }
+  }, [isProfileModalOpen, profile]);
+
+  // Load roles directly from Supabase / DB
+  useEffect(() => {
+    fetch('/api/roles')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setRoles(data);
+        }
+      })
+      .catch(err => console.error('Error fetching roles:', err));
+  }, []);
+
   if (!isProfileModalOpen) return null;
+
+  const currentRoleObj = roles.find(r => r.id === roleId) || {
+    id: roleId,
+    name: profile.role || 'Super Admin',
+    description: 'Control total de la plataforma y base de datos.'
+  };
 
   const previewInitials = calculateInitials(name);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateProfile({
-      name: name.trim() || 'Admin',
-      email: email.trim() || 'admin@misender.com',
-      company: company.trim() || 'MiSender Pro',
-      role: role.trim() || 'Super Admin'
+      name: name.trim() || 'Marco Iparraguirre',
+      email: email.trim() || 'marcos@vectrasystems.com.ar',
+      company: company.trim() || 'Vectra Systems',
+      role: currentRoleObj.name,
+      roleId: currentRoleObj.id
     });
     setSavedSuccess(true);
     setTimeout(() => {
       setSavedSuccess(false);
       setIsProfileModalOpen(false);
-    }, 900);
+    }, 700);
   };
 
   const isEs = language === 'es';
@@ -69,14 +105,14 @@ export default function AdminProfileModal() {
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-600/20">
               {previewInitials}
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <div className="text-sm font-bold text-white flex items-center gap-2">
-                <span>{name || (isEs ? 'Tu Nombre' : 'Your Name')}</span>
-                <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-semibold">
-                  {role || 'Super Admin'}
+                <span className="truncate">{name || (isEs ? 'Tu Nombre' : 'Your Name')}</span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold uppercase shrink-0">
+                  {currentRoleObj.name}
                 </span>
               </div>
-              <div className="text-xs text-slate-400 font-mono mt-0.5">
+              <div className="text-xs text-slate-400 font-mono mt-0.5 truncate">
                 {email || 'admin@tudominio.com'}
               </div>
               <div className="text-[11px] text-indigo-400 mt-1 flex items-center gap-1 font-medium">
@@ -98,7 +134,7 @@ export default function AdminProfileModal() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Marco Rojas"
+                placeholder="Marco Iparraguirre"
                 className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none transition"
               />
             </div>
@@ -114,7 +150,7 @@ export default function AdminProfileModal() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="marco@empresa.com"
+                placeholder="marcos@vectrasystems.com.ar"
                 className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none transition"
               />
             </div>
@@ -129,33 +165,62 @@ export default function AdminProfileModal() {
                 type="text"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
-                placeholder="Mi Empresa SaaS"
+                placeholder="Vectra Systems"
                 className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none transition"
               />
             </div>
 
-            {/* Role Title */}
+            {/* Role / Permissions - Dynamic Database Select */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{isEs ? 'Rol / Permisos' : 'Role / Permissions'}</span>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{isEs ? 'Rol / Permiso (Base de Datos)' : 'Role / Permissions (Database)'}</span>
+                </span>
+                <span className="text-[10px] text-emerald-400 font-mono">misender.roles</span>
               </label>
-              <input
-                type="text"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                placeholder="Super Admin"
-                className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none transition"
-              />
+              <select
+                value={roleId}
+                onChange={(e) => setRoleId(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-sm text-white focus:outline-none transition cursor-pointer"
+              >
+                {roles.length > 0 ? (
+                  roles.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="super_admin">Super Admin</option>
+                    <option value="admin">Administrador</option>
+                    <option value="campaign_manager">Gestor de Campañas</option>
+                    <option value="viewer">Solo Lectura</option>
+                  </>
+                )}
+              </select>
+            </div>
+          </div>
+
+          {/* Description of the selected DB role */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-3 text-xs flex items-start gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <div>
+              <div className="font-semibold text-slate-200">
+                {currentRoleObj.name}:
+              </div>
+              <div className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                {currentRoleObj.description}
+              </div>
             </div>
           </div>
 
           {/* Explanation note */}
           <div className="bg-blue-950/20 border border-blue-500/20 rounded-2xl p-3.5 text-xs text-blue-300 leading-relaxed">
-            <span className="font-bold text-white">{isEs ? '💡 Importante:' : '💡 Note:'}</span>{' '}
+            <span className="font-bold text-white">{isEs ? '💡 Sincronizado:' : '💡 Synchronized:'}</span>{' '}
             {isEs
-              ? 'Tus datos se guardan inmediatamente y reemplazarán el usuario de prueba "Alex Morgan (AM)". Las iniciales de tu avatar en la barra superior se actualizarán automáticamente.'
-              : 'Your data is saved immediately and replaces the demo user "Alex Morgan (AM)". Your avatar initials in the topbar will update automatically.'}
+              ? 'Tus datos se guardan tanto en tu base de datos Supabase como en tu navegador. Tus iniciales y rol se mantendrán actualizados permanentemente.'
+              : 'Your data is saved to both your Supabase database and your browser. Initials and role persist permanently.'}
           </div>
 
           {/* Action Buttons */}

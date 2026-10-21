@@ -149,17 +149,40 @@ export default function Home() {
                           </select>
                         </div>
 
-                        <span
-                          className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border ${
+                        <button
+                          onClick={async () => {
+                            const nextStatus = campaign.status === 'active' ? 'paused' : 'active';
+                            const updated = { ...campaign, status: nextStatus as any };
+                            handleCampaignUpdated(updated);
+                            try {
+                              await fetch(`/api/campaigns/${campaign.id}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(updated)
+                              });
+                            } catch (e) {}
+                          }}
+                          className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-xl uppercase border transition cursor-pointer shadow-sm ${
                             campaign.status === 'active'
-                              ? 'bg-emerald-950/40 text-emerald-400 border-emerald-500/30'
+                              ? 'bg-emerald-950/60 text-emerald-400 border-emerald-500/40 hover:bg-emerald-900/60'
                               : campaign.status === 'paused'
-                              ? 'bg-amber-950/40 text-amber-400 border-amber-500/30'
-                              : 'bg-slate-800 text-slate-400 border-slate-700'
+                              ? 'bg-amber-950/60 text-amber-400 border-amber-500/40 hover:bg-amber-900/60'
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
                           }`}
+                          title={language === 'es' ? 'Haz clic para cambiar estado (Activa / Pausada)' : 'Click to toggle status'}
                         >
-                          {campaign.status}
-                        </span>
+                          {campaign.status === 'active' ? (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              <span>{language === 'es' ? 'Activa' : 'Active'}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-[9px]">▶</span>
+                              <span>{language === 'es' ? 'Activar' : 'Activate'}</span>
+                            </>
+                          )}
+                        </button>
                       </div>
 
                       <div className="flex items-center gap-2">
