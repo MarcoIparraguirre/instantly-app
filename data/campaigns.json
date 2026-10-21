@@ -1,0 +1,65 @@
+[
+  {
+    "id": "campaign-1",
+    "name": "SaaS Outbound Demo Campaign",
+    "status": "active",
+    "steps": [
+      {
+        "id": "step-1",
+        "stepNumber": 1,
+        "waitDays": 0,
+        "variants": [
+          {
+            "id": "var-1",
+            "name": "Variant A",
+            "subject": "Quick question regarding {{companyName}}",
+            "body": "Hi {{firstName}},\n\nNoticed {{companyName}} is expanding outbound sales efforts. We recently helped a similar B2B team book 45 qualified meetings last month by optimizing deliverability and sequence timing.\n\nWould you be open to a 5-minute chat next Tuesday?\n\nBest,\nAlex"
+          }
+        ]
+      },
+      {
+        "id": "c31c10bb-8ab1-4cc4-8554-a8e77df676f0",
+        "stepNumber": 2,
+        "waitDays": 3,
+        "variants": [
+          {
+            "id": "4dc29007-137f-49a3-8295-7fb25a9d37a2",
+            "name": "Variant A",
+            "subject": "Re: Quick question for {{firstName}}",
+            "body": "Hi {{firstName}},\n\nJust checking in on my previous email. Let me know if you would be open to a quick call.\n\nBest,\nAlex"
+          }
+        ]
+      }
+    ],
+    "schedule": {
+      "timing": {
+        "from": "09:00",
+        "to": "17:00"
+      },
+      "days": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "timezone": "America/New_York",
+      "dailyLimit": 50,
+      "strategy": "office-hours"
+    },
+    "senderAccountIds": [
+      "acc-1"
+    ],
+    "openTracking": true,
+    "clickTracking": true,
+    "stats": {
+      "sent": 2,
+      "opened": 0,
+      "replied": 0,
+      "bounced": 0,
+      "opportunities": 0
+    },
+    "createdAt": "2026-10-20T17:57:59.404Z",
+    "updatedAt": "2026-10-20T22:26:23.314Z"
+  }
+]

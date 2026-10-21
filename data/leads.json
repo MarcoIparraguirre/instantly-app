@@ -1,0 +1,36 @@
+[
+  {
+    "id": "lead-1",
+    "campaignId": "campaign-1",
+    "email": "lead.john@targetco.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "companyName": "TargetCo",
+    "status": "sent",
+    "currentStep": 1,
+    "lastContactedAt": "2026-10-20T22:25:00.564Z"
+  },
+  {
+    "id": "lead-2",
+    "campaignId": "campaign-1",
+    "email": "sarah.miller@acmecorp.io",
+    "firstName": "Sarah",
+    "lastName": "Miller",
+    "companyName": "Acme Corp",
+    "status": "sent",
+    "currentStep": 1,
+    "lastContactedAt": "2026-10-20T22:25:00.567Z"
+  },
+  {
+    "id": "235c595c-7269-4a61-88fd-996f5dbd9725",
+    "campaignId": "campaign-1",
+    "email": "markisccnv@gmail.com",
+    "firstName": "Rojas",
+    "lastName": "Marco",
+    "companyName": "CCNV",
+    "website": "",
+    "status": "pending",
+    "currentStep": 1,
+    "customVariables": {}
+  }
+]

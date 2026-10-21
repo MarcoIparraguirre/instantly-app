@@ -1,0 +1,14 @@
+[
+  {
+    "id": "acc-1",
+    "name": "Primary Outbound Mailbox",
+    "email": "outbound@growthpilot.io",
+    "smtpHost": "smtp.ethereal.email",
+    "smtpPort": 587,
+    "smtpUser": "outbound@growthpilot.io",
+    "smtpPass": "demo-pass",
+    "dailyLimit": 50,
+    "sentToday": 2,
+    "status": "active"
+  }
+]
