@@ -2,12 +2,14 @@
 
 import React, { useState } from 'react';
 import { 
-  Building2, Search, Zap, ChevronDown, Check, Sparkles
+  Building2, Search, Zap, ChevronDown, Check, Sparkles, User, Settings
 } from 'lucide-react';
 import { Workspace } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { useViewMode } from '@/context/ViewModeContext';
+import { useAdminProfile } from '@/context/AdminProfileContext';
 import LanguageToggle from './LanguageToggle';
+import AdminProfileModal from './AdminProfileModal';
 
 interface TopbarProps {
   currentWorkspace: Workspace;
@@ -24,6 +26,7 @@ export default function Topbar({
 }: TopbarProps) {
   const { t, language } = useLanguage();
   const { mode, setMode, openModePicker } = useViewMode();
+  const { profile, setIsProfileModalOpen } = useAdminProfile();
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -151,30 +154,50 @@ export default function Topbar({
         <div className="relative flex items-center gap-2 pl-2 border-l border-slate-800">
           <button
             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-            title="Alex Morgan (Account Manager) - AM"
-            className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 hover:scale-105 active:scale-95 flex items-center justify-center text-white font-bold text-xs shadow-md transition cursor-pointer"
+            title={`${profile.name} (${profile.role}) - ${profile.initials}`}
+            className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 hover:scale-105 active:scale-95 flex items-center justify-center text-white font-black text-xs shadow-md transition cursor-pointer"
           >
-            AM
+            {profile.initials}
           </button>
 
           {isProfileMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-60 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-3.5 z-50 space-y-2 animate-in fade-in">
-              <div className="border-b border-slate-800/80 pb-2">
-                <div className="font-bold text-white text-xs">Alex Morgan</div>
-                <div className="text-[11px] text-slate-400 font-mono">alex.morgan@growthpilot.io</div>
-                <span className="inline-block mt-1 text-[9px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded uppercase font-semibold">
-                  {language === 'es' ? 'Administrador de Cuenta' : 'Account Manager'}
-                </span>
+            <div className="absolute right-0 top-full mt-2 w-64 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-3.5 z-50 space-y-3 animate-in fade-in">
+              <div className="border-b border-slate-800/80 pb-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="font-bold text-white text-xs truncate max-w-[150px]">{profile.name}</div>
+                  <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase font-semibold">
+                    {profile.role}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-400 font-mono truncate mt-0.5">{profile.email}</div>
+                <div className="text-[10px] text-slate-400 mt-1">
+                  {language === 'es' ? `Empresa: ${profile.company}` : `Company: ${profile.company}`}
+                </div>
               </div>
-              <div className="text-[10px] text-slate-400 leading-tight">
-                {language === 'es' 
-                  ? 'Iniciales: AM (Alex Morgan - Usuario activo)' 
-                  : 'Initials: AM (Alex Morgan - Active User)'}
+
+              <div className="text-[10px] text-indigo-400 bg-indigo-950/30 border border-indigo-500/20 rounded-xl p-2 leading-tight">
+                {language === 'es'
+                  ? `Iniciales actuales: "${profile.initials}" (Usuario Admin activo)`
+                  : `Current initials: "${profile.initials}" (Active Admin User)`}
               </div>
+
+              <button
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  setIsProfileModalOpen(true);
+                }}
+                className="w-full flex items-center justify-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-xl py-2 text-xs font-semibold transition"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                <span>{language === 'es' ? 'Gestionar Mi Perfil Admin' : 'Manage Admin Profile'}</span>
+              </button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Admin Profile Edit Modal */}
+      <AdminProfileModal />
     </header>
   );
 }

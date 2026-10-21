@@ -92,4 +92,9 @@ export class CampaignRepository implements ICampaignRepository {
     }
     this.saveCampaigns(campaigns);
   }
+
+  deleteCampaign(id: string): void {
+    const campaigns = this.getCampaigns().filter(c => c.id !== id);
+    this.saveCampaigns(campaigns);
+  }
 }

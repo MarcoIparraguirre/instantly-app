@@ -62,6 +62,18 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
     }
   }
 
+  async deleteCampaign(id: string): Promise<void> {
+    const { error } = await this.client
+      .from('campaigns')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('SupabaseCampaignRepository deleteCampaign error:', error);
+      throw new Error(`Failed to delete campaign: ${error.message}`);
+    }
+  }
+
   private mapToDomain(row: any): Campaign {
     return {
       id: row.id,

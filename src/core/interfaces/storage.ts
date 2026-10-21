@@ -10,6 +10,7 @@ export interface ICampaignReader {
 export interface ICampaignWriter {
   saveCampaigns(campaigns: Campaign[]): Promise<void> | void;
   saveCampaign(campaign: Campaign): Promise<void> | void;
+  deleteCampaign?(id: string): Promise<void> | void;
 }
 
 export interface ICampaignRepository extends ICampaignReader, ICampaignWriter {}

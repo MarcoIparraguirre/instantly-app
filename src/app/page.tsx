@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import Topbar from '@/components/Topbar';
 import Sidebar from '@/components/Sidebar';
 import LeadFinderView from '@/components/LeadFinderView';
 import AccountsView from '@/components/AccountsView';
 import CampaignEditor from '@/components/CampaignEditor';
+import CampaignsListView from '@/components/CampaignsListView';
+import CreateCampaignModal from '@/components/CreateCampaignModal';
 import UniboxView from '@/components/UniboxView';
 import CrmView from '@/components/CrmView';
 import AnalyticsView from '@/components/AnalyticsView';
@@ -16,16 +19,20 @@ import SimpleAccountsView from '@/components/simple/SimpleAccountsView';
 import { initialWorkspaces } from '@/core/storage/mockData';
 import { Campaign, Workspace, Lead } from '@/types';
 import { useViewMode } from '@/context/ViewModeContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function Home() {
   const { mode } = useViewMode();
+  const { language } = useLanguage();
   const [workspaces] = useState<Workspace[]>(initialWorkspaces);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace>(initialWorkspaces[0]);
   const [currentTab, setCurrentTab] = useState<string>('campaigns');
+  const [campaignViewMode, setCampaignViewMode] = useState<'list' | 'detail'>('detail');
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [allCampaigns, setAllCampaigns] = useState<Campaign[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+  const [isCreateCampaignModalOpen, setIsCreateCampaignModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -104,23 +111,99 @@ export default function Home() {
             </div>
           ) : (
             <>
-              {/* CAMPAIGNS: Simple Mode (2-step guided) vs Pro Mode (4-phase wizard) */}
-              {currentTab === 'campaigns' && campaign && (
-                mode === 'simple' ? (
-                  <SimpleCampaignView
-                    campaign={campaign}
-                    onUpdateCampaign={handleCampaignUpdated}
-                    openCopilot={() => setIsCopilotOpen(true)}
-                    leads={leads}
-                    onRefreshLeads={handleLeadsUpdated}
-                  />
+              {/* CAMPAIGNS: List View vs Detail View (Simple / Pro) */}
+              {currentTab === 'campaigns' && (
+                campaignViewMode === 'detail' && campaign ? (
+                  <div className="flex-1 flex flex-col h-full overflow-hidden">
+                    {/* Top Campaign Switcher & Management Subbar */}
+                    <div className="h-11 px-5 border-b border-slate-800 bg-[#0c121e] flex items-center justify-between shrink-0 select-none">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setCampaignViewMode('list')}
+                          className="flex items-center gap-1.5 text-slate-400 hover:text-white px-2.5 py-1 rounded-xl text-xs font-semibold hover:bg-slate-800 transition cursor-pointer"
+                        >
+                          <ArrowLeft className="w-3.5 h-3.5" />
+                          <span>{language === 'es' ? 'Todas las Campañas' : 'All Campaigns'}</span>
+                        </button>
+
+                        <div className="h-4 w-[1px] bg-slate-800" />
+
+                        {/* Campaign Selector Dropdown */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-slate-400 font-medium">
+                            {language === 'es' ? 'Campaña:' : 'Campaign:'}
+                          </span>
+                          <select
+                            value={campaign.id}
+                            onChange={(e) => {
+                              const found = allCampaigns.find(c => c.id === e.target.value);
+                              if (found) setCampaign(found);
+                            }}
+                            className="bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-blue-500 rounded-xl px-2.5 py-1 text-xs text-white font-semibold focus:outline-none transition max-w-[240px] cursor-pointer"
+                          >
+                            {allCampaigns.map(c => (
+                              <option key={c.id} value={c.id}>
+                                {c.name} ({c.status})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <span
+                          className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border ${
+                            campaign.status === 'active'
+                              ? 'bg-emerald-950/40 text-emerald-400 border-emerald-500/30'
+                              : campaign.status === 'paused'
+                              ? 'bg-amber-950/40 text-amber-400 border-amber-500/30'
+                              : 'bg-slate-800 text-slate-400 border-slate-700'
+                          }`}
+                        >
+                          {campaign.status}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setIsCreateCampaignModalOpen(true)}
+                          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-3 py-1 rounded-xl text-xs shadow-sm transition cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>{language === 'es' ? 'Nueva Campaña' : 'New Campaign'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Active Campaign View: Simple Mode vs Pro Mode */}
+                    <div className="flex-1 overflow-hidden">
+                      {mode === 'simple' ? (
+                        <SimpleCampaignView
+                          campaign={campaign}
+                          onUpdateCampaign={handleCampaignUpdated}
+                          openCopilot={() => setIsCopilotOpen(true)}
+                          leads={leads}
+                          onRefreshLeads={handleLeadsUpdated}
+                        />
+                      ) : (
+                        <CampaignEditor
+                          campaign={campaign}
+                          onUpdateCampaign={handleCampaignUpdated}
+                          openCopilot={() => setIsCopilotOpen(true)}
+                          leads={leads}
+                          onRefreshLeads={handleLeadsUpdated}
+                        />
+                      )}
+                    </div>
+                  </div>
                 ) : (
-                  <CampaignEditor
-                    campaign={campaign}
-                    onUpdateCampaign={handleCampaignUpdated}
-                    openCopilot={() => setIsCopilotOpen(true)}
+                  <CampaignsListView
+                    campaigns={allCampaigns}
                     leads={leads}
-                    onRefreshLeads={handleLeadsUpdated}
+                    onSelectCampaign={(c) => {
+                      setCampaign(c);
+                      setCampaignViewMode('detail');
+                    }}
+                    onCreateCampaign={() => setIsCreateCampaignModalOpen(true)}
+                    onRefreshCampaigns={fetchInitialData}
                   />
                 )
               )}
@@ -161,6 +244,17 @@ export default function Home() {
             onClose={() => setIsCopilotOpen(false)}
             campaign={campaign}
             onCampaignUpdated={handleCampaignUpdated}
+          />
+
+          {/* Create Campaign Modal */}
+          <CreateCampaignModal
+            isOpen={isCreateCampaignModalOpen}
+            onClose={() => setIsCreateCampaignModalOpen(false)}
+            onCreated={(newCamp) => {
+              setAllCampaigns(prev => [newCamp, ...prev]);
+              setCampaign(newCamp);
+              setCampaignViewMode('detail');
+            }}
           />
         </main>
       </div>

@@ -32,3 +32,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: err.message || 'Failed to update campaign' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    if (typeof (container.campaignRepo as any).deleteCampaign === 'function') {
+      await (container.campaignRepo as any).deleteCampaign(id);
+    }
+    return NextResponse.json({ success: true, id });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Failed to delete campaign' }, { status: 500 });
+  }
+}
