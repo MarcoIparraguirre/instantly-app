@@ -1,6 +1,8 @@
 export interface ISpintaxService {
   resolve(text: string): string;
   generate(text: string, language?: 'en' | 'es'): string;
+  hasSpintax?(text: string): boolean;
+  resolveVariations?(text: string, count?: number): string[];
 }
 
 export class SpintaxService implements ISpintaxService {
@@ -25,6 +27,37 @@ export class SpintaxService implements ISpintaxService {
     return resolved;
   }
 
+  hasSpintax(text: string): boolean {
+    if (!text) return false;
+    return /\{([^{}]+?\|[^{}]+?)\}/.test(text);
+  }
+
+  resolveVariations(text: string, count: number = 3): string[] {
+    if (!text) return [];
+    if (!this.hasSpintax(text)) {
+      return [text];
+    }
+
+    const results: string[] = [];
+    const seen = new Set<string>();
+
+    for (let i = 0; i < count * 8; i++) {
+      const sample = this.resolve(text);
+      if (!seen.has(sample)) {
+        seen.add(sample);
+        results.push(sample);
+      }
+      if (results.length >= count) break;
+    }
+
+    // If variations are fewer than count, fill with resolved
+    while (results.length < count) {
+      results.push(this.resolve(text));
+    }
+
+    return results;
+  }
+
   generate(text: string, language: 'en' | 'es' = 'en'): string {
     if (!text) return text;
     let result = text;
@@ -34,8 +67,14 @@ export class SpintaxService implements ISpintaxService {
       result = result.replace(/\b(hola|buenos días|buenas tardes)\b/gi, '{Hola|Qué tal|Espero que todo vaya bien}');
       result = result.replace(/\b(avísame si te interesa|dime qué opinas)\b/gi,
         '{Cuéntame si te gustaría explorarlo|¿Valdría la pena una breve llamada?|Me encantaría saber tu opinión}');
-      result = result.replace(/\b(podemos hablar esta semana\?|tienes 10 minutos\?)\b/gi,
+      result = result.replace(/¿?(podemos hablar esta semana\?|tienes 10 minutos\?)/gi,
         '{¿Tendrías 5 minutos el próximo martes?|¿Podríamos hablar brevemente esta semana?|¿Estarías disponible para una charla rápida?}');
+      result = result.replace(/\b(te escribo porque|me pongo en contacto porque|me contacto porque)\b/gi,
+        '{Te escribo porque|Me pongo en contacto contigo ya que|Te contacto debido a que}');
+      result = result.replace(/\b(un cordial saludo|saludos cordiales|atentamente)\b/gi,
+        '{Un cordial saludo|Saludos atentos|Atentamente}');
+      result = result.replace(/¿?(tiene sentido armar una breve demo|tiene sentido una demo)\b/gi,
+        '{¿Tiene sentido armar una breve demo?|¿Valdría la pena revisar una demo de 5 min?|¿Te gustaría ver una demo rápida?}');
     } else {
       // English greetings and calls to action
       result = result.replace(/\b(hi|hello|hey)\b/gi, '{Hi|Hello|Hey}');
@@ -44,6 +83,8 @@ export class SpintaxService implements ISpintaxService {
         '{Let me know if you would be open to exploring this|Worth a quick conversation?|Curious to get your take on this}');
       result = result.replace(/\b(can we talk this week\?|are you free for a 10 min call\?)\b/gi,
         '{Do you have 10 minutes sometime this week?|Open to a brief 5-min intro call next Tuesday?|Would you be opposed to a short chat?}');
+      result = result.replace(/\b(best regards|sincerely|kind regards)\b/gi,
+        '{Best regards|Kind regards|Sincerely}');
     }
 
     return result;

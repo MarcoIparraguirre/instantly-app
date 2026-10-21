@@ -11,7 +11,7 @@ import { useLanguage } from '@/context/LanguageContext';
 
 export default function AccountsView() {
   const { t, language } = useLanguage();
-  const [accounts, setAccounts] = useState<SenderAccount[]>(initialEmailAccountsWithWarmup);
+  const [accounts, setAccounts] = useState<SenderAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<SenderAccount | null>(null);
   const [drawerTab, setDrawerTab] = useState<'general' | 'warmup' | 'dns'>('dns');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -35,7 +35,7 @@ export default function AccountsView() {
     try {
       const res = await fetch('/api/accounts');
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         setAccounts(data);
       }
     } catch (err) {

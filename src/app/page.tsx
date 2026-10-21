@@ -24,16 +24,46 @@ import { useLanguage } from '@/context/LanguageContext';
 export default function Home() {
   const { mode } = useViewMode();
   const { language } = useLanguage();
-  const [workspaces] = useState<Workspace[]>(initialWorkspaces);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>(initialWorkspaces);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace>(initialWorkspaces[0]);
   const [currentTab, setCurrentTab] = useState<string>('campaigns');
-  const [campaignViewMode, setCampaignViewMode] = useState<'list' | 'detail'>('detail');
+  const [campaignViewMode, setCampaignViewMode] = useState<'list' | 'detail'>('list');
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [allCampaigns, setAllCampaigns] = useState<Campaign[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isCreateCampaignModalOpen, setIsCreateCampaignModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Load workspaces from localStorage
+  useEffect(() => {
+    try {
+      const savedWs = localStorage.getItem('misender_workspaces');
+      if (savedWs) {
+        const parsed = JSON.parse(savedWs);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setWorkspaces(parsed);
+          const savedCurrentId = localStorage.getItem('misender_current_workspace_id');
+          const found = parsed.find((w: Workspace) => w.id === savedCurrentId);
+          setCurrentWorkspace(found || parsed[0]);
+        }
+      }
+    } catch (e) {}
+  }, []);
+
+  const handleUpdateWorkspaces = (updated: Workspace[]) => {
+    setWorkspaces(updated);
+    try {
+      localStorage.setItem('misender_workspaces', JSON.stringify(updated));
+    } catch (e) {}
+  };
+
+  const handleSelectWorkspace = (ws: Workspace) => {
+    setCurrentWorkspace(ws);
+    try {
+      localStorage.setItem('misender_current_workspace_id', ws.id);
+    } catch (e) {}
+  };
 
   useEffect(() => {
     fetchInitialData();
@@ -99,7 +129,8 @@ export default function Home() {
         <Topbar
           currentWorkspace={currentWorkspace}
           workspaces={workspaces}
-          onSelectWorkspace={setCurrentWorkspace}
+          onSelectWorkspace={handleSelectWorkspace}
+          onUpdateWorkspaces={handleUpdateWorkspaces}
           openCopilot={() => setIsCopilotOpen(true)}
         />
 

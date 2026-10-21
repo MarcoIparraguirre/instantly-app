@@ -10,7 +10,7 @@ import { useLanguage } from '@/context/LanguageContext';
 
 export default function SimpleAccountsView() {
   const { t, language } = useLanguage();
-  const [accounts, setAccounts] = useState<SenderAccount[]>(initialEmailAccountsWithWarmup);
+  const [accounts, setAccounts] = useState<SenderAccount[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -31,7 +31,7 @@ export default function SimpleAccountsView() {
     try {
       const res = await fetch('/api/accounts');
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         setAccounts(data);
       }
     } catch (err) {

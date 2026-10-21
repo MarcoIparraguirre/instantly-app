@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Campaign, SequenceStep, StepVariant, Lead, SenderAccount } from '@/types';
 import { checkSpamWords, applySpamFixes } from '@/lib/spamDetector';
-import { resolveSpintax, generateSpintax } from '@/lib/spintax';
+import { resolveSpintax, generateSpintax, hasSpintax, resolveVariations } from '@/lib/spintax';
 import { useLanguage } from '@/context/LanguageContext';
 import { v4 as uuidv4 } from 'uuid';
 import LeadImportModal from './LeadImportModal';
@@ -81,11 +81,12 @@ export default function CampaignEditor({
   const totalSpamWords = [...subjectSpam, ...bodySpam];
 
   const campaignLeads = leads.filter(l => l.campaignId === campaign.id);
+  const allRelevantLeads = campaignLeads.length > 0 ? campaignLeads : leads;
 
   // Extract detected unique variables from campaign leads' customVariables
   const detectedVariables = Array.from(
     new Set(
-      campaignLeads.flatMap(l => Object.keys(l.customVariables || {}))
+      allRelevantLeads.flatMap(l => Object.keys(l.customVariables || {}))
     )
   );
 
@@ -98,6 +99,28 @@ export default function CampaignEditor({
       ...detectedVariables
     ])
   );
+
+  const [isResettingLeads, setIsResettingLeads] = useState(false);
+  const handleResetLeads = async () => {
+    const confirmMsg = language === 'es'
+      ? '¿Deseas reiniciar todos los leads de esta campaña a estado "Pendiente"? Esto te permitirá volver a enviar la campaña o probarla.'
+      : 'Reset all leads in this campaign to "Pending" status to re-test sending?';
+    if (!confirm(confirmMsg)) return;
+
+    setIsResettingLeads(true);
+    try {
+      await fetch(`/api/leads?campaignId=${campaign.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset_status' })
+      });
+      if (onRefreshLeads) onRefreshLeads();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsResettingLeads(false);
+    }
+  };
 
   const handleClearLeads = async () => {
     if (!confirm(language === 'es' ? '¿Deseas vaciar los leads de esta campaña?' : 'Clear leads in this campaign?')) return;
@@ -186,6 +209,21 @@ export default function CampaignEditor({
     setActiveVariantIndex(newSteps[activeStepIndex].variants.length - 1);
   };
 
+  const handleDeleteVariant = (variantIndex: number) => {
+    if (!activeStep || activeStep.variants.length <= 1) return;
+    const confirmMsg = language === 'es'
+      ? '¿Estás seguro de eliminar esta variante de prueba A/B?'
+      : 'Are you sure you want to delete this test variant?';
+    if (!confirm(confirmMsg)) return;
+
+    const newSteps = [...campaign.steps];
+    newSteps[activeStepIndex].variants = newSteps[activeStepIndex].variants.filter((_, idx) => idx !== variantIndex);
+    const updated = { ...campaign, steps: newSteps };
+    onUpdateCampaign(updated);
+    saveToServer(updated);
+    setActiveVariantIndex(Math.max(0, variantIndex - 1));
+  };
+
   const handleDeleteStep = (index: number) => {
     if (campaign.steps.length <= 1) return;
     const newSteps = campaign.steps.filter((_, i) => i !== index);
@@ -211,11 +249,8 @@ export default function CampaignEditor({
 
   const handlePreviewSpintax = () => {
     if (!activeVariant) return;
-    const samples = [
-      resolveSpintax(activeVariant.body),
-      resolveSpintax(activeVariant.body),
-      resolveSpintax(activeVariant.body)
-    ];
+    const body = activeVariant.body || '';
+    const samples = resolveVariations(body, 3);
     setSpintaxPreviews(samples);
     setPreviewSpintaxModal(true);
   };
@@ -376,13 +411,25 @@ export default function CampaignEditor({
                 </button>
 
                 {campaignLeads.length > 0 && (
-                  <button
-                    onClick={handleClearLeads}
-                    className="p-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-700/80 transition cursor-pointer"
-                    title={language === 'es' ? 'Vaciar leads' : 'Clear leads'}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <>
+                    <button
+                      onClick={handleResetLeads}
+                      disabled={isResettingLeads}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-indigo-950/40 text-slate-300 hover:text-indigo-300 border border-slate-700/80 transition text-xs font-semibold cursor-pointer"
+                      title={language === 'es' ? 'Reiniciar estado de leads a pendiente para reenviar o probar' : 'Reset leads status to pending'}
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isResettingLeads ? 'animate-spin' : ''}`} />
+                      <span>{language === 'es' ? 'Reiniciar a Pendiente' : 'Reset to Pending'}</span>
+                    </button>
+
+                    <button
+                      onClick={handleClearLeads}
+                      className="p-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-700/80 transition cursor-pointer"
+                      title={language === 'es' ? 'Vaciar leads' : 'Clear leads'}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </>
                 )}
 
                 <div className="text-xs text-slate-400 font-mono pl-2 border-l border-slate-800">
@@ -390,6 +437,30 @@ export default function CampaignEditor({
                 </div>
               </div>
             </div>
+
+            {/* Campaign Leads Status Banner */}
+            {campaignLeads.length > 0 && (
+              <div className="flex items-center justify-between p-3.5 bg-slate-900/80 border border-slate-800 rounded-2xl text-xs">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span className="text-slate-400">{language === 'es' ? 'Enviados:' : 'Sent:'}</span>
+                    <span className="font-bold text-white font-mono">{campaignLeads.filter(l => l.status === 'sent').length}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    <span className="text-slate-400">{language === 'es' ? 'Pendientes:' : 'Pending:'}</span>
+                    <span className="font-bold text-white font-mono">{campaignLeads.filter(l => l.status === 'pending').length}</span>
+                  </div>
+                </div>
+
+                {campaignLeads.filter(l => l.status === 'pending').length === 0 && campaignLeads.length > 0 && (
+                  <span className="text-[11px] text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-xl">
+                    {language === 'es' ? '✅ Todos los correos fueron despachados' : '✅ All emails dispatched'}
+                  </span>
+                )}
+              </div>
+            )}
 
             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-xs text-slate-400 flex items-center justify-between gap-2">
               <span className="flex items-center gap-2">
@@ -520,28 +591,46 @@ export default function CampaignEditor({
 
             {/* A/Z Testing Variant Tabs */}
             {activeStep && (
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center gap-2 pt-1 flex-wrap">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-2">
                   A/Z Testing:
                 </span>
                 {activeStep.variants.map((v, vIdx) => (
-                  <button
+                  <div
                     key={v.id}
-                    onClick={() => setActiveVariantIndex(vIdx)}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition ${
                       activeVariantIndex === vIdx
-                        ? 'bg-indigo-600 text-white'
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                         : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
                     }`}
                   >
-                    {v.name}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveVariantIndex(vIdx)}
+                      className="focus:outline-none cursor-pointer"
+                    >
+                      {v.name}
+                    </button>
+                    {activeStep.variants.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteVariant(vIdx);
+                        }}
+                        className="ml-1 text-slate-400 hover:text-rose-300 hover:bg-rose-950/40 p-0.5 rounded transition cursor-pointer"
+                        title={language === 'es' ? 'Eliminar variante' : 'Delete variant'}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 ))}
 
                 {activeStep.variants.length < 5 && (
                   <button
                     onClick={handleAddVariantToStep}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-lg flex items-center gap-1 transition"
+                    className="text-xs text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-lg flex items-center gap-1 transition cursor-pointer"
                   >
                     <Plus className="w-3 h-3" />
                     {t('campaignWizard.addVariant')}
@@ -585,22 +674,30 @@ export default function CampaignEditor({
 
             {/* Subject Line Input */}
             <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
                   {t('campaignWizard.subjectLine')}
                 </label>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-[11px] text-slate-500 mr-1">{t('campaignWizard.insertTag')}</span>
-                  {availableTags.slice(0, 6).map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => insertVariable(tag, 'subject')}
-                      className="text-[10px] bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 px-2 py-0.5 rounded transition"
-                    >
-                      +{tag}
-                    </button>
-                  ))}
+                  {availableTags.map((tag) => {
+                    const isCustomSheet = detectedVariables.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => insertVariable(tag, 'subject')}
+                        className={`text-[10px] px-2 py-0.5 rounded transition cursor-pointer ${
+                          isCustomSheet
+                            ? 'bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-500/40 font-mono font-medium shadow-sm'
+                            : 'bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700'
+                        }`}
+                        title={isCustomSheet ? (language === 'es' ? 'Columna de tu Hoja de Leads' : 'Sheet Column Tag') : 'Campo de contacto'}
+                      >
+                        +{tag}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -614,14 +711,15 @@ export default function CampaignEditor({
 
             {/* Email Body Input */}
             <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
                   {t('campaignWizard.emailBody')}
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <button
                     onClick={handleAddSpintaxToBody}
-                    className="text-[11px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-lg transition flex items-center gap-1"
+                    className="text-[11px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                    title={language === 'es' ? 'Aplicar Spintax automático' : 'Apply Auto Spintax'}
                   >
                     <Sparkles className="w-3 h-3 text-indigo-400" />
                     {t('campaignWizard.autoSpintax')}
@@ -629,25 +727,34 @@ export default function CampaignEditor({
 
                   <button
                     onClick={handlePreviewSpintax}
-                    className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2.5 py-1 rounded-lg transition flex items-center gap-1"
+                    className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                    title={language === 'es' ? 'Previsualizar variaciones' : 'Preview variations'}
                   >
                     <Eye className="w-3 h-3 text-slate-400" />
                     {t('campaignWizard.previewSpintax')}
                   </button>
 
-                  <div className="h-4 w-px bg-slate-800" />
+                  <div className="h-4 w-px bg-slate-800 hidden sm:block" />
 
                   <div className="flex items-center gap-1 flex-wrap">
-                    {availableTags.slice(0, 8).map((tag) => (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => insertVariable(tag, 'body')}
-                        className="text-[10px] bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 px-2 py-0.5 rounded transition"
-                      >
-                        +{tag}
-                      </button>
-                    ))}
+                    {availableTags.map((tag) => {
+                      const isCustomSheet = detectedVariables.includes(tag);
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => insertVariable(tag, 'body')}
+                          className={`text-[10px] px-2 py-0.5 rounded transition cursor-pointer ${
+                            isCustomSheet
+                              ? 'bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-500/40 font-mono font-medium shadow-sm'
+                              : 'bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700'
+                          }`}
+                          title={isCustomSheet ? (language === 'es' ? 'Columna de tu Hoja de Leads' : 'Sheet Column Tag') : 'Campo de contacto'}
+                        >
+                          +{tag}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -904,29 +1011,96 @@ export default function CampaignEditor({
 
         {/* Spintax Preview Modal */}
         {previewSpintaxModal && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-2xl w-full space-y-4 shadow-2xl">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-indigo-400" />
-                  <span className="text-base font-bold text-white">Spintax Variations</span>
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#0e1422] border border-slate-800 rounded-3xl p-6 max-w-2xl w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">
+                      {language === 'es' ? 'Variaciones Spintax' : 'Spintax Variations'}
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      {language === 'es' 
+                        ? 'Simula las diferentes versiones únicas que recibirá cada prospecto' 
+                        : 'Preview distinct randomized variations sent to each prospect'}
+                    </p>
+                  </div>
                 </div>
                 <button
                   onClick={() => setPreviewSpintaxModal(false)}
-                  className="text-slate-400 hover:text-white text-sm"
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="space-y-3">
-                {spintaxPreviews.map((sample, i) => (
-                  <div key={i} className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-1">
-                    <div className="text-[10px] text-indigo-400 font-mono">Variation #{i + 1}:</div>
-                    <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">{sample}</p>
+              {!hasSpintax(activeVariant?.body || '') ? (
+                <div className="p-4 bg-amber-950/20 border border-amber-500/30 rounded-2xl space-y-3">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <div className="text-xs font-bold text-amber-300">
+                        {language === 'es' ? 'No se detectó sintaxis Spintax en este correo' : 'No Spintax syntax detected'}
+                      </div>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">
+                        {language === 'es'
+                          ? 'El Spintax te permite alternar saludos y frases para que cada correo enviado sea único y no caiga en spam. Por ejemplo: {Hola|Qué tal|Espero que todo vaya bien}.'
+                          : 'Spintax lets you randomize greetings and sentences so each email is unique. For example: {Hi|Hello|Hey}.'}
+                      </p>
+                    </div>
                   </div>
-                ))}
-              </div>
+                  <div className="flex justify-end pt-1">
+                    <button
+                      onClick={() => {
+                        handleAddSpintaxToBody();
+                        if (activeVariant) {
+                          const newBody = generateSpintax(activeVariant.body, language);
+                          setSpintaxPreviews(resolveVariations(newBody, 3));
+                        }
+                      }}
+                      className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-indigo-600/30 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{language === 'es' ? 'Aplicar Spintax Automático a este correo' : 'Apply Auto Spintax Now'}</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                  {spintaxPreviews.map((sample, i) => (
+                    <div key={i} className="bg-slate-950/80 border border-slate-800 p-4 rounded-xl space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-indigo-400 font-mono font-semibold uppercase">
+                          {language === 'es' ? `Variación #${i + 1}:` : `Variation #${i + 1}:`}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {language === 'es' ? 'Muestra generada' : 'Generated sample'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-200 whitespace-pre-wrap leading-relaxed font-sans">{sample}</p>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-[11px] text-slate-500 font-mono">
+                      {language === 'es' ? 'Sintaxis: {opción 1|opción 2|opción 3}' : 'Syntax: {option 1|option 2}'}
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (activeVariant) {
+                          setSpintaxPreviews(resolveVariations(activeVariant.body, 3));
+                        }
+                      }}
+                      className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>{language === 'es' ? 'Generar otras muestras aleatorias' : 'Re-roll variations'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -80,11 +80,12 @@ export default function SimpleCampaignView({
   const totalSpam = [...subjectSpam, ...bodySpam];
 
   const campaignLeads = leads.filter(l => l.campaignId === campaign.id);
+  const allRelevantLeads = campaignLeads.length > 0 ? campaignLeads : leads;
 
   // Extract detected unique variables from campaign leads' customVariables
   const detectedVariables = Array.from(
     new Set(
-      campaignLeads.flatMap(l => Object.keys(l.customVariables || {}))
+      allRelevantLeads.flatMap(l => Object.keys(l.customVariables || {}))
     )
   );
 
@@ -93,9 +94,32 @@ export default function SimpleCampaignView({
     new Set([
       language === 'es' ? 'Nombre' : 'firstName',
       language === 'es' ? 'Empresa' : 'companyName',
+      language === 'es' ? 'Email' : 'email',
       ...detectedVariables
     ])
   );
+
+  const [isResettingLeads, setIsResettingLeads] = useState(false);
+  const handleResetLeads = async () => {
+    const confirmMsg = language === 'es'
+      ? '¿Deseas reiniciar los contactos a estado "Pendiente" para poder reenviar la campaña o probar el envío?'
+      : 'Reset contacts to "Pending" status to re-test sending?';
+    if (!confirm(confirmMsg)) return;
+
+    setIsResettingLeads(true);
+    try {
+      await fetch(`/api/leads?campaignId=${campaign.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset_status' })
+      });
+      if (onRefreshLeads) onRefreshLeads();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsResettingLeads(false);
+    }
+  };
 
   // Apply selected template
   const applyTemplate = (templateId: string) => {
@@ -372,11 +396,23 @@ export default function SimpleCampaignView({
           <div className="flex items-center gap-3">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
             <div>
-              <span className="font-semibold text-white">
-                {campaignLeads.length > 0
-                  ? `${campaignLeads.length} ${language === 'es' ? 'contactos listos para recibir correos' : 'contacts ready to receive emails'}`
-                  : (language === 'es' ? 'No hay contactos cargados aún' : 'No contacts loaded yet')}
-              </span>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="font-semibold text-white">
+                  {campaignLeads.length > 0
+                    ? `${campaignLeads.length} ${language === 'es' ? 'contactos cargados' : 'contacts loaded'}`
+                    : (language === 'es' ? 'No hay contactos cargados aún' : 'No contacts loaded yet')}
+                </span>
+                {campaignLeads.length > 0 && (
+                  <div className="flex items-center gap-2 text-[11px] font-mono">
+                    <span className="text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
+                      {campaignLeads.filter(l => l.status === 'sent').length} {language === 'es' ? 'enviados' : 'sent'}
+                    </span>
+                    <span className="text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30">
+                      {campaignLeads.filter(l => l.status === 'pending').length} {language === 'es' ? 'pendientes' : 'pending'}
+                    </span>
+                  </div>
+                )}
+              </div>
               <p className="text-[11px] text-slate-400 mt-0.5">
                 {campaignLeads.length > 0
                   ? (language === 'es' ? 'Se respetan todas las columnas de tu hoja para personalización' : 'All spreadsheet columns are mapped for personalized variables')
@@ -385,24 +421,36 @@ export default function SimpleCampaignView({
             </div>
           </div>
 
-          {detectedVariables.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] text-slate-400 font-medium">
-                {language === 'es' ? 'Columnas de tu hoja:' : 'Your Sheet Columns:'}
-              </span>
-              {detectedVariables.map((v, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => handleInsertVariable(v)}
-                  title={language === 'es' ? `Insertar {{${v}}} en el mensaje` : `Insert {{${v}}} in message`}
-                  className="bg-emerald-950/80 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 font-mono text-[10px] px-2 py-0.5 rounded transition cursor-pointer"
-                >
-                  +{`{{${v}}}`}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {campaignLeads.length > 0 && (
+              <button
+                type="button"
+                onClick={handleResetLeads}
+                disabled={isResettingLeads}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition cursor-pointer shadow-sm"
+                title={language === 'es' ? 'Reiniciar estado de leads a pendiente para reenviar o probar' : 'Reset to pending'}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isResettingLeads ? 'animate-spin' : ''}`} />
+                <span>{language === 'es' ? 'Reiniciar a Pendiente' : 'Reset to Pending'}</span>
+              </button>
+            )}
+
+            {detectedVariables.length > 0 && (
+              <div className="flex items-center gap-1 flex-wrap">
+                {detectedVariables.map((v, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleInsertVariable(v)}
+                    title={language === 'es' ? `Insertar {{${v}}} en el mensaje` : `Insert {{${v}}} in message`}
+                    className="bg-purple-950/60 border border-purple-500/40 hover:border-purple-400 text-purple-300 font-mono text-[10px] px-2 py-0.5 rounded transition cursor-pointer shadow-sm"
+                  >
+                    +{`{{${v}}}`}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -561,18 +609,32 @@ export default function SimpleCampaignView({
           </div>
 
           <div className="flex flex-wrap gap-1.5">
-            {availableTags.map((tag, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleInsertVariable(tag)}
-                className="bg-blue-950/50 hover:bg-blue-900/60 border border-blue-500/30 hover:border-blue-400 text-blue-300 font-mono text-[11px] px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer active:scale-95"
-                title={language === 'es' ? `Insertar {{${tag}}}` : `Insert {{${tag}}}`}
-              >
-                <Plus className="w-3 h-3 text-blue-400" />
-                <span>{`{{${tag}}}`}</span>
-              </button>
-            ))}
+            {availableTags.map((tag, idx) => {
+              const isCustomSheet = detectedVariables.includes(tag);
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleInsertVariable(tag)}
+                  className={`font-mono text-[11px] px-2.5 py-1 rounded-lg transition flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                    isCustomSheet
+                      ? 'bg-purple-950/60 hover:bg-purple-900/80 border border-purple-500/40 hover:border-purple-300 text-purple-300 font-semibold shadow-sm'
+                      : 'bg-blue-950/50 hover:bg-blue-900/60 border border-blue-500/30 hover:border-blue-400 text-blue-300'
+                  }`}
+                  title={isCustomSheet 
+                    ? (language === 'es' ? `Columna de tu Hoja de Leads: {{${tag}}}` : `Sheet Column: {{${tag}}}`) 
+                    : (language === 'es' ? `Insertar {{${tag}}}` : `Insert {{${tag}}}`)}
+                >
+                  <Plus className={`w-3 h-3 ${isCustomSheet ? 'text-purple-400' : 'text-blue-400'}`} />
+                  <span>{`{{${tag}}}`}</span>
+                  {isCustomSheet && (
+                    <span className="text-[9px] bg-purple-500/20 text-purple-300 px-1 py-0.2 rounded font-sans uppercase">
+                      Sheet
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 

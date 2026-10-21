@@ -45,3 +45,27 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: err.message || 'Failed to delete leads' }, { status: 500 });
   }
 }
+
+export async function PUT(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const campaignId = searchParams.get('campaignId') || undefined;
+    const body = await req.json();
+
+    if (body.action === 'reset_status') {
+      const leads = await container.leadRepo.getLeads(campaignId);
+      const updated = leads.map(l => ({
+        ...l,
+        status: 'pending' as const,
+        currentStep: 1,
+        lastContactedAt: undefined
+      }));
+      await container.leadRepo.saveLeads(updated);
+      return NextResponse.json({ success: true, count: updated.length });
+    }
+
+    return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Failed to update leads' }, { status: 500 });
+  }
+}

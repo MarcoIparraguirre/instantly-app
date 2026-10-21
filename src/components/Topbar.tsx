@@ -10,11 +10,13 @@ import { useViewMode } from '@/context/ViewModeContext';
 import { useAdminProfile } from '@/context/AdminProfileContext';
 import LanguageToggle from './LanguageToggle';
 import AdminProfileModal from './AdminProfileModal';
+import WorkspaceManagerModal from './WorkspaceManagerModal';
 
 interface TopbarProps {
   currentWorkspace: Workspace;
   workspaces: Workspace[];
   onSelectWorkspace: (ws: Workspace) => void;
+  onUpdateWorkspaces?: (workspaces: Workspace[]) => void;
   openCopilot: () => void;
 }
 
@@ -22,12 +24,14 @@ export default function Topbar({
   currentWorkspace,
   workspaces,
   onSelectWorkspace,
+  onUpdateWorkspaces,
   openCopilot
 }: TopbarProps) {
   const { t, language } = useLanguage();
   const { mode, setMode, openModePicker } = useViewMode();
   const { profile, setIsProfileModalOpen } = useAdminProfile();
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
+  const [isWorkspaceManagerOpen, setIsWorkspaceManagerOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -80,6 +84,19 @@ export default function Topbar({
                   {currentWorkspace.id === ws.id && <Check className="w-4 h-4 text-blue-400 shrink-0" />}
                 </button>
               ))}
+
+              <div className="pt-1 border-t border-slate-800/80">
+                <button
+                  onClick={() => {
+                    setIsWorkspaceMenuOpen(false);
+                    setIsWorkspaceManagerOpen(true);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-blue-400 hover:text-blue-300 hover:bg-blue-950/30 rounded-xl transition"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                  <span>{language === 'es' ? 'Gestionar Espacios de Trabajo...' : 'Manage Workspaces...'}</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -198,6 +215,20 @@ export default function Topbar({
 
       {/* Admin Profile Edit Modal */}
       <AdminProfileModal />
+
+      {/* Workspace Management Modal */}
+      <WorkspaceManagerModal
+        isOpen={isWorkspaceManagerOpen}
+        onClose={() => setIsWorkspaceManagerOpen(false)}
+        workspaces={workspaces}
+        currentWorkspace={currentWorkspace}
+        onSelectWorkspace={onSelectWorkspace}
+        onUpdateWorkspaces={(updated) => {
+          if (onUpdateWorkspaces) {
+            onUpdateWorkspaces(updated);
+          }
+        }}
+      />
     </header>
   );
 }

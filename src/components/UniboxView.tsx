@@ -8,13 +8,15 @@ import {
 import { EmailThread, AiSentimentTag } from '@/types';
 import { initialUniboxThreads } from '@/core/storage/mockData';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAdminProfile } from '@/context/AdminProfileContext';
 
 interface UniboxViewProps {
   onPromoteToCrm?: (thread: EmailThread) => void;
 }
 
 export default function UniboxView({ onPromoteToCrm }: UniboxViewProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { profile } = useAdminProfile();
   const [threads, setThreads] = useState<EmailThread[]>(initialUniboxThreads);
   const [selectedThreadId, setSelectedThreadId] = useState<string>(threads[0]?.id || '');
   const [activeFilter, setActiveFilter] = useState<'all' | 'unread' | AiSentimentTag>('all');
@@ -53,7 +55,7 @@ export default function UniboxView({ onPromoteToCrm }: UniboxViewProps) {
     setTimeout(() => {
       const newMessage = {
         id: `msg-${Date.now()}`,
-        sender: 'alex.morgan@growthpilot.io',
+        sender: profile.email || 'marcos@vectrasystems.com.ar',
         recipient: selectedThread.leadEmail,
         subject: `Re: ${selectedThread.messages[0]?.subject || 'Follow up'}`,
         body: replyText,
@@ -346,7 +348,25 @@ export default function UniboxView({ onPromoteToCrm }: UniboxViewProps) {
             </div>
           </div>
         </div>
-      ) : null}
+      ) : (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#0b0f17]">
+          <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mb-4 text-blue-400 shadow-xl shadow-blue-500/10">
+            <Inbox className="w-8 h-8" />
+          </div>
+          <h3 className="text-base font-bold text-white mb-2">
+            {language === 'es' ? 'Bandeja Unibox Vacía' : 'Unibox is Empty'}
+          </h3>
+          <p className="text-xs text-slate-400 max-w-md leading-relaxed mb-4">
+            {language === 'es'
+              ? 'Aquí aparecerán automáticamente todas las respuestas que tus prospectos envíen a tus campañas de correo. Están conectadas directamente a tus casillas y se categorizan con IA (Interesado, Reunión agendada, Fuera de oficina).'
+              : 'All responses from your outreach campaigns will appear here automatically, classified with AI by sentiment.'}
+          </p>
+          <div className="flex items-center gap-2 text-[11px] text-slate-500 bg-slate-900/60 border border-slate-800 px-3 py-1.5 rounded-xl">
+            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+            <span>{language === 'es' ? 'Sin datos de prueba ficticios cargados' : 'No mock demo data loaded'}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

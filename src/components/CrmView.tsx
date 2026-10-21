@@ -10,7 +10,7 @@ import { initialDeals } from '@/core/storage/mockData';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function CrmView() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [showAddModal, setShowAddModal] = useState(false);
 
@@ -125,7 +125,12 @@ export default function CrmView() {
 
               {/* Column Deal Cards */}
               <div className="flex-1 p-3 overflow-y-auto space-y-3">
-                {stageDeals.map((deal) => {
+                {stageDeals.length === 0 ? (
+                  <div className="h-28 border border-dashed border-slate-800/80 rounded-xl flex items-center justify-center text-slate-600 text-[11px]">
+                    {language === 'es' ? 'Sin oportunidades' : 'No deals yet'}
+                  </div>
+                ) : (
+                  stageDeals.map((deal) => {
                   const isInactive = deal.daysInactive >= 3;
                   return (
                     <div
@@ -181,7 +186,7 @@ export default function CrmView() {
                       )}
                     </div>
                   );
-                })}
+                }))}
               </div>
             </div>
           );
