@@ -7,7 +7,7 @@ import { Lead } from '@/types';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { sheetUrlOrId, campaignId, accessToken } = body;
+    const { sheetUrlOrId, campaignId, accessToken, previewOnly } = body;
 
     if (!sheetUrlOrId) {
       return NextResponse.json({ error: 'Google Sheet URL or ID is required.' }, { status: 400 });
@@ -15,8 +15,30 @@ export async function POST(req: NextRequest) {
 
     const sheetsService = new GoogleSheetsService();
     const rows = await sheetsService.fetchSheetRows(sheetUrlOrId, accessToken);
-    const mapped = sheetsService.mapRowsToLeads(rows);
     const detectedColumns = sheetsService.getDetectedColumns(rows);
+    const suggestedEmailColumn = sheetsService.detectEmailColumn(detectedColumns, rows);
+
+    if (rows.length === 0) {
+      return NextResponse.json(
+        { error: 'La hoja de cálculo está vacía o no contiene filas de datos debajo del encabezado.' },
+        { status: 400 }
+      );
+    }
+
+    // Step 1 of 2-Step Wizard: Return raw rows & columns so user can select which columns to import
+    if (previewOnly) {
+      return NextResponse.json({
+        success: true,
+        preview: true,
+        totalRows: rows.length,
+        detectedColumns,
+        suggestedEmailColumn,
+        rows,
+        sample: rows.slice(0, 5)
+      });
+    }
+
+    const mapped = sheetsService.mapRowsToLeads(rows);
 
     if (mapped.length === 0) {
       return NextResponse.json(

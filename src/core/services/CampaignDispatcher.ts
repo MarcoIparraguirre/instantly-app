@@ -11,6 +11,9 @@ import { CampaignRunResult, DispatchLog } from '@/lib/emailEngine';
 
 export interface DispatchOptions {
   simulationOnly?: boolean;
+  batchSize?: number;
+  respectSchedule?: boolean;
+  baseUrl?: string;
 }
 
 export interface ICampaignDispatcher {
@@ -29,6 +32,53 @@ export class CampaignDispatcher implements ICampaignDispatcher {
     private simulatedMailer: IMailer
   ) {}
 
+  private isWithinSchedule(schedule?: {
+    days: number[];
+    timing: { from: string; to: string };
+    timezone: string;
+  }): boolean {
+    if (!schedule || !schedule.timing?.from || !schedule.timing?.to) return true;
+    try {
+      const tz = schedule.timezone || 'America/Buenos_Aires';
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        hour12: false,
+        weekday: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      const parts = formatter.formatToParts(now);
+      const weekdayStr = parts.find(p => p.type === 'weekday')?.value || 'Mon';
+      const hourStr = parts.find(p => p.type === 'hour')?.value || '00';
+      const minuteStr = parts.find(p => p.type === 'minute')?.value || '00';
+
+      const dayMap: Record<string, number> = {
+        Sun: 0,
+        Mon: 1,
+        Tue: 2,
+        Wed: 3,
+        Thu: 4,
+        Fri: 5,
+        Sat: 6
+      };
+      const currentDay = dayMap[weekdayStr] ?? now.getDay();
+      if (Array.isArray(schedule.days) && schedule.days.length > 0 && !schedule.days.includes(currentDay)) {
+        return false;
+      }
+
+      const currentMinutes = (parseInt(hourStr, 10) % 24) * 60 + parseInt(minuteStr, 10);
+      const [fromH, fromM] = schedule.timing.from.split(':').map(n => parseInt(n, 10) || 0);
+      const [toH, toM] = schedule.timing.to.split(':').map(n => parseInt(n, 10) || 0);
+      const fromMinutes = fromH * 60 + fromM;
+      const toMinutes = toH * 60 + toM;
+
+      return currentMinutes >= fromMinutes && currentMinutes <= toMinutes;
+    } catch {
+      return true;
+    }
+  }
+
   async dispatchStep(campaignId: string, options?: DispatchOptions): Promise<CampaignRunResult> {
     const campaign = await this.campaignRepo.getCampaignById(campaignId);
     if (!campaign) {
@@ -36,7 +86,26 @@ export class CampaignDispatcher implements ICampaignDispatcher {
     }
 
     const allLeads = await this.leadRepo.getLeads(campaignId);
-    const leads = allLeads.filter(l => l.status === 'pending');
+    const pendingLeads = allLeads.filter(l => l.status === 'pending');
+
+    // If respectSchedule is requested, check whether current time in campaign timezone is inside window
+    if (options?.respectSchedule && !this.isWithinSchedule(campaign.schedule)) {
+      const fromStr = campaign.schedule?.timing?.from || '09:00';
+      const toStr = campaign.schedule?.timing?.to || '17:00';
+      return {
+        campaignId,
+        totalPending: pendingLeads.length,
+        processed: 0,
+        sentCount: 0,
+        remainingPending: pendingLeads.length,
+        outsideScheduleWindow: true,
+        scheduledWindow: `${fromStr} - ${toStr}`,
+        logs: []
+      };
+    }
+
+    const batchSize = options?.batchSize && options.batchSize > 0 ? options.batchSize : pendingLeads.length;
+    const leads = pendingLeads.slice(0, batchSize);
     const allAccounts = await this.accountRepo.getAccounts();
     let accounts = allAccounts.filter(
       a => campaign.senderAccountIds.length === 0 || campaign.senderAccountIds.includes(a.id)
@@ -60,6 +129,8 @@ export class CampaignDispatcher implements ICampaignDispatcher {
 
     const logs: DispatchLog[] = [];
     let sentCount = 0;
+    let bouncedCount = 0;
+    const baseUrl = options?.baseUrl || process.env.NEXT_PUBLIC_APP_URL || '';
 
     for (const lead of leads) {
       const step = campaign.steps.find(s => s.stepNumber === lead.currentStep) || campaign.steps[0];
@@ -86,12 +157,24 @@ export class CampaignDispatcher implements ICampaignDispatcher {
 
       const mailer = isMockAccount ? this.simulatedMailer : this.smtpMailer;
 
+      let htmlBody: string | undefined;
+      if (campaign.openTracking !== false && !campaign.options?.plainTextMode && baseUrl) {
+        const escapedHtml = finalBody
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\n/g, '<br/>');
+        const trackUrl = `${baseUrl.replace(/\/$/, '')}/api/track/open?leadId=${encodeURIComponent(lead.id)}&campaignId=${encodeURIComponent(campaign.id)}`;
+        htmlBody = `<div style="font-family:sans-serif;font-size:14px;line-height:1.5;">${escapedHtml}</div><img src="${trackUrl}" width="1" height="1" alt="" style="display:none;" />`;
+      }
+
       const result = await mailer.send(sender, {
         from: sender.email,
         fromName: sender.name,
         to: lead.email,
         subject: finalSubject,
-        body: finalBody
+        body: finalBody,
+        html: htmlBody
       });
 
       if (result.success) {
@@ -104,9 +187,16 @@ export class CampaignDispatcher implements ICampaignDispatcher {
           status: result.mode === 'simulated' ? 'simulated' : 'sent'
         });
 
-        // Update lead state
+        // Update lead state and sync custom ESTADO column if present
         lead.status = 'sent';
         lead.lastContactedAt = new Date().toISOString();
+        if (lead.customVariables) {
+          if ('ESTADO' in lead.customVariables) {
+            lead.customVariables = { ...lead.customVariables, ESTADO: 'Enviado' };
+          } else if ('Estado' in lead.customVariables) {
+            lead.customVariables = { ...lead.customVariables, Estado: 'Enviado' };
+          }
+        }
         await this.leadRepo.updateLead(lead);
 
         sentCount++;
@@ -122,18 +212,34 @@ export class CampaignDispatcher implements ICampaignDispatcher {
           status: 'error',
           error: result.error || 'Dispatch error'
         });
+
+        // Mark lead as bounced if SMTP rejected the recipient
+        lead.status = 'bounced';
+        lead.lastContactedAt = new Date().toISOString();
+        if (lead.customVariables) {
+          if ('ESTADO' in lead.customVariables) {
+            lead.customVariables = { ...lead.customVariables, ESTADO: 'Rebotado' };
+          } else if ('Estado' in lead.customVariables) {
+            lead.customVariables = { ...lead.customVariables, Estado: 'Rebotado' };
+          }
+        }
+        await this.leadRepo.updateLead(lead);
+        bouncedCount++;
       }
     }
 
     // Update campaign stats
     campaign.stats.sent += sentCount;
+    campaign.stats.bounced = (campaign.stats.bounced || 0) + bouncedCount;
     await this.campaignRepo.saveCampaign(campaign);
 
     return {
       campaignId,
-      totalPending: leads.length,
+      totalPending: pendingLeads.length,
       processed: leads.length,
       sentCount,
+      bouncedCount,
+      remainingPending: Math.max(0, pendingLeads.length - sentCount - bouncedCount),
       logs
     };
   }

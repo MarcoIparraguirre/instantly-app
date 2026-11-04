@@ -11,6 +11,7 @@ import { NOVICE_TEMPLATES } from '@/core/templates';
 import { checkSpamWords, applySpamFixes } from '@/lib/spamDetector';
 import { useLanguage } from '@/context/LanguageContext';
 import LeadImportModal from '../LeadImportModal';
+import SendTestEmailModal from '../SendTestEmailModal';
 
 interface SimpleCampaignViewProps {
   campaign: Campaign;
@@ -33,6 +34,7 @@ export default function SimpleCampaignView({
   const [dispatchResult, setDispatchResult] = useState<any | null>(null);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isTestEmailModalOpen, setIsTestEmailModalOpen] = useState(false);
   const [lastFocusedField, setLastFocusedField] = useState<'subject' | 'body'>('body');
   const [accounts, setAccounts] = useState<SenderAccount[]>([]);
 
@@ -89,15 +91,16 @@ export default function SimpleCampaignView({
     )
   );
 
-  // Standard variables list combined with sheet variables
-  const availableTags = Array.from(
-    new Set([
-      language === 'es' ? 'Nombre' : 'firstName',
-      language === 'es' ? 'Empresa' : 'companyName',
-      language === 'es' ? 'Email' : 'email',
-      ...detectedVariables
-    ])
-  );
+  // If the user imported a sheet/CSV and selected specific columns, show ONLY those selected columns.
+  // Otherwise fallback to default tags.
+  const availableTags =
+    detectedVariables.length > 0
+      ? detectedVariables
+      : [
+          language === 'es' ? 'Nombre' : 'firstName',
+          language === 'es' ? 'Empresa' : 'companyName',
+          language === 'es' ? 'Email' : 'email'
+        ];
 
   const [isResettingLeads, setIsResettingLeads] = useState(false);
   const handleResetLeads = async () => {
@@ -238,24 +241,71 @@ export default function SimpleCampaignView({
     handleUpdateContent({ subject: cleanSub, body: cleanBody });
   };
 
+  const [sendProgress, setSendProgress] = useState<{ sent: number; total: number } | null>(null);
+
   const handleRunCampaign = async (simulationOnly: boolean = false) => {
     setIsSending(true);
     setDispatchResult(null);
+    const pendingTotal = campaignLeads.filter(l => l.status === 'pending').length;
+    setSendProgress({ sent: 0, total: pendingTotal });
+
     try {
-      const res = await fetch(`/api/campaigns/${campaign.id}/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ simulationOnly })
-      });
-      const data = await res.json();
-      setDispatchResult(data);
+      const batchSize = simulationOnly ? 50 : 5;
+      let cumulativeSent = 0;
+      let cumulativeProcessed = 0;
+      const allLogs: any[] = [];
+      let safetyIterations = 0;
+
+      while (safetyIterations < 200) {
+        safetyIterations++;
+        const res = await fetch(`/api/campaigns/${campaign.id}/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ simulationOnly, batchSize })
+        });
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+          setDispatchResult({ error: data.error || 'Error enviando lote de campaña' });
+          break;
+        }
+
+        cumulativeSent += data.sentCount || 0;
+        cumulativeProcessed += data.processed || 0;
+        if (Array.isArray(data.logs)) {
+          allLogs.push(...data.logs);
+        }
+
+        const totalTarget = Math.max(pendingTotal, cumulativeSent + (data.remainingPending || 0));
+        setSendProgress({ sent: cumulativeSent, total: totalTarget });
+
+        // Stop if no more pending leads or if current batch sent 0 (e.g. SMTP error on all in batch)
+        if (!data.remainingPending || data.remainingPending <= 0 || data.sentCount === 0) {
+          const firstErrorLog = allLogs.find(l => l.status === 'error');
+          if (cumulativeSent === 0 && firstErrorLog?.error) {
+            setDispatchResult({ error: `Fallo SMTP: ${firstErrorLog.error}` });
+          } else {
+            setDispatchResult({
+              campaignId: campaign.id,
+              totalPending: pendingTotal,
+              processed: cumulativeProcessed,
+              sentCount: cumulativeSent,
+              logs: allLogs
+            });
+          }
+          break;
+        }
+      }
+
       const refreshed = await fetch(`/api/campaigns/${campaign.id}`).then(r => r.json());
       onUpdateCampaign(refreshed);
       if (onRefreshLeads) onRefreshLeads();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setDispatchResult({ error: err.message || 'Error de red durante el envío' });
     } finally {
       setIsSending(false);
+      setSendProgress(null);
     }
   };
 
@@ -755,11 +805,21 @@ export default function SimpleCampaignView({
       </div>
 
       {/* Launch Actions */}
-      <div className="flex items-center justify-end gap-3 pt-2">
+      <div className="flex items-center justify-end gap-3 pt-2 flex-wrap">
+        <button
+          type="button"
+          onClick={() => setIsTestEmailModalOpen(true)}
+          className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-blue-400 border border-slate-700 hover:border-blue-500/40 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow-sm"
+          title={language === 'es' ? 'Enviar un correo de prueba real a tu dirección' : 'Send a test email to your address'}
+        >
+          <Mail className="w-3.5 h-3.5" />
+          <span>{language === 'es' ? 'Enviar Prueba a mi Correo' : 'Send Test to My Email'}</span>
+        </button>
+
         <button
           onClick={() => handleRunCampaign(true)}
           disabled={isSending}
-          className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-4 py-2.5 rounded-xl border border-slate-700 transition"
+          className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-4 py-2.5 rounded-xl border border-slate-700 transition cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isSending ? 'animate-spin' : ''}`} />
           <span>{language === 'es' ? 'Simular Envío Seguro (Prueba)' : 'Safe Test Simulation'}</span>
@@ -784,6 +844,37 @@ export default function SimpleCampaignView({
           </button>
         )}
       </div>
+
+      {/* Live Batch Sending Progress Bar */}
+      {isSending && sendProgress && (
+        <div className="bg-slate-900 border border-blue-500/40 rounded-2xl p-4 space-y-2.5 animate-in fade-in">
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 font-bold text-blue-300">
+              <RefreshCw className="w-4 h-4 animate-spin text-blue-400" />
+              <span>
+                {language === 'es'
+                  ? 'Despachando correos por lotes seguros (Conexión SMTP persistente)...'
+                  : 'Dispatching emails in safe batches (Persistent SMTP pool)...'}
+              </span>
+            </div>
+            <span className="font-mono font-bold text-white">
+              {sendProgress.sent} / {sendProgress.total || '?'}
+            </span>
+          </div>
+          <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-emerald-400 transition-all duration-300"
+              style={{
+                width: `${
+                  sendProgress.total > 0
+                    ? Math.min(100, Math.round((sendProgress.sent / sendProgress.total) * 100))
+                    : 15
+                }%`
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Execution Results or Error Banner */}
       {dispatchResult && (
@@ -829,6 +920,13 @@ export default function SimpleCampaignView({
           </div>
         )
       )}
+
+      {/* Send Real Test Email Modal */}
+      <SendTestEmailModal
+        isOpen={isTestEmailModalOpen}
+        onClose={() => setIsTestEmailModalOpen(false)}
+        campaignId={campaign.id}
+      />
     </div>
   );
 }

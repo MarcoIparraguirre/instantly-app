@@ -6,6 +6,7 @@ export interface MailOptions {
   to: string;
   subject: string;
   body: string;
+  html?: string;
 }
 
 export interface MailResult {

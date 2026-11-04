@@ -21,7 +21,7 @@ export default function Sidebar({
   setCurrentTab,
   openCopilot,
   isCopilotOpen,
-  unreadCount = 1
+  unreadCount = 0
 }: SidebarProps) {
   const { t, language } = useLanguage();
   const { mode, setMode } = useViewMode();
@@ -79,10 +79,10 @@ export default function Sidebar({
     },
     {
       id: 'finder',
-      label: language === 'es' ? 'Buscar Prospectos' : 'Find Leads',
+      label: language === 'es' ? 'Grupos de Leads' : 'Lead Groups',
       icon: Search,
-      badge: 'B2B',
-      desc: language === 'es' ? 'Contactos calificados' : 'Verified B2B'
+      badge: 'LEADS',
+      desc: language === 'es' ? 'Ver y editar contactos' : 'View & edit leads'
     }
   ];
 

@@ -49,7 +49,11 @@ export class LeadRepository implements ILeadRepository {
 
   addLeads(newLeads: Lead[]): void {
     const existing = this.getLeads();
-    this.saveLeads([...existing, ...newLeads]);
+    const map = new Map(existing.map(l => [l.id, l]));
+    for (const lead of newLeads) {
+      map.set(lead.id, lead);
+    }
+    this.saveLeads(Array.from(map.values()));
   }
 
   updateLead(lead: Lead): void {

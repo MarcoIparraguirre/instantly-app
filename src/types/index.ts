@@ -62,6 +62,8 @@ export interface Campaign {
   updatedAt: string;
 }
 
+export type LeadStatus = 'pending' | 'sent' | 'opened' | 'replied' | 'bounced' | 'unsubscribed';
+
 export interface Lead {
   id: string;
   campaignId: string;
@@ -72,7 +74,7 @@ export interface Lead {
   website?: string;
   title?: string;
   customVariables?: Record<string, string>;
-  status: 'pending' | 'sent' | 'opened' | 'replied' | 'bounced';
+  status: LeadStatus;
   currentStep: number;
   lastContactedAt?: string;
 }

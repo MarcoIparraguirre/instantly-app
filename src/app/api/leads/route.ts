@@ -54,14 +54,25 @@ export async function PUT(req: NextRequest) {
 
     if (body.action === 'reset_status') {
       const leads = await container.leadRepo.getLeads(campaignId);
-      const updated = leads.map(l => ({
-        ...l,
-        status: 'pending' as const,
-        currentStep: 1,
-        lastContactedAt: undefined
-      }));
+      const updated = leads.map(l => {
+        const nextCustomVars = l.customVariables ? { ...l.customVariables } : {};
+        if ('ESTADO' in nextCustomVars) nextCustomVars.ESTADO = 'Pendiente';
+        return {
+          ...l,
+          status: 'pending' as const,
+          currentStep: 1,
+          lastContactedAt: undefined,
+          customVariables: nextCustomVars
+        };
+      });
       await container.leadRepo.saveLeads(updated);
       return NextResponse.json({ success: true, count: updated.length });
+    }
+
+    if (body.action === 'update_lead' && body.lead) {
+      const updatedLead: Lead = body.lead;
+      await container.leadRepo.updateLead(updatedLead);
+      return NextResponse.json({ success: true, lead: updatedLead });
     }
 
     return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });

@@ -31,6 +31,7 @@ export default function Home() {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [allCampaigns, setAllCampaigns] = useState<Campaign[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [uniboxUnreadCount, setUniboxUnreadCount] = useState<number>(0);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isCreateCampaignModalOpen, setIsCreateCampaignModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -109,6 +110,39 @@ export default function Home() {
     } catch (e) {}
   };
 
+  // Background Auto-Scheduler: checks active campaigns every 25s and dispatches when inside scheduled window
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      const activeCamps = allCampaigns.filter(c => c.status === 'active');
+      if (activeCamps.length === 0) return;
+
+      for (const camp of activeCamps) {
+        const pendingForCamp = leads.filter(
+          l => l.campaignId === camp.id && l.status === 'pending'
+        );
+        if (pendingForCamp.length === 0) continue;
+
+        try {
+          const res = await fetch(`/api/campaigns/${camp.id}/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              simulationOnly: false,
+              respectSchedule: true,
+              batchSize: 5
+            })
+          });
+          const data = await res.json();
+          if (res.ok && data.sentCount > 0) {
+            fetchInitialData();
+          }
+        } catch {}
+      }
+    }, 25000);
+
+    return () => clearInterval(timer);
+  }, [allCampaigns, leads]);
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#0b0f17] text-slate-100 font-sans">
       {/* Onboarding Mode Selection Modal (First-time user or on-demand switch) */}
@@ -120,7 +154,7 @@ export default function Home() {
         setCurrentTab={setCurrentTab}
         openCopilot={() => setIsCopilotOpen(true)}
         isCopilotOpen={isCopilotOpen}
-        unreadCount={1}
+        unreadCount={uniboxUnreadCount}
       />
 
       {/* Main Workspace Frame */}
@@ -271,24 +305,35 @@ export default function Home() {
                 )
               )}
 
-              {/* LEAD FINDER: B2B Search and direct campaign injection */}
+              {/* LEAD FINDER / GROUPS VIEWER: View, filter and edit lead groups */}
               {currentTab === 'finder' && (
                 <LeadFinderView
                   campaigns={allCampaigns}
+                  leads={leads}
                   onLeadsInjected={handleLeadsUpdated}
                 />
               )}
 
-              {/* UNIBOX: Master-Detail 3-Panel with AI Sentiments */}
+              {/* UNIBOX: Master-Detail 3-Panel with AI Sentiments & Real IMAP Sync */}
               {currentTab === 'unibox' && (
-                <UniboxView onPromoteToCrm={() => setCurrentTab('crm')} />
+                <UniboxView
+                  onPromoteToCrm={() => setCurrentTab('crm')}
+                  onUnreadCountChange={setUniboxUnreadCount}
+                  onLeadsSynced={fetchInitialData}
+                />
               )}
 
               {/* CRM: Kanban Dealflow Pipeline */}
               {currentTab === 'crm' && <CrmView />}
 
               {/* ANALYTICS: Macro Funnel & Micro Mailbox Breakdown */}
-              {currentTab === 'analytics' && <AnalyticsView campaign={campaign} />}
+              {currentTab === 'analytics' && (
+                <AnalyticsView
+                  campaign={campaign}
+                  leads={leads}
+                  onRefreshData={fetchInitialData}
+                />
+              )}
             </>
           )}
 

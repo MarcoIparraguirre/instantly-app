@@ -1,348 +1,507 @@
 'use client';
 
-import React, { useState } from 'react';
-import { 
-  Search, ShieldCheck, CheckCircle2, Building, MapPin, 
-  Globe, ArrowRight, Sparkles, Filter, CheckSquare, Square
+import React, { useState, useEffect } from 'react';
+import {
+  Search,
+  CheckCircle2,
+  Filter,
+  CheckSquare,
+  Square,
+  Users,
+  Edit3,
+  FileSpreadsheet,
+  RefreshCw,
+  FolderKanban,
+  Clock,
+  AlertTriangle,
+  MessageSquare,
+  Eye,
+  Send
 } from 'lucide-react';
-import { B2BLead, Campaign } from '@/types';
-import { initialB2BLeads } from '@/core/storage/mockData';
+import { Campaign, Lead, LeadStatus } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
+import EditLeadModal from './EditLeadModal';
+import LeadImportModal from './LeadImportModal';
 
 interface LeadFinderViewProps {
   campaigns: Campaign[];
+  leads?: Lead[];
   onLeadsInjected: () => void;
 }
 
-export default function LeadFinderView({ campaigns, onLeadsInjected }: LeadFinderViewProps) {
-  const { t } = useLanguage();
-  const [leads] = useState<B2BLead[]>(initialB2BLeads);
-  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>(['b2b-1', 'b2b-2']);
-  const [showInjectModal, setShowInjectModal] = useState(false);
-  const [selectedCampaignId, setSelectedCampaignId] = useState(campaigns[0]?.id || 'campaign-1');
-  const [isInjecting, setIsInjecting] = useState(false);
-  const [injectSuccessMsg, setInjectSuccessMsg] = useState('');
+export default function LeadFinderView({
+  campaigns,
+  leads: propLeads,
+  onLeadsInjected
+}: LeadFinderViewProps) {
+  const { language } = useLanguage();
+  const [allLeads, setAllLeads] = useState<Lead[]>(propLeads || []);
+  const [selectedCampaignFilter, setSelectedCampaignFilter] = useState<string>('all');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Filters State
-  const [searchTitle, setSearchTitle] = useState('');
-  const [selectedSeniority, setSelectedSeniority] = useState('all');
-  const [selectedIndustry, setSelectedIndustry] = useState('all');
-  const [verifiedOnly, setVerifiedOnly] = useState(true);
+  useEffect(() => {
+    if (propLeads) {
+      setAllLeads(propLeads);
+    } else {
+      refreshLeads();
+    }
+  }, [propLeads]);
+
+  const refreshLeads = async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await fetch('/api/leads');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setAllLeads(data);
+      }
+      onLeadsInjected();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const getCampaignName = (campId: string) => {
+    return campaigns.find(c => c.id === campId)?.name || 'Grupo General';
+  };
+
+  const getStatusBadge = (status: LeadStatus) => {
+    switch (status) {
+      case 'sent':
+        return {
+          label: language === 'es' ? '✅ Enviado' : '✅ Sent',
+          cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+        };
+      case 'opened':
+        return {
+          label: language === 'es' ? '👁️ Abierto' : '👁️ Opened',
+          cls: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30'
+        };
+      case 'replied':
+        return {
+          label: language === 'es' ? '💬 Respondido' : '💬 Replied',
+          cls: 'bg-purple-500/15 text-purple-400 border-purple-500/30'
+        };
+      case 'bounced':
+        return {
+          label: language === 'es' ? '⚠️ Rebotado' : '⚠️ Bounced',
+          cls: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+        };
+      case 'pending':
+      default:
+        return {
+          label: language === 'es' ? '⏳ Pendiente' : '⏳ Pending',
+          cls: 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+        };
+    }
+  };
+
+  // Filter leads by Campaign Group, Status, and Search Query
+  const filteredLeads = allLeads.filter(lead => {
+    if (selectedCampaignFilter !== 'all' && lead.campaignId !== selectedCampaignFilter) {
+      return false;
+    }
+    if (selectedStatusFilter !== 'all' && lead.status !== selectedStatusFilter) {
+      return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const inBasic =
+        (lead.email || '').toLowerCase().includes(q) ||
+        (lead.firstName || '').toLowerCase().includes(q) ||
+        (lead.lastName || '').toLowerCase().includes(q) ||
+        (lead.companyName || '').toLowerCase().includes(q);
+      const inCustom = Object.values(lead.customVariables || {}).some(v =>
+        String(v || '').toLowerCase().includes(q)
+      );
+      if (!inBasic && !inCustom) return false;
+    }
+    return true;
+  });
+
+  // Extract dynamic columns across filtered leads
+  const dynamicColumns = Array.from(
+    new Set(filteredLeads.flatMap(l => Object.keys(l.customVariables || {})))
+  );
 
   const toggleSelectLead = (id: string) => {
-    setSelectedLeadIds(prev => 
+    setSelectedLeadIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
 
   const toggleSelectAll = () => {
-    if (selectedLeadIds.length === leads.length) {
+    if (selectedLeadIds.length === filteredLeads.length) {
       setSelectedLeadIds([]);
     } else {
-      setSelectedLeadIds(leads.map(l => l.id));
+      setSelectedLeadIds(filteredLeads.map(l => l.id));
     }
   };
 
-  const handleInjectToCampaign = async () => {
-    setIsInjecting(true);
-    const leadsToTransfer = leads.filter(l => selectedLeadIds.includes(l.id));
-
-    const payload = leadsToTransfer.map(l => ({
-      campaignId: selectedCampaignId,
-      email: l.email,
-      firstName: l.firstName,
-      lastName: l.lastName,
-      companyName: l.companyName,
-      website: l.domain,
-      customVariables: {
-        title: l.title,
-        industry: l.industry,
-        location: l.location
-      }
-    }));
-
+  const handleBulkStatusChange = async (newStatus: LeadStatus) => {
+    if (selectedLeadIds.length === 0) return;
+    setIsRefreshing(true);
     try {
-      const res = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        setInjectSuccessMsg(`🎉 ${leadsToTransfer.length} ${t('finder.injectSuccess')}`);
-        onLeadsInjected();
-        setTimeout(() => {
-          setShowInjectModal(false);
-          setInjectSuccessMsg('');
-          setSelectedLeadIds([]);
-        }, 1500);
+      const selectedSet = new Set(selectedLeadIds);
+      const toUpdate = allLeads.filter(l => selectedSet.has(l.id));
+      for (const lead of toUpdate) {
+        const nextCustom = lead.customVariables ? { ...lead.customVariables } : {};
+        if ('ESTADO' in nextCustom) {
+          nextCustom.ESTADO = newStatus === 'pending' ? 'Pendiente' : newStatus === 'sent' ? 'Enviado' : newStatus;
+        }
+        await fetch('/api/leads', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_lead',
+            lead: { ...lead, status: newStatus, customVariables: nextCustom }
+          })
+        });
       }
-    } catch (err) {
-      console.error(err);
+      setSelectedLeadIds([]);
+      await refreshLeads();
+    } catch (e) {
+      console.error(e);
     } finally {
-      setIsInjecting(false);
+      setIsRefreshing(false);
     }
   };
+
+  const activeCampaignIdForImport =
+    selectedCampaignFilter !== 'all'
+      ? selectedCampaignFilter
+      : campaigns[0]?.id || 'campaign-1';
 
   return (
     <div className="flex-1 flex overflow-hidden bg-[#0b0f17]">
-      {/* Left Panel: Faceted Search Filters */}
-      <div className="w-72 bg-[#090d16] border-r border-slate-800/80 p-5 overflow-y-auto space-y-5 shrink-0">
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-          <Filter className="w-4 h-4 text-blue-400" />
-          <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-            {t('finder.filtersTitle')}
-          </h2>
-        </div>
-
-        {/* Job Title Filter */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-300">{t('finder.jobTitle')}</label>
+      {/* Left Sidebar: Lead Groups (By Campaign) & Status Filters */}
+      <div className="w-72 bg-[#090d16] border-r border-slate-800/80 p-5 overflow-y-auto space-y-6 shrink-0">
+        {/* Search Box */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-blue-400" />
+            <h2 className="text-xs font-bold text-white uppercase tracking-wider">
+              {language === 'es' ? 'Buscador y Grupos' : 'Search & Lead Groups'}
+            </h2>
+          </div>
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              value={searchTitle}
-              onChange={(e) => setSearchTitle(e.target.value)}
-              placeholder={t('finder.jobTitlePlaceholder')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={
+                language === 'es'
+                  ? 'Buscar email, dominio, variable...'
+                  : 'Search email, domain, variable...'
+              }
               className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
             />
           </div>
         </div>
 
-        {/* Seniority Filter */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-300">{t('finder.seniority')}</label>
-          <select
-            value={selectedSeniority}
-            onChange={(e) => setSelectedSeniority(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
-          >
-            <option value="all">{t('finder.seniorityAll')}</option>
-            <option value="clevel">{t('finder.seniorityClevel')}</option>
-            <option value="vp">{t('finder.seniorityVp')}</option>
-            <option value="manager">{t('finder.seniorityManager')}</option>
-          </select>
-        </div>
+        {/* Groups by Campaign */}
+        <div className="space-y-1.5 border-t border-slate-800/80 pt-4">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-2">
+            <FolderKanban className="w-3.5 h-3.5 text-indigo-400" />
+            <span>{language === 'es' ? 'Grupos por Campaña' : 'Groups by Campaign'}</span>
+          </div>
 
-        {/* Industry Filter */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-300">{t('finder.industry')}</label>
-          <select
-            value={selectedIndustry}
-            onChange={(e) => setSelectedIndustry(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+          <button
+            onClick={() => setSelectedCampaignFilter('all')}
+            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition cursor-pointer ${
+              selectedCampaignFilter === 'all'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+            }`}
           >
-            <option value="all">{t('finder.industryAll')}</option>
-            <option value="saas">{t('finder.industrySaas')}</option>
-            <option value="fintech">{t('finder.industryFintech')}</option>
-            <option value="healthcare">{t('finder.industryHealthcare')}</option>
-            <option value="ecommerce">{t('finder.industryEcommerce')}</option>
-          </select>
-        </div>
-
-        {/* Verified Only Checkbox */}
-        <div className="pt-2 border-t border-slate-800/80">
-          <label className="flex items-center gap-2.5 cursor-pointer text-xs text-slate-300 hover:text-white">
-            <input
-              type="checkbox"
-              checked={verifiedOnly}
-              onChange={(e) => setVerifiedOnly(e.target.checked)}
-              className="rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0"
-            />
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              {t('finder.verifiedOnly')}
+            <span className="truncate">
+              {language === 'es' ? 'Todos los Contactos' : 'All Contacts'}
             </span>
-          </label>
+            <span className="text-[10px] bg-slate-950/60 px-2 py-0.5 rounded-full font-mono">
+              {allLeads.length}
+            </span>
+          </button>
+
+          {campaigns.map(camp => {
+            const count = allLeads.filter(l => l.campaignId === camp.id).length;
+            const active = selectedCampaignFilter === camp.id;
+            return (
+              <button
+                key={camp.id}
+                onClick={() => setSelectedCampaignFilter(camp.id)}
+                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition cursor-pointer ${
+                  active
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <span className="truncate pr-2">{camp.name}</span>
+                <span className="text-[10px] bg-slate-950/60 px-2 py-0.5 rounded-full font-mono shrink-0">
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        <button className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold py-2.5 rounded-xl shadow-md shadow-blue-600/30 transition flex items-center justify-center gap-2">
-          <Search className="w-3.5 h-3.5" />
-          {t('finder.searchBtn')}
-        </button>
+        {/* Filter by Contact Status */}
+        <div className="space-y-1.5 border-t border-slate-800/80 pt-4">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+            {language === 'es' ? 'Filtrar por Estado de Envío' : 'Filter by Dispatch Status'}
+          </div>
+
+          {[
+            { id: 'all', label: language === 'es' ? 'Todos los estados' : 'All statuses', icon: Users, color: 'text-slate-300' },
+            { id: 'pending', label: language === 'es' ? '⏳ Pendientes' : '⏳ Pending', icon: Clock, color: 'text-amber-400' },
+            { id: 'sent', label: language === 'es' ? '✅ Enviados' : '✅ Sent', icon: Send, color: 'text-emerald-400' },
+            { id: 'opened', label: language === 'es' ? '👁️ Abiertos' : '👁️ Opened', icon: Eye, color: 'text-cyan-400' },
+            { id: 'replied', label: language === 'es' ? '💬 Respondidos' : '💬 Replied', icon: MessageSquare, color: 'text-purple-400' },
+            { id: 'bounced', label: language === 'es' ? '⚠️ Rebotados' : '⚠️ Bounced', icon: AlertTriangle, color: 'text-rose-400' }
+          ].map(st => {
+            const count = allLeads.filter(l => {
+              const matchCamp =
+                selectedCampaignFilter === 'all' || l.campaignId === selectedCampaignFilter;
+              const matchStatus = st.id === 'all' || l.status === st.id;
+              return matchCamp && matchStatus;
+            }).length;
+            const active = selectedStatusFilter === st.id;
+
+            return (
+              <button
+                key={st.id}
+                onClick={() => setSelectedStatusFilter(st.id)}
+                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition cursor-pointer ${
+                  active
+                    ? 'bg-slate-800 text-white border border-slate-700'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+                }`}
+              >
+                <span className={active ? 'text-white' : st.color}>{st.label}</span>
+                <span className="text-[10px] bg-slate-900 px-2 py-0.5 rounded-full font-mono text-slate-400">
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Main Area: Lead Finder Database Results */}
+      {/* Main Panel: Lead Group Table & Editor */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Sub-header */}
+        {/* Top Action Bar */}
         <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/40 shrink-0">
           <div>
             <h1 className="text-base font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-400" />
-              {t('finder.title')}
+              <Users className="w-4 h-4 text-blue-400" />
+              <span>
+                {language === 'es'
+                  ? 'Visor y Editor de Grupos de Leads'
+                  : 'Lead Groups Viewer & Editor'}
+              </span>
             </h1>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              {leads.length} {t('finder.resultsCount')} • B2B Graph v2.4
+              {filteredLeads.length}{' '}
+              {language === 'es'
+                ? 'contactos en vista • Haz clic en "Editar" en cualquier fila para modificar sus datos o estado'
+                : 'contacts in view • Click "Edit" on any row to modify data or status'}
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {selectedLeadIds.length > 0 && (
-              <button
-                onClick={() => setShowInjectModal(true)}
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg shadow-blue-600/30 transition"
-              >
-                <span>{t('finder.injectToCampaign')} ({selectedLeadIds.length})</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs">
+                <span className="text-slate-300 font-semibold">
+                  {selectedLeadIds.length} seleccionados:
+                </span>
+                <button
+                  onClick={() => handleBulkStatusChange('pending')}
+                  className="text-amber-400 hover:underline font-semibold cursor-pointer"
+                >
+                  Marcar Pendiente
+                </button>
+                <span className="text-slate-700">|</span>
+                <button
+                  onClick={() => handleBulkStatusChange('sent')}
+                  className="text-emerald-400 hover:underline font-semibold cursor-pointer"
+                >
+                  Marcar Enviado
+                </button>
+              </div>
             )}
+
+            <button
+              onClick={refreshLeads}
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer"
+              title={language === 'es' ? 'Actualizar lista' : 'Refresh list'}
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg shadow-emerald-600/20 transition cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>
+                {language === 'es'
+                  ? 'Importar / Sincronizar (Sheets o CSV)'
+                  : 'Import / Sync (Sheets or CSV)'}
+              </span>
+            </button>
           </div>
         </div>
 
-        {/* Leads Table */}
+        {/* Table Area */}
         <div className="flex-1 overflow-y-auto p-6">
           <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-950/80 text-slate-400 uppercase tracking-wider text-[11px] border-b border-slate-800">
-                <tr>
-                  <th className="py-3 px-4 w-10">
-                    <button onClick={toggleSelectAll} className="text-slate-400 hover:text-white">
-                      {selectedLeadIds.length === leads.length ? (
-                        <CheckSquare className="w-4 h-4 text-blue-500" />
-                      ) : (
-                        <Square className="w-4 h-4" />
-                      )}
-                    </button>
-                  </th>
-                  <th className="py-3 px-4">{t('finder.colName')}</th>
-                  <th className="py-3 px-4">{t('finder.colCompany')}</th>
-                  <th className="py-3 px-4">{t('finder.colLocation')}</th>
-                  <th className="py-3 px-4">{t('finder.colTech')}</th>
-                  <th className="py-3 px-4">{t('finder.colEmail')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/80 text-slate-200">
-                {leads.map((lead) => {
-                  const isSelected = selectedLeadIds.includes(lead.id);
-                  return (
-                    <tr
-                      key={lead.id}
-                      onClick={() => toggleSelectLead(lead.id)}
-                      className={`cursor-pointer transition ${
-                        isSelected ? 'bg-blue-600/10' : 'hover:bg-slate-800/40'
-                      }`}
-                    >
-                      <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => toggleSelectLead(lead.id)}>
-                          {isSelected ? (
-                            <CheckSquare className="w-4 h-4 text-blue-500" />
-                          ) : (
-                            <Square className="w-4 h-4 text-slate-500" />
-                          )}
-                        </button>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-white flex items-center gap-1.5">
-                          {lead.firstName} {lead.lastName}
-                          <a
-                            href={lead.linkedinUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-blue-400 hover:text-blue-300"
-                            title="LinkedIn Profile"
-                          >
-                            <Globe className="w-3.5 h-3.5" />
-                          </a>
-                        </div>
-                        <div className="text-[11px] text-slate-400">{lead.title}</div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2">
-                          <Building className="w-3.5 h-3.5 text-slate-400" />
-                          <div>
-                            <div className="font-medium text-slate-200">{lead.companyName}</div>
-                            <div className="text-[10px] text-slate-500 font-mono">{lead.domain} • {lead.headcount} emp</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-400 text-[11px]">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5 text-slate-500" />
-                          {lead.location}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex flex-wrap gap-1 max-w-[200px]">
-                          {lead.techStack.slice(0, 3).map((tech, i) => (
-                            <span key={i} className="text-[10px] bg-slate-800 text-slate-300 border border-slate-700 px-1.5 py-0.5 rounded">
-                              {tech}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          {lead.email}
-                        </span>
+            <div className="overflow-x-auto w-full max-w-full">
+              <table className="w-full text-left text-xs whitespace-nowrap min-w-max">
+                <thead className="bg-slate-950/90 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800">
+                  <tr>
+                    <th className="py-3.5 px-4 w-10">
+                      <button
+                        onClick={toggleSelectAll}
+                        className="text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        {selectedLeadIds.length > 0 &&
+                        selectedLeadIds.length === filteredLeads.length ? (
+                          <CheckSquare className="w-4 h-4 text-blue-500" />
+                        ) : (
+                          <Square className="w-4 h-4" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="py-3.5 px-4 font-bold text-white">Acción</th>
+                    <th className="py-3.5 px-4 font-bold text-white">Estado</th>
+                    <th className="py-3.5 px-4 font-bold text-white">Email</th>
+                    <th className="py-3.5 px-4 font-bold text-white">Grupo / Campaña</th>
+                    <th className="py-3.5 px-4 font-bold text-white">Último Envío</th>
+                    {dynamicColumns.map(col => (
+                      <th
+                        key={col}
+                        className="py-3.5 px-4 text-blue-400 bg-blue-950/20 border-l border-slate-800/80 font-mono font-bold"
+                      >
+                        {`{{${col}}}`}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/80 text-slate-200">
+                  {filteredLeads.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6 + dynamicColumns.length}
+                        className="py-12 text-center text-slate-500"
+                      >
+                        {language === 'es'
+                          ? 'No hay contactos que coincidan con este filtro.'
+                          : 'No contacts match the selected filter.'}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredLeads.map(lead => {
+                      const isSelected = selectedLeadIds.includes(lead.id);
+                      const badge = getStatusBadge(lead.status);
+                      return (
+                        <tr
+                          key={lead.id}
+                          className={`transition ${
+                            isSelected ? 'bg-blue-600/10' : 'hover:bg-slate-800/40'
+                          }`}
+                        >
+                          <td className="py-3 px-4">
+                            <button
+                              onClick={() => toggleSelectLead(lead.id)}
+                              className="cursor-pointer"
+                            >
+                              {isSelected ? (
+                                <CheckSquare className="w-4 h-4 text-blue-500" />
+                              ) : (
+                                <Square className="w-4 h-4 text-slate-500" />
+                              )}
+                            </button>
+                          </td>
+                          <td className="py-3 px-4">
+                            <button
+                              onClick={() => setEditingLead(lead)}
+                              className="flex items-center gap-1.5 bg-slate-800 hover:bg-blue-600 text-slate-200 hover:text-white px-2.5 py-1 rounded-lg border border-slate-700 hover:border-blue-500 text-[11px] font-semibold transition cursor-pointer"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>{language === 'es' ? 'Editar' : 'Edit'}</span>
+                            </button>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${badge.cls}`}
+                            >
+                              {badge.label}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-mono text-white font-semibold">
+                            {lead.email}
+                          </td>
+                          <td className="py-3 px-4 text-slate-300">
+                            <span className="bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded-lg text-[11px]">
+                              {getCampaignName(lead.campaignId)}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-[11px] text-slate-400 font-mono">
+                            {lead.lastContactedAt
+                              ? new Date(lead.lastContactedAt).toLocaleString([], {
+                                  dateStyle: 'short',
+                                  timeStyle: 'short'
+                                })
+                              : '-'}
+                          </td>
+                          {dynamicColumns.map(col => (
+                            <td
+                              key={col}
+                              className="py-3 px-4 font-mono text-slate-300 border-l border-slate-800/60 bg-slate-950/20 max-w-xs truncate"
+                              title={String(lead.customVariables?.[col] ?? '')}
+                            >
+                              {lead.customVariables?.[col] !== undefined
+                                ? String(lead.customVariables[col])
+                                : '-'}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Inject Directly to Campaign Modal */}
-      {showInjectModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-400" />
-              {t('finder.injectModalTitle')}
-            </h2>
+      {/* Edit Lead Modal */}
+      <EditLeadModal
+        isOpen={Boolean(editingLead)}
+        lead={editingLead}
+        onClose={() => setEditingLead(null)}
+        onSaved={() => {
+          refreshLeads();
+        }}
+      />
 
-            <p className="text-xs text-slate-400">
-              Transfer <span className="font-bold text-white">{selectedLeadIds.length} verified B2B leads</span> straight into your sequence without CSV downloads:
-            </p>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
-                {t('finder.selectCampaign')}
-              </label>
-              <select
-                value={selectedCampaignId}
-                onChange={(e) => setSelectedCampaignId(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
-              >
-                {campaigns.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.status})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {injectSuccessMsg && (
-              <div className="p-3 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs rounded-xl font-medium">
-                {injectSuccessMsg}
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowInjectModal(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                disabled={isInjecting}
-                onClick={handleInjectToCampaign}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-semibold rounded-lg shadow transition"
-              >
-                {t('finder.confirmInject')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Import / Sync Modal */}
+      <LeadImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        campaignId={activeCampaignIdForImport}
+        onImportSuccess={() => {
+          refreshLeads();
+        }}
+      />
     </div>
   );
 }

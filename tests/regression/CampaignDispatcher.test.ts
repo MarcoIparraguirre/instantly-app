@@ -171,4 +171,24 @@ describe('CampaignDispatcher (Regression Tests)', () => {
       dispatcher.dispatchStep(testCampaignId)
     ).rejects.toThrow('This campaign does not have any sequence steps configured.');
   });
+
+  it('supports batchSize dispatching and reports remainingPending accurately', async () => {
+    const batch1 = await dispatcher.dispatchStep(testCampaignId, {
+      simulationOnly: true,
+      batchSize: 1
+    });
+
+    expect(batch1.processed).toBe(1);
+    expect(batch1.sentCount).toBe(1);
+    expect(batch1.remainingPending).toBe(1);
+
+    const batch2 = await dispatcher.dispatchStep(testCampaignId, {
+      simulationOnly: true,
+      batchSize: 1
+    });
+
+    expect(batch2.processed).toBe(1);
+    expect(batch2.sentCount).toBe(1);
+    expect(batch2.remainingPending).toBe(0);
+  });
 });

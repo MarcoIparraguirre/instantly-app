@@ -76,4 +76,58 @@ describe('GoogleSheetsService (Unit Tests)', () => {
     expect(leads.length).toBe(1);
     expect(leads[0].email).toBe('valid@domain.com');
   });
+
+  it('extracts sheet gid from URLs with #gid= or ?gid=', () => {
+    expect(
+      service.extractSheetGid(
+        'https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit#gid=987654'
+      )
+    ).toBe('987654');
+    expect(
+      service.extractSheetGid(
+        'https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit?gid=42'
+      )
+    ).toBe('42');
+    expect(
+      service.extractSheetGid('https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms')
+    ).toBeUndefined();
+  });
+
+  it('parses semicolon-separated CSVs and multiline quoted cells accurately', () => {
+    const csvWithMultilineAndSemicolon = `MAIL;Nombre;ASUNTO;CUERPO\nmarcos@vectra.com;Marcos;"Propuesta comercial";"Hola Marcos,\n\nTe escribo por la propuesta.\nSaludos"`;
+    const records = service.parseCsvToRecords(csvWithMultilineAndSemicolon);
+
+    expect(records.length).toBe(1);
+    expect(records[0].MAIL).toBe('marcos@vectra.com');
+    expect(records[0].Nombre).toBe('Marcos');
+    expect(records[0].ASUNTO).toBe('Propuesta comercial');
+    expect(records[0].CUERPO).toContain('Hola Marcos,\n\nTe escribo por la propuesta.');
+  });
+
+  it('filters customVariables to ONLY the columns selected by the user via mapRowsWithSelection', () => {
+    const rows = [
+      {
+        MAIL: 'cliente@empresa.com',
+        Nombre: 'Lucía',
+        DOLOR: 'Falta de seguimiento',
+        ASUNTO: 'Idea para tu equipo',
+        ID_INTERNO_NO_USAR: '999888'
+      }
+    ];
+
+    const emailCol = service.detectEmailColumn(Object.keys(rows[0]), rows);
+    expect(emailCol).toBe('MAIL');
+
+    const selectedCols = ['Nombre', 'DOLOR', 'ASUNTO'];
+    const mapped = service.mapRowsWithSelection(rows, emailCol, selectedCols);
+
+    expect(mapped.length).toBe(1);
+    expect(mapped[0].email).toBe('cliente@empresa.com');
+    expect(mapped[0].customVariables).toEqual({
+      Nombre: 'Lucía',
+      DOLOR: 'Falta de seguimiento',
+      ASUNTO: 'Idea para tu equipo'
+    });
+    expect(mapped[0].customVariables?.ID_INTERNO_NO_USAR).toBeUndefined();
+  });
 });
