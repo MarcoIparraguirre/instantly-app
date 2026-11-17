@@ -1,4 +1,4 @@
-import { Campaign, Lead, SenderAccount, CopilotMessage } from '@/types';
+import { Campaign, Lead, SenderAccount, CopilotMessage, Deal, BlocklistItem, WebhookItem, WarmupLog } from '@/types';
 
 // Interface Segregation Principle (ISP): Split Read and Write interfaces
 // Compatible with both asynchronous (Supabase, PostgreSQL) and synchronous (JSON, memory) drivers
@@ -46,4 +46,30 @@ export interface ICopilotRepository {
   getMessages(): Promise<CopilotMessage[]> | CopilotMessage[];
   saveMessages(messages: CopilotMessage[]): Promise<void> | void;
   addMessage(message: CopilotMessage): Promise<void> | void;
+}
+
+export interface IDealRepository {
+  getDeals(): Promise<Deal[]>;
+  getDealById(id: string): Promise<Deal | undefined>;
+  saveDeal(deal: Deal): Promise<void>;
+  updateDeal(deal: Deal): Promise<void>;
+  deleteDeal(id: string): Promise<void>;
+}
+
+export interface IBlocklistRepository {
+  getBlocklist(): Promise<BlocklistItem[]>;
+  isBlocked(email: string): Promise<boolean>;
+  addToBlocklist(item: Omit<BlocklistItem, 'id' | 'createdAt'>): Promise<BlocklistItem>;
+  removeFromBlocklist(id: string): Promise<void>;
+}
+
+export interface IWebhookRepository {
+  getWebhooks(): Promise<WebhookItem[]>;
+  saveWebhook(webhook: WebhookItem): Promise<void>;
+  deleteWebhook(id: string): Promise<void>;
+}
+
+export interface IWarmupRepository {
+  logWarmup(log: Omit<WarmupLog, 'id' | 'createdAt'>): Promise<WarmupLog>;
+  getWarmupLogs(limit?: number): Promise<WarmupLog[]>;
 }

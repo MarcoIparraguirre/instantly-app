@@ -1,12 +1,14 @@
 import {
   ICampaignRepository,
   ILeadRepository,
-  IAccountRepository
+  IAccountRepository,
+  IBlocklistRepository
 } from '../interfaces/storage';
 import { ITemplateRenderer } from './TemplateRenderer';
 import { ISpintaxService } from './SpintaxService';
 import { IAccountRotator } from './AccountRotator';
 import { IMailer } from '../mailers/interfaces';
+import { WebhookDispatcherService } from './WebhookDispatcherService';
 import { CampaignRunResult, DispatchLog } from '@/lib/emailEngine';
 
 export interface DispatchOptions {
@@ -29,7 +31,9 @@ export class CampaignDispatcher implements ICampaignDispatcher {
     private spintaxService: ISpintaxService,
     private rotator: IAccountRotator,
     private smtpMailer: IMailer,
-    private simulatedMailer: IMailer
+    private simulatedMailer: IMailer,
+    private blocklistRepo?: IBlocklistRepository,
+    private webhookDispatcher?: WebhookDispatcherService
   ) {}
 
   private isWithinSchedule(schedule?: {
@@ -88,7 +92,6 @@ export class CampaignDispatcher implements ICampaignDispatcher {
     const allLeads = await this.leadRepo.getLeads(campaignId);
     const pendingLeads = allLeads.filter(l => l.status === 'pending');
 
-    // If respectSchedule is requested, check whether current time in campaign timezone is inside window
     if (options?.respectSchedule && !this.isWithinSchedule(campaign.schedule)) {
       const fromStr = campaign.schedule?.timing?.from || '09:00';
       const toStr = campaign.schedule?.timing?.to || '17:00';
@@ -111,7 +114,6 @@ export class CampaignDispatcher implements ICampaignDispatcher {
       a => campaign.senderAccountIds.length === 0 || campaign.senderAccountIds.includes(a.id)
     );
 
-    // If campaign senderAccountIds are not matching any account, fallback gracefully to all active accounts
     if (accounts.length === 0 && allAccounts.length > 0) {
       accounts = allAccounts.filter(a => a.status === 'active' || !a.status);
       if (accounts.length === 0) {
@@ -133,17 +135,45 @@ export class CampaignDispatcher implements ICampaignDispatcher {
     const baseUrl = options?.baseUrl || process.env.NEXT_PUBLIC_APP_URL || '';
 
     for (const lead of leads) {
+      // 1. Check Global Blocklist
+      if (this.blocklistRepo && (await this.blocklistRepo.isBlocked(lead.email))) {
+        lead.status = 'unsubscribed';
+        await this.leadRepo.updateLead(lead);
+        logs.push({
+          timestamp: new Date().toISOString(),
+          leadEmail: lead.email,
+          senderEmail: 'N/A',
+          subject: 'Bloqueado por lista negra global',
+          stepNumber: lead.currentStep,
+          status: 'error',
+          error: 'Email or domain is in global blocklist suppression'
+        });
+        continue;
+      }
+
       const step = campaign.steps.find(s => s.stepNumber === lead.currentStep) || campaign.steps[0];
       if (!step || step.variants.length === 0) continue;
 
-      // Select variant (e.g. A/B testing)
-      const variant = step.variants[Math.floor(Math.random() * step.variants.length)];
+      // 2. Select variant with A/Z weighted distribution
+      let variant = step.variants[0];
+      if (step.variants.length > 1) {
+        const totalWeight = step.variants.reduce((sum, v) => sum + (v.distributionWeight ?? 100), 0);
+        let rand = Math.random() * totalWeight;
+        for (const v of step.variants) {
+          const w = v.distributionWeight ?? 100;
+          if (rand < w) {
+            variant = v;
+            break;
+          }
+          rand -= w;
+        }
+      }
 
-      // Rotate sender
+      // 3. Rotate sender account
       const sender = this.rotator.getNextAccount(accounts);
       if (!sender) continue;
 
-      // Render Subject & Body with variables and spintax
+      // 4. Render Subject & Body with variables and spintax
       const rawSubject = this.templateRenderer.render(variant.subject, lead);
       const finalSubject = this.spintaxService.resolve(rawSubject);
 
@@ -153,19 +183,32 @@ export class CampaignDispatcher implements ICampaignDispatcher {
       const isMockAccount =
         sender.smtpHost.includes('ethereal') ||
         sender.smtpPass === 'demo-pass' ||
+        sender.smtpPass === 'demo-app-pass' ||
         Boolean(options?.simulationOnly);
 
       const mailer = isMockAccount ? this.simulatedMailer : this.smtpMailer;
 
+      const unsubUrl = baseUrl
+        ? `${baseUrl.replace(/\/$/, '')}/api/track/unsubscribe?leadId=${encodeURIComponent(lead.id)}&campaignId=${encodeURIComponent(campaign.id)}`
+        : '';
+
       let htmlBody: string | undefined;
-      if (campaign.openTracking !== false && !campaign.options?.plainTextMode && baseUrl) {
+      if (!campaign.options?.plainTextMode && baseUrl) {
         const escapedHtml = finalBody
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;')
           .replace(/\n/g, '<br/>');
-        const trackUrl = `${baseUrl.replace(/\/$/, '')}/api/track/open?leadId=${encodeURIComponent(lead.id)}&campaignId=${encodeURIComponent(campaign.id)}`;
-        htmlBody = `<div style="font-family:sans-serif;font-size:14px;line-height:1.5;">${escapedHtml}</div><img src="${trackUrl}" width="1" height="1" alt="" style="display:none;" />`;
+
+        const trackPixel = campaign.openTracking !== false
+          ? `<img src="${baseUrl.replace(/\/$/, '')}/api/track/open?leadId=${encodeURIComponent(lead.id)}&campaignId=${encodeURIComponent(campaign.id)}" width="1" height="1" alt="" style="display:none;" />`
+          : '';
+
+        const unsubFooter = unsubUrl
+          ? `<div style="margin-top:28px;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9;padding-top:10px;"><a href="${unsubUrl}" style="color:#64748b;text-decoration:underline;">Desuscribirme de estos correos</a></div>`
+          : '';
+
+        htmlBody = `<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.6;color:#1e293b;">${escapedHtml}${unsubFooter}</div>${trackPixel}`;
       }
 
       const result = await mailer.send(sender, {
@@ -173,7 +216,7 @@ export class CampaignDispatcher implements ICampaignDispatcher {
         fromName: sender.name,
         to: lead.email,
         subject: finalSubject,
-        body: finalBody,
+        body: unsubUrl ? `${finalBody}\n\n---\nPara desuscribirte: ${unsubUrl}` : finalBody,
         html: htmlBody
       });
 
@@ -187,7 +230,6 @@ export class CampaignDispatcher implements ICampaignDispatcher {
           status: result.mode === 'simulated' ? 'simulated' : 'sent'
         });
 
-        // Update lead state and sync custom ESTADO column if present
         lead.status = 'sent';
         lead.lastContactedAt = new Date().toISOString();
         if (lead.customVariables) {
@@ -202,6 +244,18 @@ export class CampaignDispatcher implements ICampaignDispatcher {
         sentCount++;
         sender.sentToday = (sender.sentToday || 0) + 1;
         await this.accountRepo.saveAccount(sender);
+
+        // Dispatch Webhook in background
+        if (this.webhookDispatcher) {
+          this.webhookDispatcher.trigger('email.sent', {
+            campaignId: campaign.id,
+            campaignName: campaign.name,
+            leadEmail: lead.email,
+            senderEmail: sender.email,
+            subject: finalSubject,
+            stepNumber: step.stepNumber
+          }).catch(() => {});
+        }
       } else {
         logs.push({
           timestamp: new Date().toISOString(),
@@ -213,7 +267,6 @@ export class CampaignDispatcher implements ICampaignDispatcher {
           error: result.error || 'Dispatch error'
         });
 
-        // Mark lead as bounced if SMTP rejected the recipient
         lead.status = 'bounced';
         lead.lastContactedAt = new Date().toISOString();
         if (lead.customVariables) {
@@ -225,10 +278,18 @@ export class CampaignDispatcher implements ICampaignDispatcher {
         }
         await this.leadRepo.updateLead(lead);
         bouncedCount++;
+
+        // Trigger Webhook for bounced lead
+        if (this.webhookDispatcher) {
+          this.webhookDispatcher.trigger('lead.bounced', {
+            campaignId: campaign.id,
+            leadEmail: lead.email,
+            error: result.error
+          }).catch(() => {});
+        }
       }
     }
 
-    // Update campaign stats
     campaign.stats.sent += sentCount;
     campaign.stats.bounced = (campaign.stats.bounced || 0) + bouncedCount;
     await this.campaignRepo.saveCampaign(campaign);

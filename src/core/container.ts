@@ -3,22 +3,40 @@ import {
   ICampaignRepository,
   ILeadRepository,
   IAccountRepository,
-  ICopilotRepository
+  ICopilotRepository,
+  IDealRepository,
+  IBlocklistRepository,
+  IWebhookRepository,
+  IWarmupRepository
 } from './interfaces/storage';
 import { CampaignRepository } from './storage/CampaignRepository';
 import { LeadRepository } from './storage/LeadRepository';
 import { AccountRepository } from './storage/AccountRepository';
 import { CopilotRepository } from './storage/CopilotRepository';
+import { DealRepository } from './storage/DealRepository';
+import { BlocklistRepository } from './storage/BlocklistRepository';
+import { WebhookRepository } from './storage/WebhookRepository';
+import { WarmupRepository } from './storage/WarmupRepository';
 
 import { SupabaseCampaignRepository } from './storage/supabase/SupabaseCampaignRepository';
 import { SupabaseLeadRepository } from './storage/supabase/SupabaseLeadRepository';
 import { SupabaseAccountRepository } from './storage/supabase/SupabaseAccountRepository';
 import { SupabaseCopilotRepository } from './storage/supabase/SupabaseCopilotRepository';
+import { SupabaseDealRepository } from './storage/supabase/SupabaseDealRepository';
+import { SupabaseBlocklistRepository } from './storage/supabase/SupabaseBlocklistRepository';
+import { SupabaseWebhookRepository } from './storage/supabase/SupabaseWebhookRepository';
+import { SupabaseWarmupRepository } from './storage/supabase/SupabaseWarmupRepository';
 
 import { ITemplateRenderer, TemplateRenderer } from './services/TemplateRenderer';
 import { ISpintaxService, SpintaxService } from './services/SpintaxService';
 import { ISpamDetectorService, SpamDetectorService } from './services/SpamDetectorService';
 import { IAccountRotator, RoundRobinAccountRotator } from './services/AccountRotator';
+import { DnsCheckerService } from './services/DnsCheckerService';
+import { EmailVerifierService } from './services/EmailVerifierService';
+import { WebhookDispatcherService } from './services/WebhookDispatcherService';
+import { InternalWarmupService } from './services/InternalWarmupService';
+import { UniboxClassifierService } from './services/UniboxClassifierService';
+import { PlacementTestService } from './services/PlacementTestService';
 
 import { IMailer } from './mailers/interfaces';
 import { SmtpMailer } from './mailers/SmtpMailer';
@@ -42,10 +60,20 @@ export interface AppContainer {
   leadRepo: ILeadRepository;
   accountRepo: IAccountRepository;
   copilotRepo: ICopilotRepository;
+  dealRepo: IDealRepository;
+  blocklistRepo: IBlocklistRepository;
+  webhookRepo: IWebhookRepository;
+  warmupRepo: IWarmupRepository;
   templateRenderer: ITemplateRenderer;
   spintaxService: ISpintaxService;
   spamDetector: ISpamDetectorService;
   accountRotator: IAccountRotator;
+  dnsChecker: DnsCheckerService;
+  emailVerifier: EmailVerifierService;
+  webhookDispatcher: WebhookDispatcherService;
+  warmupService: InternalWarmupService;
+  uniboxClassifier: UniboxClassifierService;
+  placementTester: PlacementTestService;
   smtpMailer: IMailer;
   simulatedMailer: IMailer;
   dispatcher: ICampaignDispatcher;
@@ -78,13 +106,41 @@ export function createContainer(customDriver?: IJsonStorageDriver): AppContainer
     ? new SupabaseCopilotRepository()
     : new CopilotRepository(storageDriver);
 
+  const dealRepo: IDealRepository = isSupabaseConfigured
+    ? new SupabaseDealRepository()
+    : new DealRepository(storageDriver);
+
+  const blocklistRepo: IBlocklistRepository = isSupabaseConfigured
+    ? new SupabaseBlocklistRepository()
+    : new BlocklistRepository(storageDriver);
+
+  const webhookRepo: IWebhookRepository = isSupabaseConfigured
+    ? new SupabaseWebhookRepository()
+    : new WebhookRepository(storageDriver);
+
+  const warmupRepo: IWarmupRepository = isSupabaseConfigured
+    ? new SupabaseWarmupRepository()
+    : new WarmupRepository(storageDriver);
+
   const templateRenderer = new TemplateRenderer();
   const spintaxService = new SpintaxService();
   const spamDetector = new SpamDetectorService();
   const accountRotator = new RoundRobinAccountRotator();
+  const dnsChecker = new DnsCheckerService();
+  const emailVerifier = new EmailVerifierService();
+  const webhookDispatcher = new WebhookDispatcherService(webhookRepo);
+  const uniboxClassifier = new UniboxClassifierService(dealRepo);
+  const placementTester = new PlacementTestService();
 
   const smtpMailer = new SmtpMailer();
   const simulatedMailer = new SimulatedMailer();
+
+  const warmupService = new InternalWarmupService(
+    accountRepo,
+    warmupRepo,
+    smtpMailer,
+    simulatedMailer
+  );
 
   const dispatcher = new CampaignDispatcher(
     campaignRepo,
@@ -94,7 +150,9 @@ export function createContainer(customDriver?: IJsonStorageDriver): AppContainer
     spintaxService,
     accountRotator,
     smtpMailer,
-    simulatedMailer
+    simulatedMailer,
+    blocklistRepo,
+    webhookDispatcher
   );
 
   const copilotRegistry = new CopilotActionRegistry();
@@ -120,10 +178,20 @@ export function createContainer(customDriver?: IJsonStorageDriver): AppContainer
     leadRepo,
     accountRepo,
     copilotRepo,
+    dealRepo,
+    blocklistRepo,
+    webhookRepo,
+    warmupRepo,
     templateRenderer,
     spintaxService,
     spamDetector,
     accountRotator,
+    dnsChecker,
+    emailVerifier,
+    webhookDispatcher,
+    warmupService,
+    uniboxClassifier,
+    placementTester,
     smtpMailer,
     simulatedMailer,
     dispatcher,

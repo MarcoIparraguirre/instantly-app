@@ -190,3 +190,53 @@ export interface CopilotMessage {
     result: any;
   }[];
 }
+
+export interface BlocklistItem {
+  id: string;
+  workspaceId?: string;
+  type: 'email' | 'domain';
+  value: string;
+  reason: 'unsubscribed' | 'bounced' | 'manual' | 'spam_complaint';
+  createdAt: string;
+}
+
+export interface WebhookItem {
+  id: string;
+  workspaceId?: string;
+  url: string;
+  eventTypes: string[];
+  isActive: boolean;
+  secret?: string;
+  createdAt: string;
+}
+
+export interface WarmupLog {
+  id: string;
+  fromAccountId: string;
+  toAccountId: string;
+  subject: string;
+  status: 'sent' | 'opened' | 'replied' | 'failed';
+  createdAt: string;
+}
+
+export interface EmailVerificationResult {
+  email: string;
+  isValid: boolean;
+  score: number; // 0 to 100
+  syntaxValid: boolean;
+  domain: string;
+  hasMx: boolean;
+  mxRecords?: string[];
+  isDisposable: boolean;
+  reason: string;
+}
+
+export interface DnsAuditResult {
+  domain: string;
+  spf: { valid: boolean; record?: string; details: string };
+  dmarc: { valid: boolean; record?: string; details: string };
+  dkim: { valid: boolean; selector?: string; details: string };
+  mx: { valid: boolean; records: string[]; details: string };
+  ctd: { valid: boolean; details: string };
+  overallHealth: number; // 0 to 100
+}

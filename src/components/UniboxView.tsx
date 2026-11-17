@@ -36,7 +36,37 @@ export default function UniboxView({
   const [replyText, setReplyText] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
   const [isSyncingImap, setIsSyncingImap] = useState(false);
+  const [isGeneratingSuggestion, setIsGeneratingSuggestion] = useState(false);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
+
+  const handleSuggestAiReply = async () => {
+    if (!selectedThread) return;
+    const lastMsg = selectedThread.messages[selectedThread.messages.length - 1];
+    if (!lastMsg) return;
+
+    setIsGeneratingSuggestion(true);
+    try {
+      const res = await fetch('/api/unibox/classify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: lastMsg.subject,
+          body: lastMsg.body,
+          leadName: selectedThread.leadName,
+          leadEmail: selectedThread.leadEmail,
+          companyName: selectedThread.companyName
+        })
+      });
+      const data = await res.json();
+      if (data.suggestedReply) {
+        setReplyText(data.suggestedReply);
+      }
+    } catch (err) {
+      console.error('Error generating suggestion:', err);
+    } finally {
+      setIsGeneratingSuggestion(false);
+    }
+  };
 
   useEffect(() => {
     handleSyncInbox();
@@ -402,11 +432,22 @@ export default function UniboxView({
                 />
 
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-slate-500">
-                    {language === 'es'
-                      ? 'Las respuestas se envían desde la cuenta remitente original.'
-                      : 'Replies are dispatched from original mailbox.'}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-slate-500">
+                      {language === 'es'
+                        ? 'Las respuestas se envían desde la cuenta remitente original.'
+                        : 'Replies are dispatched from original mailbox.'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleSuggestAiReply}
+                      disabled={isGeneratingSuggestion}
+                      className="flex items-center gap-1.5 text-[11px] text-purple-300 bg-purple-950/40 hover:bg-purple-900/50 border border-purple-500/30 px-2.5 py-1 rounded-lg transition"
+                    >
+                      <Sparkles className={`w-3 h-3 text-purple-400 ${isGeneratingSuggestion ? 'animate-spin' : ''}`} />
+                      <span>{isGeneratingSuggestion ? 'Generando...' : '✨ Sugerir Respuesta IA'}</span>
+                    </button>
+                  </div>
 
                   <button
                     onClick={handleSendReply}

@@ -16,6 +16,9 @@ export default function AccountsView() {
   const [drawerTab, setDrawerTab] = useState<'general' | 'warmup' | 'dns'>('dns');
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAuditingDns, setIsAuditingDns] = useState(false);
+  const [isRunningWarmup, setIsRunningWarmup] = useState(false);
+  const [warmupMessage, setWarmupMessage] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: 'Sales Mailbox 1',
@@ -26,6 +29,90 @@ export default function AccountsView() {
     smtpPass: '',
     dailyLimit: '50'
   });
+
+  const runLiveDnsAudit = async (account: SenderAccount) => {
+    const domain = account.email.split('@')[1];
+    if (!domain) return;
+    setIsAuditingDns(true);
+    try {
+      const res = await fetch('/api/accounts/dns-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain })
+      });
+      const data = await res.json();
+      if (data && data.spf) {
+        const updatedDnsChecks = [
+          {
+            type: 'SPF' as const,
+            valid: data.spf.valid,
+            expected: 'v=spf1 include:... ~all',
+            current: data.spf.record || 'No detectado',
+            description: data.spf.details
+          },
+          {
+            type: 'DKIM' as const,
+            valid: data.dkim.valid,
+            expected: 'selector._domainkey (2048-bit RSA)',
+            current: data.dkim.selector ? `Selector: ${data.dkim.selector}` : 'No detectado',
+            description: data.dkim.details
+          },
+          {
+            type: 'DMARC' as const,
+            valid: data.dmarc.valid,
+            expected: 'v=DMARC1; p=quarantine o reject',
+            current: data.dmarc.record || 'No detectado',
+            description: data.dmarc.details
+          },
+          {
+            type: 'MX' as const,
+            valid: data.mx.valid,
+            expected: 'Servidores MX activos',
+            current: data.mx.records?.join(', ') || 'Sin MX',
+            description: data.mx.details
+          },
+          {
+            type: 'CTD' as const,
+            valid: data.ctd.valid,
+            expected: 'track.tudominio.com CNAME',
+            current: data.ctd.valid ? 'Activo' : 'Inactivo',
+            description: data.ctd.details
+          }
+        ];
+
+        const updatedAccount = {
+          ...account,
+          healthScore: data.overallHealth,
+          dnsChecks: updatedDnsChecks
+        };
+        setSelectedAccount(updatedAccount);
+        setAccounts(prev => prev.map(a => a.id === account.id ? updatedAccount : a));
+      }
+    } catch (err) {
+      console.error('DNS audit error:', err);
+    } finally {
+      setIsAuditingDns(false);
+    }
+  };
+
+  const triggerWarmupRound = async () => {
+    setIsRunningWarmup(true);
+    setWarmupMessage(null);
+    try {
+      const res = await fetch('/api/accounts/warmup/run', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setWarmupMessage(`✓ ${data.roundsExecuted} intercambios P2P realizados exitosamente.`);
+        await fetchAccounts();
+      } else {
+        setWarmupMessage(`⚠️ ${data.logs?.[0]?.error || 'No se pudo completar el intercambio'}`);
+      }
+    } catch (err: any) {
+      setWarmupMessage(`Error: ${err.message}`);
+    } finally {
+      setIsRunningWarmup(false);
+    }
+  };
 
   useEffect(() => {
     fetchAccounts();
@@ -268,9 +355,19 @@ export default function AccountsView() {
             {/* Tab: DNS Health Checker */}
             {drawerTab === 'dns' && (
               <div className="space-y-4">
-                <p className="text-xs text-slate-400">
-                  {t('accounts.dnsSubtitle')}
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-400">
+                    {t('accounts.dnsSubtitle')}
+                  </p>
+                  <button
+                    onClick={() => runLiveDnsAudit(selectedAccount)}
+                    disabled={isAuditingDns}
+                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg shadow transition"
+                  >
+                    <Activity className={`w-3.5 h-3.5 ${isAuditingDns ? 'animate-spin' : ''}`} />
+                    {isAuditingDns ? 'Consultando DNS...' : 'Auditar DNS en vivo'}
+                  </button>
+                </div>
 
                 <div className="space-y-3">
                   {selectedAccount.dnsChecks?.map((dns, i) => (
@@ -338,6 +435,21 @@ export default function AccountsView() {
                     <Activity className="w-4 h-4 text-blue-400 shrink-0" />
                     <span>{t('accounts.warmupRampUp')}</span>
                   </div>
+
+                  {warmupMessage && (
+                    <div className="p-2.5 rounded-lg text-xs bg-slate-950 border border-slate-700 text-slate-200">
+                      {warmupMessage}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={triggerWarmupRound}
+                    disabled={isRunningWarmup}
+                    className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-semibold py-2.5 rounded-xl shadow transition"
+                  >
+                    <Flame className={`w-4 h-4 ${isRunningWarmup ? 'animate-bounce' : ''}`} />
+                    {isRunningWarmup ? 'Ejecutando intercambio P2P...' : 'Ejecutar Ronda de Warmup P2P Ahora'}
+                  </button>
                 </div>
               </div>
             )}

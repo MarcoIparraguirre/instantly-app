@@ -40,6 +40,13 @@ export async function POST(_req: NextRequest) {
         }
         await container.leadRepo.updateLead(lead);
         leadsModified = true;
+
+        // Trigger Webhook for bounce
+        container.webhookDispatcher.trigger('lead.bounced', {
+          leadId: lead.id,
+          leadEmail: lead.email,
+          campaignId: lead.campaignId
+        }).catch(() => {});
       } else if (allReplied.has(normEmail) && lead.status !== 'replied') {
         lead.status = 'replied';
         if (lead.customVariables && 'ESTADO' in lead.customVariables) {
@@ -47,6 +54,25 @@ export async function POST(_req: NextRequest) {
         }
         await container.leadRepo.updateLead(lead);
         leadsModified = true;
+
+        // Auto-classify sentiment and auto-create CRM deal if interested
+        const matchingThread = allThreads.find(t => t.leadEmail.toLowerCase() === normEmail);
+        const lastMsg = matchingThread?.messages[matchingThread.messages.length - 1];
+        if (lastMsg) {
+          container.uniboxClassifier.processIncomingReply(lastMsg.subject, lastMsg.body, {
+            leadId: lead.id,
+            leadName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || normEmail,
+            leadEmail: lead.email,
+            companyName: lead.companyName
+          }).catch(() => {});
+        }
+
+        // Trigger Webhook
+        container.webhookDispatcher.trigger('lead.replied', {
+          leadId: lead.id,
+          leadEmail: lead.email,
+          campaignId: lead.campaignId
+        }).catch(() => {});
       }
     }
 

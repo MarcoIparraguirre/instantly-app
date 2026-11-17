@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Kanban, Plus, DollarSign, Clock, AlertTriangle, Building2, 
-  ChevronRight, ArrowRight, CheckCircle2
+  ChevronRight, ArrowRight, CheckCircle2, RefreshCw
 } from 'lucide-react';
 import { Deal, DealStage } from '@/types';
 import { initialDeals } from '@/core/storage/mockData';
@@ -11,7 +11,8 @@ import { useLanguage } from '@/context/LanguageContext';
 
 export default function CrmView() {
   const { t, language } = useLanguage();
-  const [deals, setDeals] = useState<Deal[]>(initialDeals);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -22,6 +23,27 @@ export default function CrmView() {
     value: '5000',
     stage: 'positive' as DealStage
   });
+
+  const fetchDeals = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/deals');
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setDeals(data);
+      } else {
+        setDeals(initialDeals);
+      }
+    } catch {
+      setDeals(initialDeals);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDeals();
+  }, []);
 
   const stages: { id: DealStage; label: string; color: string }[] = [
     { id: 'positive', label: t('crm.stagePositive'), color: 'border-blue-500/40 text-blue-400' },
@@ -35,35 +57,71 @@ export default function CrmView() {
     .filter(d => d.stage !== 'lost')
     .reduce((sum, d) => sum + d.value, 0);
 
-  const moveDealNext = (dealId: string) => {
+  const moveDealNext = async (dealId: string) => {
     const stageOrder: DealStage[] = ['positive', 'demo', 'proposal', 'won'];
-    setDeals(prev =>
-      prev.map(d => {
-        if (d.id !== dealId) return d;
-        const currentIdx = stageOrder.indexOf(d.stage);
-        if (currentIdx >= 0 && currentIdx < stageOrder.length - 1) {
-          return { ...d, stage: stageOrder[currentIdx + 1], daysInactive: 0 };
-        }
-        return d;
-      })
-    );
+    const currentDeal = deals.find(d => d.id === dealId);
+    if (!currentDeal) return;
+
+    const currentIdx = stageOrder.indexOf(currentDeal.stage);
+    if (currentIdx >= 0 && currentIdx < stageOrder.length - 1) {
+      const updatedDeal: Deal = {
+        ...currentDeal,
+        stage: stageOrder[currentIdx + 1],
+        daysInactive: 0
+      };
+
+      setDeals(prev => prev.map(d => d.id === dealId ? updatedDeal : d));
+
+      try {
+        await fetch('/api/deals', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedDeal)
+        });
+      } catch (err) {
+        console.error('Error persisting deal update:', err);
+      }
+    }
   };
 
-  const handleAddDeal = (e: React.FormEvent) => {
+  const handleAddDeal = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newDeal: Deal = {
-      id: `deal-${Date.now()}`,
-      leadId: `lead-${Date.now()}`,
+    const newDealPayload = {
       contactName: formData.contactName,
       contactEmail: formData.contactEmail,
       companyName: formData.companyName,
-      title: formData.title || `${formData.companyName} Deal`,
+      title: formData.title || `${formData.companyName || formData.contactName} Deal`,
       stage: formData.stage,
-      value: Number(formData.value) || 0,
-      daysInactive: 0,
-      createdAt: new Date().toISOString()
+      value: Number(formData.value) || 0
     };
-    setDeals([...deals, newDeal]);
+
+    try {
+      const res = await fetch('/api/deals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newDealPayload)
+      });
+      const created = await res.json();
+      setDeals(prev => [created, ...prev]);
+    } catch {
+      const fallback: Deal = {
+        id: `deal-${Date.now()}`,
+        leadId: `lead-${Date.now()}`,
+        ...newDealPayload,
+        daysInactive: 0,
+        createdAt: new Date().toISOString()
+      };
+      setDeals(prev => [fallback, ...prev]);
+    }
+
+    setFormData({
+      contactName: '',
+      contactEmail: '',
+      companyName: '',
+      title: '',
+      value: '5000',
+      stage: 'positive'
+    });
     setShowAddModal(false);
   };
 
