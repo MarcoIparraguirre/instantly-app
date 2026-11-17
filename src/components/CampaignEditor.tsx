@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, Layers, Clock, Settings, Plus, Trash2, Send, Play, Pause, 
   AlertTriangle, CheckCircle, CheckCircle2, Sparkles, Eye, ShieldCheck, RefreshCw, 
-  FileSpreadsheet, Upload, CheckSquare, Square, Tag, Mail, Edit3
+  FileSpreadsheet, Upload, CheckSquare, Square, Tag, Mail, Edit3,
+  ChevronDown, Monitor, Smartphone, Dice5
 } from 'lucide-react';
 import { Campaign, SequenceStep, StepVariant, Lead, SenderAccount, LeadStatus } from '@/types';
 import { checkSpamWords, applySpamFixes } from '@/lib/spamDetector';
@@ -43,6 +44,11 @@ export default function CampaignEditor({
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [accounts, setAccounts] = useState<SenderAccount[]>([]);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+  const [isActionDropdownOpen, setIsActionDropdownOpen] = useState(false);
+  const [sequenceMode, setSequenceMode] = useState<'editor' | 'preview'>('editor');
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
+  const [previewLeadIndex, setPreviewLeadIndex] = useState(0);
+  const [previewRandomSeed, setPreviewRandomSeed] = useState(0);
 
   useEffect(() => {
     fetch('/api/accounts')
@@ -418,40 +424,9 @@ export default function CampaignEditor({
           </div>
         </div>
 
-        {/* Global Action Buttons */}
+        {/* Global Action Controls: Schedule Toggle + Split-Button */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsTestEmailModalOpen(true)}
-            className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-blue-400 border border-slate-700 hover:border-blue-500/40 text-xs font-semibold px-3.5 py-2 rounded-xl transition cursor-pointer shadow-sm"
-            title={language === 'es' ? 'Enviar un correo de prueba real a tu dirección' : 'Send a test email to your address'}
-          >
-            <Mail className="w-3.5 h-3.5" />
-            <span>{language === 'es' ? 'Prueba Real a mi casilla' : 'Test Email'}</span>
-          </button>
-
-          <button
-            onClick={() => handleRunCampaign(true)}
-            disabled={isSending}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-700 transition"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSending ? 'animate-spin' : ''}`} />
-            {t('campaignWizard.runColdRun')}
-          </button>
-
-          <button
-            onClick={() => handleRunCampaign(false, false)}
-            disabled={isSending}
-            title={
-              language === 'es'
-                ? 'Envía todos los correos pendientes ahora mismo sin esperar el horario programado'
-                : 'Send all pending emails immediately without waiting for schedule'
-            }
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-md shadow-blue-600/30 transition cursor-pointer"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>{language === 'es' ? 'Enviar Ahora (Inmediato)' : 'Send Now (Immediate)'}</span>
-          </button>
-
+          {/* Schedule Status Toggle */}
           <button
             onClick={toggleCampaignStatus}
             title={
@@ -463,10 +438,10 @@ export default function CampaignEditor({
                 ? `Activar campaña según horario (${campaign.schedule?.timing?.from || '09:00'} - ${campaign.schedule?.timing?.to || '17:00'})`
                 : 'Activate campaign on schedule'
             }
-            className={`px-3.5 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+            className={`px-3.5 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm ${
               campaign.status === 'active'
                 ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
-                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                : 'bg-emerald-600 hover:bg-emerald-500 border-emerald-500 text-white shadow-emerald-600/20'
             }`}
           >
             {campaign.status === 'active' ? (
@@ -485,6 +460,65 @@ export default function CampaignEditor({
               </>
             )}
           </button>
+
+          {/* Unified Split-Button: Send Now + Dropdown */}
+          <div className="relative inline-flex rounded-xl shadow-md">
+            <button
+              onClick={() => handleRunCampaign(false, false)}
+              disabled={isSending}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-semibold px-3.5 py-2 rounded-l-xl transition cursor-pointer border-r border-blue-500/50"
+              title={
+                language === 'es'
+                  ? 'Envía todos los correos pendientes ahora mismo'
+                  : 'Send all pending emails immediately'
+              }
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>
+                {isSending
+                  ? (language === 'es' ? 'Enviando...' : 'Sending...')
+                  : (language === 'es' ? 'Enviar Ahora' : 'Send Now')}
+              </span>
+            </button>
+            <button
+              onClick={() => setIsActionDropdownOpen(!isActionDropdownOpen)}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-2 py-2 rounded-r-xl transition cursor-pointer flex items-center justify-center"
+              title={language === 'es' ? 'Más opciones de envío' : 'More sending options'}
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+
+            {isActionDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-20" 
+                  onClick={() => setIsActionDropdownOpen(false)} 
+                />
+                <div className="absolute right-0 top-full mt-1.5 w-60 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-1.5 z-30 space-y-1">
+                  <button
+                    onClick={() => {
+                      setIsActionDropdownOpen(false);
+                      setIsTestEmailModalOpen(true);
+                    }}
+                    className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-blue-400" />
+                    <span>{language === 'es' ? 'Prueba Real a mi casilla' : 'Test Email to My Mailbox'}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsActionDropdownOpen(false);
+                      handleRunCampaign(true);
+                    }}
+                    className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{t('campaignWizard.runColdRun')}</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -814,134 +848,324 @@ export default function CampaignEditor({
               </div>
             )}
 
-            {/* Spam Detection Banner */}
-            {totalSpamWords.length > 0 ? (
-              <div className="bg-rose-950/30 border border-rose-500/40 rounded-xl p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
-                  <div>
-                    <div className="text-xs font-semibold text-rose-300">
-                      {t('campaignWizard.spamWarningTitle')} {totalSpamWords.length} {t('campaignWizard.spamWarningDetected')}
-                    </div>
-                    <div className="text-[11px] text-rose-200/70 mt-0.5 flex flex-wrap gap-1">
-                      {totalSpamWords.map((w, i) => (
-                        <span key={i} className="font-mono bg-rose-500/20 px-1 rounded text-rose-200">
-                          {w.word}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+            {/* View Mode Toggle: Editor vs Live Preview */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-3">
+              <div className="flex items-center bg-slate-900 border border-slate-800 p-1 rounded-xl">
                 <button
-                  onClick={handleQuickCleanSpam}
-                  className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 shrink-0 shadow"
+                  type="button"
+                  onClick={() => setSequenceMode('editor')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                    sequenceMode === 'editor'
+                      ? 'bg-blue-600 text-white shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
                 >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  {t('campaignWizard.cleanSpamAi')}
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>{language === 'es' ? 'Editor de Contenido' : 'Content Editor'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSequenceMode('preview')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                    sequenceMode === 'preview'
+                      ? 'bg-blue-600 text-white shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>{language === 'es' ? 'Vista Previa en Vivo' : 'Live Preview'}</span>
                 </button>
               </div>
+
+              {sequenceMode === 'preview' && (
+                <div className="flex items-center gap-3 flex-wrap">
+                  {/* Lead Selector for Preview */}
+                  {campaignLeads.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="text-slate-400">{language === 'es' ? 'Ver como:' : 'Preview as:'}</span>
+                      <select
+                        value={previewLeadIndex}
+                        onChange={(e) => setPreviewLeadIndex(Number(e.target.value))}
+                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1 text-xs focus:outline-none"
+                      >
+                        {campaignLeads.map((l, i) => (
+                          <option key={l.id} value={i}>
+                            {l.firstName ? `${l.firstName} (${l.email})` : l.email}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Device Switcher */}
+                  <div className="flex items-center bg-slate-900 border border-slate-800 p-0.5 rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewDevice('desktop')}
+                      className={`p-1.5 rounded-md transition cursor-pointer ${
+                        previewDevice === 'desktop' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-white'
+                      }`}
+                      title={language === 'es' ? 'Vista Escritorio (600px)' : 'Desktop View'}
+                    >
+                      <Monitor className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewDevice('mobile')}
+                      className={`p-1.5 rounded-md transition cursor-pointer ${
+                        previewDevice === 'mobile' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-white'
+                      }`}
+                      title={language === 'es' ? 'Vista Móvil (375px)' : 'Mobile View'}
+                    >
+                      <Smartphone className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Re-roll Spintax Button */}
+                  <button
+                    type="button"
+                    onClick={() => setPreviewRandomSeed(prev => prev + 1)}
+                    className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-2.5 py-1 rounded-lg border border-slate-700 transition cursor-pointer"
+                    title={language === 'es' ? 'Generar otra variante spintax aleatoria' : 'Re-roll spintax variation'}
+                  >
+                    <Dice5 className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>{language === 'es' ? 'Variar Spintax' : 'Re-roll Spintax'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {sequenceMode === 'editor' ? (
+              <>
+                {/* Spam Detection Banner */}
+                {totalSpamWords.length > 0 ? (
+                  <div className="bg-rose-950/30 border border-rose-500/40 rounded-xl p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+                      <div>
+                        <div className="text-xs font-semibold text-rose-300">
+                          {t('campaignWizard.spamWarningTitle')} {totalSpamWords.length} {t('campaignWizard.spamWarningDetected')}
+                        </div>
+                        <div className="text-[11px] text-rose-200/70 mt-0.5 flex flex-wrap gap-1">
+                          {totalSpamWords.map((w, i) => (
+                            <span key={i} className="font-mono bg-rose-500/20 px-1 rounded text-rose-200">
+                              {w.word}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleQuickCleanSpam}
+                      className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 shrink-0 shadow"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      {t('campaignWizard.cleanSpamAi')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-xl px-4 py-2.5 flex items-center gap-2.5 text-xs text-emerald-400">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>{t('campaignWizard.spamSafeBadge')}</span>
+                  </div>
+                )}
+
+                {/* Subject Line Input */}
+                <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      {t('campaignWizard.subjectLine')}
+                    </label>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11px] text-slate-500 mr-1">{t('campaignWizard.insertTag')}</span>
+                      {availableTags.map((tag) => {
+                        const isCustomSheet = detectedVariables.includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => insertVariable(tag, 'subject')}
+                            className={`text-[10px] px-2 py-0.5 rounded transition cursor-pointer ${
+                              isCustomSheet
+                                ? 'bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-500/40 font-mono font-medium shadow-sm'
+                                : 'bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700'
+                            }`}
+                            title={isCustomSheet ? (language === 'es' ? 'Columna de tu Hoja de Leads' : 'Sheet Column Tag') : 'Campo de contacto'}
+                          >
+                            +{tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <input
+                    type="text"
+                    value={activeVariant?.subject || ''}
+                    onChange={(e) => handleUpdateActiveVariant({ subject: e.target.value })}
+                    className="w-full bg-slate-800/80 border border-slate-700/80 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
+                  />
+                </div>
+
+                {/* Email Body Input */}
+                <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      {t('campaignWizard.emailBody')}
+                    </label>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={handleAddSpintaxToBody}
+                        className="text-[11px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                        title={language === 'es' ? 'Aplicar Spintax automático' : 'Apply Auto Spintax'}
+                      >
+                        <Sparkles className="w-3 h-3 text-indigo-400" />
+                        {t('campaignWizard.autoSpintax')}
+                      </button>
+
+                      <button
+                        onClick={handlePreviewSpintax}
+                        className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                        title={language === 'es' ? 'Previsualizar variaciones' : 'Preview variations'}
+                      >
+                        <Eye className="w-3 h-3 text-slate-400" />
+                        {t('campaignWizard.previewSpintax')}
+                      </button>
+
+                      <div className="h-4 w-px bg-slate-800 hidden sm:block" />
+
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {availableTags.map((tag) => {
+                          const isCustomSheet = detectedVariables.includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => insertVariable(tag, 'body')}
+                              className={`text-[10px] px-2 py-0.5 rounded transition cursor-pointer ${
+                                isCustomSheet
+                                  ? 'bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-500/40 font-mono font-medium shadow-sm'
+                                  : 'bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700'
+                              }`}
+                              title={isCustomSheet ? (language === 'es' ? 'Columna de tu Hoja de Leads' : 'Sheet Column Tag') : 'Campo de contacto'}
+                            >
+                              +{tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <textarea
+                    rows={9}
+                    value={activeVariant?.body || ''}
+                    onChange={(e) => handleUpdateActiveVariant({ body: e.target.value })}
+                    placeholder={t('campaignWizard.bodyPlaceholder')}
+                    className="w-full bg-slate-800/80 border border-slate-700/80 rounded-lg p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition leading-relaxed font-sans"
+                  />
+                </div>
+              </>
             ) : (
-              <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-xl px-4 py-2.5 flex items-center gap-2.5 text-xs text-emerald-400">
-                <CheckCircle className="w-4 h-4" />
-                <span>{t('campaignWizard.spamSafeBadge')}</span>
+              /* Live Email Preview Container */
+              <div className="flex flex-col items-center py-4">
+                {(() => {
+                  const targetLead = campaignLeads[previewLeadIndex] || campaignLeads[0] || {
+                    firstName: 'Juan',
+                    lastName: 'Pérez',
+                    companyName: 'Acme Corp',
+                    email: 'juan.perez@empresa.com',
+                    customVariables: {}
+                  };
+                  const senderAcct = accounts.find(a => campaign.senderAccountIds?.includes(a.id)) || accounts[0] || {
+                    name: 'Ventas Misender',
+                    email: 'ventas@tudominio.com'
+                  };
+
+                  const renderLeadText = (text: string) => {
+                    // Seeded spintax resolve
+                    const withSpintax = resolveSpintax(text || '');
+                    let res = withSpintax;
+                    res = res.replace(/\{\{\s*firstName\s*\}\}/gi, targetLead.firstName || 'Juan');
+                    res = res.replace(/\{\{\s*lastName\s*\}\}/gi, targetLead.lastName || 'Pérez');
+                    res = res.replace(/\{\{\s*companyName\s*\}\}/gi, targetLead.companyName || 'Acme Corp');
+                    res = res.replace(/\{\{\s*email\s*\}\}/gi, targetLead.email || 'juan@empresa.com');
+                    if (targetLead.customVariables) {
+                      for (const [k, v] of Object.entries(targetLead.customVariables)) {
+                        res = res.replace(new RegExp(`\\{\\{\\s*${k}\\s*\\}\\}`, 'gi'), String(v || ''));
+                      }
+                    }
+                    return res;
+                  };
+
+                  const previewSubject = renderLeadText(activeVariant?.subject || '');
+                  const previewBody = renderLeadText(activeVariant?.body || '');
+
+                  return (
+                    <div
+                      key={previewRandomSeed}
+                      className={`w-full bg-[#0c121e] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden transition-all duration-200 ${
+                        previewDevice === 'mobile' ? 'max-w-[375px]' : 'max-w-[640px]'
+                      }`}
+                    >
+                      {/* Window Header */}
+                      <div className="bg-slate-900 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+                        </div>
+                        <span className="text-[11px] font-mono text-slate-400">
+                          {previewDevice === 'mobile' ? '📱 Mobile Mail (375px)' : '💻 Desktop Mail (640px)'}
+                        </span>
+                        <div className="w-8" />
+                      </div>
+
+                      {/* Email Envelope Meta */}
+                      <div className="p-4 bg-slate-900/60 border-b border-slate-800 text-xs space-y-1.5">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-slate-500 font-medium w-12 text-right">De:</span>
+                          <span className="text-white font-medium">{senderAcct.name}</span>
+                          <span className="text-slate-400 font-mono text-[11px]">&lt;{senderAcct.email}&gt;</span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-slate-500 font-medium w-12 text-right">Para:</span>
+                          <span className="text-white font-medium">{targetLead.firstName} {targetLead.lastName}</span>
+                          <span className="text-slate-400 font-mono text-[11px]">&lt;{targetLead.email}&gt;</span>
+                        </div>
+                        <div className="flex items-baseline gap-2 pt-1 border-t border-slate-800/60">
+                          <span className="text-slate-500 font-medium w-12 text-right">Asunto:</span>
+                          <span className="text-white font-bold">{previewSubject || '(Sin asunto)'}</span>
+                        </div>
+                      </div>
+
+                      {/* Email Body Content */}
+                      <div className="p-6 bg-slate-950 min-h-[220px]">
+                        <div className="whitespace-pre-wrap font-sans text-sm text-slate-100 leading-relaxed">
+                          {previewBody || (
+                            <span className="text-slate-500 italic">
+                              {language === 'es' ? 'El cuerpo del correo está vacío.' : 'Email body is empty.'}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Unsubscribe Simulation */}
+                        <div className="mt-8 pt-4 border-t border-slate-900 text-[10px] text-slate-500 font-sans leading-normal">
+                          <p>
+                            {language === 'es'
+                              ? 'Si no deseas recibir más comunicaciones sobre esta propuesta, responde "dar de baja" o '
+                              : 'If you would prefer not to receive further emails, reply "unsubscribe" or '}
+                            <span className="text-blue-400 underline cursor-pointer">
+                              {language === 'es' ? 'haz clic aquí' : 'click here'}
+                            </span>.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
-
-            {/* Subject Line Input */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-3">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                  {t('campaignWizard.subjectLine')}
-                </label>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[11px] text-slate-500 mr-1">{t('campaignWizard.insertTag')}</span>
-                  {availableTags.map((tag) => {
-                    const isCustomSheet = detectedVariables.includes(tag);
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => insertVariable(tag, 'subject')}
-                        className={`text-[10px] px-2 py-0.5 rounded transition cursor-pointer ${
-                          isCustomSheet
-                            ? 'bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-500/40 font-mono font-medium shadow-sm'
-                            : 'bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700'
-                        }`}
-                        title={isCustomSheet ? (language === 'es' ? 'Columna de tu Hoja de Leads' : 'Sheet Column Tag') : 'Campo de contacto'}
-                      >
-                        +{tag}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <input
-                type="text"
-                value={activeVariant?.subject || ''}
-                onChange={(e) => handleUpdateActiveVariant({ subject: e.target.value })}
-                className="w-full bg-slate-800/80 border border-slate-700/80 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
-              />
-            </div>
-
-            {/* Email Body Input */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-3">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                  {t('campaignWizard.emailBody')}
-                </label>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button
-                    onClick={handleAddSpintaxToBody}
-                    className="text-[11px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
-                    title={language === 'es' ? 'Aplicar Spintax automático' : 'Apply Auto Spintax'}
-                  >
-                    <Sparkles className="w-3 h-3 text-indigo-400" />
-                    {t('campaignWizard.autoSpintax')}
-                  </button>
-
-                  <button
-                    onClick={handlePreviewSpintax}
-                    className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
-                    title={language === 'es' ? 'Previsualizar variaciones' : 'Preview variations'}
-                  >
-                    <Eye className="w-3 h-3 text-slate-400" />
-                    {t('campaignWizard.previewSpintax')}
-                  </button>
-
-                  <div className="h-4 w-px bg-slate-800 hidden sm:block" />
-
-                  <div className="flex items-center gap-1 flex-wrap">
-                    {availableTags.map((tag) => {
-                      const isCustomSheet = detectedVariables.includes(tag);
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => insertVariable(tag, 'body')}
-                          className={`text-[10px] px-2 py-0.5 rounded transition cursor-pointer ${
-                            isCustomSheet
-                              ? 'bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-500/40 font-mono font-medium shadow-sm'
-                              : 'bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700'
-                          }`}
-                          title={isCustomSheet ? (language === 'es' ? 'Columna de tu Hoja de Leads' : 'Sheet Column Tag') : 'Campo de contacto'}
-                        >
-                          +{tag}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              <textarea
-                rows={9}
-                value={activeVariant?.body || ''}
-                onChange={(e) => handleUpdateActiveVariant({ body: e.target.value })}
-                placeholder={t('campaignWizard.bodyPlaceholder')}
-                className="w-full bg-slate-800/80 border border-slate-700/80 rounded-lg p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition leading-relaxed font-sans"
-              />
-            </div>
           </div>
         )}
 

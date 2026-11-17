@@ -14,6 +14,30 @@ export default function CrmView() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [dragOverStage, setDragOverStage] = useState<DealStage | null>(null);
+
+  const handleDropDeal = async (dealId: string, targetStage: DealStage) => {
+    const currentDeal = deals.find(d => d.id === dealId);
+    if (!currentDeal || currentDeal.stage === targetStage) return;
+
+    const updatedDeal: Deal = {
+      ...currentDeal,
+      stage: targetStage,
+      daysInactive: 0
+    };
+
+    setDeals(prev => prev.map(d => d.id === dealId ? updatedDeal : d));
+
+    try {
+      await fetch('/api/deals', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedDeal)
+      });
+    } catch (err) {
+      console.error('Error persisting deal drag & drop:', err);
+    }
+  };
 
   const [formData, setFormData] = useState({
     contactName: '',
@@ -143,12 +167,14 @@ export default function CrmView() {
           <div className="flex items-center gap-2 bg-emerald-950/30 border border-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded-xl text-xs font-bold">
             <DollarSign className="w-4 h-4 text-emerald-400" />
             <span>${totalValue.toLocaleString()} USD</span>
-            <span className="text-[10px] text-emerald-400/80 font-normal">Active Pipeline</span>
+            <span className="text-[10px] text-emerald-400/80 font-normal">
+              {language === 'es' ? 'Pipeline Activo' : 'Active Pipeline'}
+            </span>
           </div>
 
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-md transition"
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-md transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             {t('crm.addDealBtn')}
@@ -156,16 +182,39 @@ export default function CrmView() {
         </div>
       </div>
 
-      {/* Kanban Board Columns */}
+      {/* Kanban Board Columns with Drag & Drop */}
       <div className="flex-1 p-6 overflow-x-auto flex gap-4">
         {stages.map((stage) => {
           const stageDeals = deals.filter(d => d.stage === stage.id);
           const stageTotal = stageDeals.reduce((sum, d) => sum + d.value, 0);
+          const isDragTarget = dragOverStage === stage.id;
 
           return (
             <div
               key={stage.id}
-              className="w-72 bg-[#090d16] border border-slate-800/80 rounded-2xl flex flex-col shrink-0 overflow-hidden"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+              }}
+              onDragEnter={() => setDragOverStage(stage.id)}
+              onDragLeave={(e) => {
+                // Only clear if leaving the column itself
+                if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                setDragOverStage(null);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOverStage(null);
+                const dealId = e.dataTransfer.getData('text/plain');
+                if (dealId) {
+                  handleDropDeal(dealId, stage.id);
+                }
+              }}
+              className={`w-72 bg-[#090d16] border rounded-2xl flex flex-col shrink-0 overflow-hidden transition ${
+                isDragTarget
+                  ? 'border-blue-500 ring-2 ring-blue-500/30 bg-blue-950/10'
+                  : 'border-slate-800/80'
+              }`}
             >
               {/* Column Header */}
               <div className="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
@@ -184,8 +233,10 @@ export default function CrmView() {
               {/* Column Deal Cards */}
               <div className="flex-1 p-3 overflow-y-auto space-y-3">
                 {stageDeals.length === 0 ? (
-                  <div className="h-28 border border-dashed border-slate-800/80 rounded-xl flex items-center justify-center text-slate-600 text-[11px]">
-                    {language === 'es' ? 'Sin oportunidades' : 'No deals yet'}
+                  <div className={`h-28 border border-dashed rounded-xl flex items-center justify-center text-[11px] transition ${
+                    isDragTarget ? 'border-blue-500/60 text-blue-400 bg-blue-500/5' : 'border-slate-800/80 text-slate-600'
+                  }`}>
+                    {language === 'es' ? 'Soltar trato aquí' : 'Drop deal here'}
                   </div>
                 ) : (
                   stageDeals.map((deal) => {
@@ -193,7 +244,12 @@ export default function CrmView() {
                   return (
                     <div
                       key={deal.id}
-                      className={`p-3.5 rounded-xl border space-y-2.5 transition shadow-sm ${
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', deal.id);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      className={`p-3.5 rounded-xl border space-y-2.5 transition shadow-sm cursor-grab active:cursor-grabbing ${
                         isInactive
                           ? 'bg-rose-950/20 border-rose-500/40 hover:border-rose-400'
                           : 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
@@ -223,12 +279,12 @@ export default function CrmView() {
                         {isInactive ? (
                           <span className="flex items-center gap-1 text-[10px] text-rose-400 font-semibold bg-rose-500/10 px-1.5 py-0.5 rounded">
                             <AlertTriangle className="w-3 h-3" />
-                            {deal.daysInactive}d inactive
+                            {deal.daysInactive}d {language === 'es' ? 'inactivo' : 'inactive'}
                           </span>
                         ) : (
                           <span className="flex items-center gap-1 text-[10px] text-slate-500 font-mono">
                             <Clock className="w-3 h-3" />
-                            Active
+                            {language === 'es' ? 'Activo' : 'Active'}
                           </span>
                         )}
                       </div>
@@ -236,9 +292,9 @@ export default function CrmView() {
                       {stage.id !== 'won' && stage.id !== 'lost' && (
                         <button
                           onClick={() => moveDealNext(deal.id)}
-                          className="w-full mt-1 bg-slate-800/80 hover:bg-blue-600 hover:text-white text-slate-300 text-[10px] font-semibold py-1.5 rounded-lg transition flex items-center justify-center gap-1 border border-slate-700"
+                          className="w-full mt-1 bg-slate-800/80 hover:bg-blue-600 hover:text-white text-slate-300 text-[10px] font-semibold py-1.5 rounded-lg transition flex items-center justify-center gap-1 border border-slate-700 cursor-pointer"
                         >
-                          <span>Advance Stage</span>
+                          <span>{language === 'es' ? 'Avanzar Etapa' : 'Advance Stage'}</span>
                           <ChevronRight className="w-3 h-3" />
                         </button>
                       )}

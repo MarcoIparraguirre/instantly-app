@@ -441,11 +441,15 @@ export default function AccountsView() {
 
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                      <div className="text-slate-400 text-[10px] uppercase">Sent Today</div>
+                      <div className="text-slate-400 text-[10px] uppercase">
+                        {language === 'es' ? 'Enviados Hoy' : 'Sent Today'}
+                      </div>
                       <div className="text-lg font-bold text-white mt-1">{selectedAccount.warmupToday} emails</div>
                     </div>
                     <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                      <div className="text-slate-400 text-[10px] uppercase">Total Warmup Exchanged</div>
+                      <div className="text-slate-400 text-[10px] uppercase">
+                        {language === 'es' ? 'Total Warmup Intercambiado' : 'Total Warmup Exchanged'}
+                      </div>
                       <div className="text-lg font-bold text-amber-400 mt-1">{selectedAccount.warmupTotal} emails</div>
                     </div>
                   </div>
@@ -467,7 +471,9 @@ export default function AccountsView() {
                     className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-semibold py-2.5 rounded-xl shadow transition"
                   >
                     <Flame className={`w-4 h-4 ${isRunningWarmup ? 'animate-bounce' : ''}`} />
-                    {isRunningWarmup ? 'Ejecutando intercambio P2P...' : 'Ejecutar Ronda de Warmup P2P Ahora'}
+                    {isRunningWarmup
+                      ? (language === 'es' ? 'Ejecutando intercambio P2P...' : 'Running P2P exchange...')
+                      : (language === 'es' ? 'Ejecutar Ronda de Warmup P2P Ahora' : 'Run P2P Warmup Round Now')}
                   </button>
                 </div>
               </div>
@@ -477,7 +483,9 @@ export default function AccountsView() {
             {drawerTab === 'general' && (
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="text-slate-400 block mb-1">SMTP Host</label>
+                  <label className="text-slate-400 block mb-1">
+                    {language === 'es' ? 'Servidor SMTP' : 'SMTP Server'}
+                  </label>
                   <input
                     type="text"
                     disabled
@@ -486,7 +494,9 @@ export default function AccountsView() {
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Daily Sending Limit</label>
+                  <label className="text-slate-400 block mb-1">
+                    {language === 'es' ? 'Límite Diario de Envíos' : 'Daily Sending Limit'}
+                  </label>
                   <input
                     type="number"
                     value={selectedAccount.dailyLimit}

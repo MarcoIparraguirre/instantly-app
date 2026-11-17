@@ -7,7 +7,8 @@ import {
   IDealRepository,
   IBlocklistRepository,
   IWebhookRepository,
-  IWarmupRepository
+  IWarmupRepository,
+  IThreadRepository
 } from './interfaces/storage';
 import { CampaignRepository } from './storage/CampaignRepository';
 import { LeadRepository } from './storage/LeadRepository';
@@ -17,6 +18,7 @@ import { DealRepository } from './storage/DealRepository';
 import { BlocklistRepository } from './storage/BlocklistRepository';
 import { WebhookRepository } from './storage/WebhookRepository';
 import { WarmupRepository } from './storage/WarmupRepository';
+import { ThreadRepository } from './storage/ThreadRepository';
 
 import { SupabaseCampaignRepository } from './storage/supabase/SupabaseCampaignRepository';
 import { SupabaseLeadRepository } from './storage/supabase/SupabaseLeadRepository';
@@ -26,6 +28,7 @@ import { SupabaseDealRepository } from './storage/supabase/SupabaseDealRepositor
 import { SupabaseBlocklistRepository } from './storage/supabase/SupabaseBlocklistRepository';
 import { SupabaseWebhookRepository } from './storage/supabase/SupabaseWebhookRepository';
 import { SupabaseWarmupRepository } from './storage/supabase/SupabaseWarmupRepository';
+import { SupabaseThreadRepository } from './storage/supabase/SupabaseThreadRepository';
 
 import { ITemplateRenderer, TemplateRenderer } from './services/TemplateRenderer';
 import { ISpintaxService, SpintaxService } from './services/SpintaxService';
@@ -64,6 +67,7 @@ export interface AppContainer {
   blocklistRepo: IBlocklistRepository;
   webhookRepo: IWebhookRepository;
   warmupRepo: IWarmupRepository;
+  threadRepo: IThreadRepository;
   templateRenderer: ITemplateRenderer;
   spintaxService: ISpintaxService;
   spamDetector: ISpamDetectorService;
@@ -121,6 +125,10 @@ export function createContainer(customDriver?: IJsonStorageDriver): AppContainer
   const warmupRepo: IWarmupRepository = isSupabaseConfigured
     ? new SupabaseWarmupRepository()
     : new WarmupRepository(storageDriver);
+
+  const threadRepo: IThreadRepository = isSupabaseConfigured
+    ? new SupabaseThreadRepository()
+    : new ThreadRepository(storageDriver);
 
   const templateRenderer = new TemplateRenderer();
   const spintaxService = new SpintaxService();
@@ -182,6 +190,7 @@ export function createContainer(customDriver?: IJsonStorageDriver): AppContainer
     blocklistRepo,
     webhookRepo,
     warmupRepo,
+    threadRepo,
     templateRenderer,
     spintaxService,
     spamDetector,

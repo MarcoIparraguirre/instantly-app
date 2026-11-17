@@ -1,4 +1,4 @@
-import { Campaign, Lead, SenderAccount, CopilotMessage, Deal, BlocklistItem, WebhookItem, WarmupLog } from '@/types';
+import { Campaign, Lead, SenderAccount, CopilotMessage, Deal, BlocklistItem, WebhookItem, WarmupLog, EmailThread } from '@/types';
 
 // Interface Segregation Principle (ISP): Split Read and Write interfaces
 // Compatible with both asynchronous (Supabase, PostgreSQL) and synchronous (JSON, memory) drivers
@@ -72,4 +72,10 @@ export interface IWebhookRepository {
 export interface IWarmupRepository {
   logWarmup(log: Omit<WarmupLog, 'id' | 'createdAt'>): Promise<WarmupLog>;
   getWarmupLogs(limit?: number): Promise<WarmupLog[]>;
+}
+
+export interface IThreadRepository {
+  getThreads(): Promise<EmailThread[]>;
+  saveThreads(threads: EmailThread[]): Promise<void>;
+  upsertThread(thread: EmailThread): Promise<void>;
 }

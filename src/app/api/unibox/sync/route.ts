@@ -3,6 +3,15 @@ import { container } from '@/core/container';
 import { ImapInboxService } from '@/core/services/ImapInboxService';
 import { EmailThread } from '@/types';
 
+export async function GET(_req: NextRequest) {
+  try {
+    const threads = await container.threadRepo.getThreads();
+    return NextResponse.json({ success: true, threads });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Error fetching threads' }, { status: 500 });
+  }
+}
+
 export async function POST(_req: NextRequest) {
   try {
     const [accounts, leads, campaigns] = await Promise.all([
@@ -48,6 +57,21 @@ export async function POST(_req: NextRequest) {
           campaignId: lead.campaignId
         }).catch(() => {});
       } else if (allReplied.has(normEmail) && lead.status !== 'replied') {
+        const matchingThread = allThreads.find(t => t.leadEmail.toLowerCase() === normEmail);
+        const lastMsg = matchingThread?.messages[matchingThread.messages.length - 1];
+
+        // OOO Guard: Check if reply is an Out-of-Office / Vacation autoresponder
+        if (lastMsg) {
+          const classification = container.uniboxClassifier.classify(lastMsg.subject, lastMsg.body);
+          if (classification.sentiment === 'out-of-office') {
+            // Postpone next step follow-up without marking as replied
+            lead.lastContactedAt = new Date().toISOString();
+            await container.leadRepo.updateLead(lead);
+            leadsModified = true;
+            continue;
+          }
+        }
+
         lead.status = 'replied';
         if (lead.customVariables && 'ESTADO' in lead.customVariables) {
           lead.customVariables = { ...lead.customVariables, ESTADO: 'Respondido' };
@@ -56,8 +80,6 @@ export async function POST(_req: NextRequest) {
         leadsModified = true;
 
         // Auto-classify sentiment and auto-create CRM deal if interested
-        const matchingThread = allThreads.find(t => t.leadEmail.toLowerCase() === normEmail);
-        const lastMsg = matchingThread?.messages[matchingThread.messages.length - 1];
         if (lastMsg) {
           container.uniboxClassifier.processIncomingReply(lastMsg.subject, lastMsg.body, {
             leadId: lead.id,
@@ -112,9 +134,17 @@ export async function POST(_req: NextRequest) {
       uniqueThreadsMap.set(th.id, th);
     }
 
-    const finalThreads = Array.from(uniqueThreadsMap.values()).sort(
+    let finalThreads = Array.from(uniqueThreadsMap.values()).sort(
       (a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime()
     );
+
+    if (finalThreads.length > 0) {
+      await container.threadRepo.saveThreads(finalThreads).catch(err => {
+        console.error('Failed to persist threads:', err);
+      });
+    } else {
+      finalThreads = await container.threadRepo.getThreads();
+    }
 
     return NextResponse.json({
       success: true,

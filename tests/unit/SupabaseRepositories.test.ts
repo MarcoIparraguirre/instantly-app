@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { SupabaseCampaignRepository } from '@/core/storage/supabase/SupabaseCampaignRepository';
 import { SupabaseLeadRepository } from '@/core/storage/supabase/SupabaseLeadRepository';
 import { SupabaseAccountRepository } from '@/core/storage/supabase/SupabaseAccountRepository';
-import { Campaign, Lead, SenderAccount } from '@/types';
+import { SupabaseThreadRepository } from '@/core/storage/supabase/SupabaseThreadRepository';
+import { Campaign, Lead, SenderAccount, EmailThread } from '@/types';
 
 describe('Supabase Repositories (SOLID Storage Layer)', () => {
   it('SupabaseCampaignRepository maps DB rows to domain models and back correctly', async () => {
@@ -143,5 +144,43 @@ describe('Supabase Repositories (SOLID Storage Layer)', () => {
     expect(accounts[0].warmupEnabled).toBe(true);
     expect(accounts[0].dnsChecks?.[0]?.type).toBe('SPF');
     expect(accounts[0].provider).toBe('google');
+  });
+
+  it('SupabaseThreadRepository handles persisting and mapping Unibox email threads', async () => {
+    const mockThreadRow = {
+      id: 'thread-1',
+      campaign_id: 'camp-1',
+      lead_id: 'lead-1',
+      lead_email: 'lead@example.com',
+      lead_name: 'Lead Example',
+      company_name: 'Example Co',
+      unread: true,
+      sentiment: 'interested',
+      last_message_snippet: 'Yes, tell me more',
+      last_activity_at: '2026-11-17T12:00:00.000Z',
+      sender_account_id: 'acc-1',
+      messages: [{ id: 'm-1', from: 'lead@example.com', to: 'sender@example.com', subject: 'Re: Intro', body: 'Yes, tell me more', timestamp: '2026-11-17T12:00:00.000Z', isOutgoing: false }]
+    };
+
+    const mockClient: any = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({ data: [mockThreadRow], error: null })
+        }),
+        upsert: vi.fn().mockResolvedValue({ error: null })
+      })
+    };
+
+    const repo = new SupabaseThreadRepository(mockClient);
+    const threads = await repo.getThreads();
+    expect(threads.length).toBe(1);
+    expect(threads[0].id).toBe('thread-1');
+    expect(threads[0].leadEmail).toBe('lead@example.com');
+    expect(threads[0].sentiment).toBe('interested');
+    expect(threads[0].unread).toBe(true);
+    expect(threads[0].messages.length).toBe(1);
+
+    await repo.saveThreads(threads);
+    expect(mockClient.from).toHaveBeenCalledWith('email_threads');
   });
 });
