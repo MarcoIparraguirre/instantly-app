@@ -264,4 +264,40 @@ describe('CampaignDispatcher (Regression Tests)', () => {
     expect(batch2.sentCount).toBe(1);
     expect(batch2.remainingPending).toBe(0);
   });
+
+  it('rewrites HTTP links to tracking redirects when clickTracking is enabled', async () => {
+    const mockMailer = {
+      send: vi.fn().mockResolvedValue({ success: true, mode: 'simulated' })
+    };
+
+    const campWithClick = campaignRepo.getCampaignById(testCampaignId)!;
+    campWithClick.clickTracking = true;
+    campWithClick.steps[0].variants[0].body = 'Check out https://myproduct.com/demo today!';
+    campaignRepo.saveCampaign(campWithClick);
+
+    // Reset leads to pending
+    const leads = leadRepo.getLeads(testCampaignId);
+    leads.forEach(l => { l.status = 'pending'; l.currentStep = 1; });
+    leadRepo.saveLeads(leads);
+
+    const testDispatcher = new CampaignDispatcher(
+      campaignRepo,
+      leadRepo,
+      accountRepo,
+      new TemplateRenderer(),
+      new SpintaxService(),
+      new RoundRobinAccountRotator(),
+      mockMailer as any,
+      mockMailer as any
+    );
+
+    await testDispatcher.dispatchStep(testCampaignId, {
+      simulationOnly: true,
+      baseUrl: 'http://localhost:3000'
+    });
+
+    expect(mockMailer.send).toHaveBeenCalled();
+    const sendArgs = mockMailer.send.mock.calls[0][1];
+    expect(sendArgs.html).toContain('/api/track/click?url=https%3A%2F%2Fmyproduct.com%2Fdemo');
+  });
 });

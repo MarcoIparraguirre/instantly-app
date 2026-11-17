@@ -166,6 +166,17 @@ export default function Home() {
           onSelectWorkspace={handleSelectWorkspace}
           onUpdateWorkspaces={handleUpdateWorkspaces}
           openCopilot={() => setIsCopilotOpen(true)}
+          onNavigate={(tab, campId) => {
+            setCurrentTab(tab);
+            if (campId) {
+              const targetCamp = allCampaigns.find(c => c.id === campId);
+              if (targetCamp) {
+                setCampaign(targetCamp);
+                setCampaignViewMode('detail');
+              }
+            }
+          }}
+          campaigns={allCampaigns}
         />
 
         {/* View Switcher: Conditionally Renders Simple vs Pro Views */}

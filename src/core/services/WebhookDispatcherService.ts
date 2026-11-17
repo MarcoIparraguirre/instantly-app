@@ -1,7 +1,7 @@
 import { IWebhookRepository } from '../interfaces/storage';
 
 export interface WebhookPayload {
-  event: 'lead.replied' | 'lead.bounced' | 'lead.unsubscribed' | 'lead.opened' | 'email.sent';
+  event: 'lead.replied' | 'lead.bounced' | 'lead.unsubscribed' | 'lead.opened' | 'lead.clicked' | 'email.sent';
   timestamp: string;
   data: Record<string, any>;
 }

@@ -235,6 +235,16 @@ export class CampaignDispatcher implements ICampaignDispatcher {
           .replace(/>/g, '&gt;')
           .replace(/\n/g, '<br/>');
 
+        let formattedHtml = escapedHtml;
+        const isClickTrackingActive = campaign.clickTracking || campaign.options?.clickTracking;
+        if (isClickTrackingActive) {
+          const urlRegex = /(https?:\/\/[^\s<>"']+)/g;
+          formattedHtml = formattedHtml.replace(urlRegex, (matchedUrl) => {
+            const redirectUrl = `${baseUrl.replace(/\/$/, '')}/api/track/click?url=${encodeURIComponent(matchedUrl)}&leadId=${encodeURIComponent(lead.id)}&campaignId=${encodeURIComponent(campaign.id)}`;
+            return `<a href="${redirectUrl}" style="color:#2563eb;text-decoration:underline;">${matchedUrl}</a>`;
+          });
+        }
+
         const trackPixel = campaign.openTracking !== false
           ? `<img src="${baseUrl.replace(/\/$/, '')}/api/track/open?leadId=${encodeURIComponent(lead.id)}&campaignId=${encodeURIComponent(campaign.id)}" width="1" height="1" alt="" style="display:none;" />`
           : '';
@@ -243,7 +253,7 @@ export class CampaignDispatcher implements ICampaignDispatcher {
           ? `<div style="margin-top:28px;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9;padding-top:10px;"><a href="${unsubUrl}" style="color:#64748b;text-decoration:underline;">Desuscribirme de estos correos</a></div>`
           : '';
 
-        htmlBody = `<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.6;color:#1e293b;">${escapedHtml}${unsubFooter}</div>${trackPixel}`;
+        htmlBody = `<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.6;color:#1e293b;">${formattedHtml}${unsubFooter}</div>${trackPixel}`;
       }
 
       // Threading and RFC 8058 headers
