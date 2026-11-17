@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CampaignDispatcher } from '@/core/services/CampaignDispatcher';
 import { CampaignRepository } from '@/core/storage/CampaignRepository';
 import { LeadRepository } from '@/core/storage/LeadRepository';
