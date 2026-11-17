@@ -38,7 +38,13 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const campaignId = searchParams.get('campaignId') || undefined;
+    const campaignId = searchParams.get('campaignId');
+    if (!campaignId) {
+      return NextResponse.json(
+        { error: 'campaignId query parameter is strictly required to prevent global lead deletion' },
+        { status: 400 }
+      );
+    }
     await container.leadRepo.deleteLeads(campaignId);
     return NextResponse.json({ success: true, clearedCampaignId: campaignId });
   } catch (err: any) {

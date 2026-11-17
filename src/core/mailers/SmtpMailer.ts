@@ -36,7 +36,11 @@ export class SmtpMailer implements IMailer {
         to: options.to,
         subject: options.subject,
         text: options.body,
-        ...(options.html ? { html: options.html } : {})
+        ...(options.html ? { html: options.html } : {}),
+        ...(options.messageId ? { messageId: options.messageId } : {}),
+        ...(options.inReplyTo ? { inReplyTo: options.inReplyTo } : {}),
+        ...(options.references ? { references: options.references } : {}),
+        ...(options.headers ? { headers: options.headers } : {})
       });
 
       return {

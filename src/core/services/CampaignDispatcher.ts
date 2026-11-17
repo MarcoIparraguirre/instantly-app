@@ -77,7 +77,12 @@ export class CampaignDispatcher implements ICampaignDispatcher {
       const fromMinutes = fromH * 60 + fromM;
       const toMinutes = toH * 60 + toM;
 
-      return currentMinutes >= fromMinutes && currentMinutes <= toMinutes;
+      if (fromMinutes <= toMinutes) {
+        return currentMinutes >= fromMinutes && currentMinutes <= toMinutes;
+      } else {
+        // Window crosses midnight (e.g. 22:00 to 04:00)
+        return currentMinutes >= fromMinutes || currentMinutes <= toMinutes;
+      }
     } catch {
       return true;
     }
@@ -90,25 +95,44 @@ export class CampaignDispatcher implements ICampaignDispatcher {
     }
 
     const allLeads = await this.leadRepo.getLeads(campaignId);
-    const pendingLeads = allLeads.filter(l => l.status === 'pending');
+    const now = Date.now();
+
+    // Select leads ready for dispatch:
+    // 1. Initial pending leads on step 1
+    // 2. Sent leads where waitDays have elapsed for the next step
+    const readyLeads = allLeads.filter(lead => {
+      if (lead.status === 'pending') {
+        return true;
+      }
+      if (lead.status === 'sent' && lead.lastContactedAt) {
+        const nextStepNum = lead.currentStep || 1;
+        const nextStep = campaign.steps.find(s => s.stepNumber === nextStepNum);
+        if (!nextStep) return false;
+
+        const waitMs = (nextStep.waitDays || 0) * 86400000;
+        const elapsedMs = now - new Date(lead.lastContactedAt).getTime();
+        return elapsedMs >= waitMs;
+      }
+      return false;
+    });
 
     if (options?.respectSchedule && !this.isWithinSchedule(campaign.schedule)) {
       const fromStr = campaign.schedule?.timing?.from || '09:00';
       const toStr = campaign.schedule?.timing?.to || '17:00';
       return {
         campaignId,
-        totalPending: pendingLeads.length,
+        totalPending: readyLeads.length,
         processed: 0,
         sentCount: 0,
-        remainingPending: pendingLeads.length,
+        remainingPending: readyLeads.length,
         outsideScheduleWindow: true,
         scheduledWindow: `${fromStr} - ${toStr}`,
         logs: []
       };
     }
 
-    const batchSize = options?.batchSize && options.batchSize > 0 ? options.batchSize : pendingLeads.length;
-    const leads = pendingLeads.slice(0, batchSize);
+    const batchSize = options?.batchSize && options.batchSize > 0 ? options.batchSize : readyLeads.length;
+    const leads = readyLeads.slice(0, batchSize);
     const allAccounts = await this.accountRepo.getAccounts();
     let accounts = allAccounts.filter(
       a => campaign.senderAccountIds.length === 0 || campaign.senderAccountIds.includes(a.id)
@@ -169,9 +193,20 @@ export class CampaignDispatcher implements ICampaignDispatcher {
         }
       }
 
-      // 3. Rotate sender account
+      // 3. Rotate sender account (Strict daily limit protection)
       const sender = this.rotator.getNextAccount(accounts);
-      if (!sender) continue;
+      if (!sender) {
+        logs.push({
+          timestamp: new Date().toISOString(),
+          leadEmail: lead.email,
+          senderEmail: 'N/A',
+          subject: 'Límite diario alcanzado',
+          stepNumber: step.stepNumber,
+          status: 'error',
+          error: 'Daily limit reached for all available sender accounts'
+        });
+        break;
+      }
 
       // 4. Render Subject & Body with variables and spintax
       const rawSubject = this.templateRenderer.render(variant.subject, lead);
@@ -211,13 +246,29 @@ export class CampaignDispatcher implements ICampaignDispatcher {
         htmlBody = `<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.6;color:#1e293b;">${escapedHtml}${unsubFooter}</div>${trackPixel}`;
       }
 
+      // Threading and RFC 8058 headers
+      const messageId = `<campaign-${campaign.id}-lead-${lead.id}-step-${step.stepNumber}@misender.io>`;
+      const inReplyTo = step.stepNumber > 1
+        ? `<campaign-${campaign.id}-lead-${lead.id}-step-${step.stepNumber - 1}@misender.io>`
+        : undefined;
+
+      const emailHeaders: Record<string, string> = {};
+      if (unsubUrl) {
+        emailHeaders['List-Unsubscribe'] = `<${unsubUrl}>`;
+        emailHeaders['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+      }
+
       const result = await mailer.send(sender, {
         from: sender.email,
         fromName: sender.name,
         to: lead.email,
         subject: finalSubject,
         body: unsubUrl ? `${finalBody}\n\n---\nPara desuscribirte: ${unsubUrl}` : finalBody,
-        html: htmlBody
+        html: htmlBody,
+        messageId,
+        inReplyTo,
+        references: inReplyTo,
+        headers: emailHeaders
       });
 
       if (result.success) {
@@ -230,13 +281,24 @@ export class CampaignDispatcher implements ICampaignDispatcher {
           status: result.mode === 'simulated' ? 'simulated' : 'sent'
         });
 
-        lead.status = 'sent';
+        // Multistep sequence advancement
+        const nextStepNum = step.stepNumber + 1;
+        const hasNextStep = campaign.steps.some(s => s.stepNumber === nextStepNum);
+
+        if (hasNextStep) {
+          lead.status = 'sent';
+          lead.currentStep = nextStepNum;
+        } else {
+          lead.status = 'completed';
+        }
         lead.lastContactedAt = new Date().toISOString();
+
         if (lead.customVariables) {
+          const statusText = lead.status === 'completed' ? 'Completado' : 'Enviado';
           if ('ESTADO' in lead.customVariables) {
-            lead.customVariables = { ...lead.customVariables, ESTADO: 'Enviado' };
+            lead.customVariables = { ...lead.customVariables, ESTADO: statusText };
           } else if ('Estado' in lead.customVariables) {
-            lead.customVariables = { ...lead.customVariables, Estado: 'Enviado' };
+            lead.customVariables = { ...lead.customVariables, Estado: statusText };
           }
         }
         await this.leadRepo.updateLead(lead);
@@ -296,11 +358,11 @@ export class CampaignDispatcher implements ICampaignDispatcher {
 
     return {
       campaignId,
-      totalPending: pendingLeads.length,
+      totalPending: readyLeads.length,
       processed: leads.length,
       sentCount,
       bouncedCount,
-      remainingPending: Math.max(0, pendingLeads.length - sentCount - bouncedCount),
+      remainingPending: Math.max(0, readyLeads.length - sentCount - bouncedCount),
       logs
     };
   }

@@ -64,6 +64,12 @@ describe('RoundRobinAccountRotator (Unit Tests)', () => {
     expect(pick2?.id).toBe('acc-2');
   });
 
+  it('returns null when all accounts have reached their daily limit', () => {
+    const rotator = new RoundRobinAccountRotator();
+    const maxedAccounts = accounts.map(a => ({ ...a, sentToday: a.dailyLimit }));
+    expect(rotator.getNextAccount(maxedAccounts)).toBeNull();
+  });
+
   it('returns null when account list is empty', () => {
     const rotator = new RoundRobinAccountRotator();
     expect(rotator.getNextAccount([])).toBeNull();

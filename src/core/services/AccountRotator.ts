@@ -13,9 +13,9 @@ export class RoundRobinAccountRotator implements IAccountRotator {
 
     // Filter accounts that have not exceeded their daily limit
     const available = accounts.filter(a => (a.sentToday || 0) < a.dailyLimit);
-    const pool = available.length > 0 ? available : accounts;
+    if (available.length === 0) return null;
 
-    const selected = pool[this.currentIndex % pool.length];
+    const selected = available[this.currentIndex % available.length];
     this.currentIndex++;
     return selected;
   }

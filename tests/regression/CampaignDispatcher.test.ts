@@ -129,9 +129,9 @@ describe('CampaignDispatcher (Regression Tests)', () => {
     expect(result.sentCount).toBe(2);
     expect(result.logs.length).toBe(2);
 
-    // Verify lead state transition
+    // Verify lead state transition (completed because campaign had only 1 step)
     const updatedLeads = leadRepo.getLeads(testCampaignId);
-    expect(updatedLeads.every(l => l.status === 'sent')).toBe(true);
+    expect(updatedLeads.every(l => l.status === 'completed')).toBe(true);
     expect(updatedLeads.every(l => Boolean(l.lastContactedAt))).toBe(true);
 
     // Verify account daily send count increment
@@ -141,6 +141,79 @@ describe('CampaignDispatcher (Regression Tests)', () => {
     // Verify campaign stats increment
     const updatedCampaign = campaignRepo.getCampaignById(testCampaignId);
     expect(updatedCampaign?.stats.sent).toBe(2);
+  });
+
+  it('progresses multistep sequences and marks completed on final step', async () => {
+    const multiCampId = 'multi-camp-1';
+    const multiCampaign: Campaign = {
+      id: multiCampId,
+      name: 'Multistep Outbound Flow',
+      status: 'active',
+      steps: [
+        {
+          id: 'step-1',
+          stepNumber: 1,
+          waitDays: 0,
+          variants: [{ id: 'v1', name: 'V1', subject: 'Step 1', body: 'Hello' }]
+        },
+        {
+          id: 'step-2',
+          stepNumber: 2,
+          waitDays: 2,
+          variants: [{ id: 'v2', name: 'V2', subject: 'Step 2 Followup', body: 'Checking in' }]
+        }
+      ],
+      schedule: {
+        timing: { from: '00:00', to: '23:59' },
+        days: [0, 1, 2, 3, 4, 5, 6],
+        timezone: 'UTC',
+        dailyLimit: 100,
+        strategy: 'anytime'
+      },
+      senderAccountIds: ['acc-reg-1'],
+      openTracking: false,
+      clickTracking: false,
+      stats: { sent: 0, opened: 0, replied: 0, bounced: 0, opportunities: 0 },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const lead: Lead = {
+      id: 'lead-multi-1',
+      campaignId: multiCampId,
+      email: 'multi@target.com',
+      firstName: 'Multi',
+      lastName: 'Lead',
+      companyName: 'Target',
+      status: 'pending',
+      currentStep: 1
+    };
+
+    campaignRepo.saveCampaign(multiCampaign);
+    leadRepo.saveLeads([lead]);
+
+    // Dispatch step 1
+    const run1 = await dispatcher.dispatchStep(multiCampId, { simulationOnly: true });
+    expect(run1.sentCount).toBe(1);
+
+    const leadAfterStep1 = leadRepo.getLeadById('lead-multi-1')!;
+    expect(leadAfterStep1.status).toBe('sent');
+    expect(leadAfterStep1.currentStep).toBe(2);
+
+    // Immediate dispatch should NOT send step 2 because waitDays = 2 has not passed
+    const run2 = await dispatcher.dispatchStep(multiCampId, { simulationOnly: true });
+    expect(run2.sentCount).toBe(0);
+
+    // Simulate 3 days passed
+    leadAfterStep1.lastContactedAt = new Date(Date.now() - 3 * 86400000).toISOString();
+    leadRepo.updateLead(leadAfterStep1);
+
+    // Dispatch step 2
+    const run3 = await dispatcher.dispatchStep(multiCampId, { simulationOnly: true });
+    expect(run3.sentCount).toBe(1);
+
+    const leadAfterStep2 = leadRepo.getLeadById('lead-multi-1')!;
+    expect(leadAfterStep2.status).toBe('completed');
   });
 
   it('prevents regression: gracefully handles running campaign with no pending leads', async () => {

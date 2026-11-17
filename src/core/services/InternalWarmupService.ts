@@ -88,7 +88,7 @@ export class InternalWarmupService {
           from: sender.email,
           fromName: sender.name,
           to: recipient.email,
-          subject: `[Warmup] ${subject}`,
+          subject,
           body
         });
 
