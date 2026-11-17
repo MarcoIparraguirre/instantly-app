@@ -58,7 +58,8 @@ export default function EditLeadModal({
       opened: 'Abierto',
       replied: 'Respondido',
       bounced: 'Rebotado',
-      unsubscribed: 'Desuscripto'
+      unsubscribed: 'Desuscripto',
+      completed: 'Secuencia Completa'
     };
     setCustomVars(prev =>
       prev.map(item =>
@@ -190,6 +191,7 @@ export default function EditLeadModal({
                 <option value="replied">💬 Respondido</option>
                 <option value="bounced">⚠️ Rebotado (Error de entrega)</option>
                 <option value="unsubscribed">🚫 Desuscripto</option>
+                <option value="completed">🏁 {language === 'es' ? 'Secuencia Completa' : 'Completed'}</option>
               </select>
             </div>
 

@@ -9,14 +9,15 @@ export class SpintaxService implements ISpintaxService {
   resolve(text: string): string {
     if (!text) return '';
     // Only resolve spintax groups that contain '|', protecting template variables like {{firstName}}
-    const spintaxRegex = /\{([^{}]+?\|[^{}]+?)\}/g;
+    const hasPattern = /\{([^{}]+?\|[^{}]+?)\}/;
+    const replacePattern = /\{([^{}]+?\|[^{}]+?)\}/g;
 
     let resolved = text;
     let iterations = 0;
     const maxIterations = 20; // Prevent infinite loops on malformed inputs
 
-    while (spintaxRegex.test(resolved) && iterations < maxIterations) {
-      resolved = resolved.replace(spintaxRegex, (_, choices) => {
+    while (hasPattern.test(resolved) && iterations < maxIterations) {
+      resolved = resolved.replace(replacePattern, (_, choices) => {
         const options = choices.split('|');
         const randomChoice = options[Math.floor(Math.random() * options.length)];
         return randomChoice.trim();

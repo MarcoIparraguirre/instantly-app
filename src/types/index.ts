@@ -62,7 +62,7 @@ export interface Campaign {
   updatedAt: string;
 }
 
-export type LeadStatus = 'pending' | 'sent' | 'opened' | 'replied' | 'bounced' | 'unsubscribed';
+export type LeadStatus = 'pending' | 'sent' | 'opened' | 'replied' | 'bounced' | 'unsubscribed' | 'completed';
 
 export interface Lead {
   id: string;
@@ -153,22 +153,6 @@ export interface Deal {
   value: number; // currency amount in USD
   daysInactive: number;
   createdAt: string;
-}
-
-export interface B2BLead {
-  id: string;
-  firstName: string;
-  lastName: string;
-  title: string;
-  companyName: string;
-  industry: string;
-  headcount: string;
-  location: string;
-  domain: string;
-  email: string;
-  verified: boolean;
-  techStack: string[];
-  linkedinUrl: string;
 }
 
 export interface ActionApproval {

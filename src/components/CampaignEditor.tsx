@@ -42,6 +42,7 @@ export default function CampaignEditor({
   const [isTestEmailModalOpen, setIsTestEmailModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [accounts, setAccounts] = useState<SenderAccount[]>([]);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
 
   useEffect(() => {
     fetch('/api/accounts')
@@ -131,14 +132,21 @@ export default function CampaignEditor({
   };
 
   const saveToServer = async (updated: Campaign) => {
+    setSaveStatus('saving');
     try {
-      await fetch(`/api/campaigns/${updated.id}`, {
+      const res = await fetch(`/api/campaigns/${updated.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated)
       });
+      if (res.ok) {
+        setSaveStatus('saved');
+      } else {
+        setSaveStatus('error');
+      }
     } catch (err) {
       console.error('Failed to auto-save campaign:', err);
+      setSaveStatus('error');
     }
   };
 
@@ -386,6 +394,28 @@ export default function CampaignEditor({
             />
             {campaign.status}
           </span>
+
+          {/* Auto-save status badge */}
+          <div className="flex items-center gap-1.5 text-[11px] font-medium transition">
+            {saveStatus === 'saved' && (
+              <span className="text-emerald-400/90 flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                {language === 'es' ? 'Guardado en Supabase' : 'Saved to Supabase'}
+              </span>
+            )}
+            {saveStatus === 'saving' && (
+              <span className="text-amber-400 flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                {language === 'es' ? 'Guardando...' : 'Saving...'}
+              </span>
+            )}
+            {saveStatus === 'error' && (
+              <span className="text-rose-400 flex items-center gap-1 bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                {language === 'es' ? 'Error al guardar' : 'Save Error'}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Global Action Buttons */}
@@ -580,10 +610,10 @@ export default function CampaignEditor({
                 <table className="w-full text-left text-xs whitespace-nowrap min-w-max">
                   <thead className="bg-slate-950/80 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800">
                     <tr>
-                      <th className="py-3 px-4 font-bold text-white">#</th>
-                      <th className="py-3 px-4 font-bold text-white">Acción</th>
+                      <th className="py-3 px-4 font-bold text-white w-12 sticky left-0 z-20 bg-slate-950 shadow-sm">#</th>
+                      <th className="py-3 px-4 font-bold text-white sticky left-12 z-20 bg-slate-950 border-r border-slate-800 shadow-[2px_0_6px_rgba(0,0,0,0.4)]">Email</th>
                       <th className="py-3 px-4 font-bold text-white">Estado / Status</th>
-                      <th className="py-3 px-4 font-bold text-white">Email</th>
+                      <th className="py-3 px-4 font-bold text-white">Acción</th>
                       <th className="py-3 px-4 font-bold text-white">Nombre / Name</th>
                       <th className="py-3 px-4 font-bold text-white">Empresa / Company</th>
                       {detectedVariables.map((col) => (
@@ -626,13 +656,23 @@ export default function CampaignEditor({
                           unsubscribed: {
                             text: language === 'es' ? '🚫 Baja' : '🚫 Unsubscribed',
                             cls: 'bg-slate-700 text-slate-300 border-slate-600'
+                          },
+                          completed: {
+                            text: language === 'es' ? '🏁 Completo' : '🏁 Completed',
+                            cls: 'bg-blue-500/15 text-blue-400 border-blue-500/30'
                           }
                         };
                         const st = statusLabelMap[l.status] || statusLabelMap.pending;
 
                         return (
-                          <tr key={l.id} className="hover:bg-slate-800/40 transition">
-                            <td className="py-2.5 px-4 text-slate-500 font-mono text-[10px]">{i + 1}</td>
+                          <tr key={l.id} className="group hover:bg-slate-800/40 transition">
+                            <td className="py-2.5 px-4 text-slate-500 font-mono text-[10px] w-12 sticky left-0 z-10 bg-[#090d16] group-hover:bg-slate-900 transition">{i + 1}</td>
+                            <td className="py-2.5 px-4 font-mono text-white font-medium sticky left-12 z-10 bg-[#090d16] group-hover:bg-slate-900 border-r border-slate-800 shadow-[2px_0_6px_rgba(0,0,0,0.4)] transition">{l.email}</td>
+                            <td className="py-2.5 px-4">
+                              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${st.cls}`}>
+                                {st.text}
+                              </span>
+                            </td>
                             <td className="py-2.5 px-4">
                               <button
                                 type="button"
@@ -643,12 +683,6 @@ export default function CampaignEditor({
                                 <span>{language === 'es' ? 'Editar' : 'Edit'}</span>
                               </button>
                             </td>
-                            <td className="py-2.5 px-4">
-                              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${st.cls}`}>
-                                {st.text}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-4 font-mono text-white font-medium">{l.email}</td>
                             <td className="py-2.5 px-4 text-slate-300">{l.firstName} {l.lastName}</td>
                             <td className="py-2.5 px-4 text-slate-400">{l.companyName || '-'}</td>
                             {detectedVariables.map((col) => (

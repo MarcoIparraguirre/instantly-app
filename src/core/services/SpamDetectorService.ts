@@ -93,8 +93,9 @@ export class SpamDetectorService implements ISpamDetectorService {
     const lower = text.toLowerCase();
     const dictionary = this.getDictionary(language);
     const matches: SpamWordMatch[] = [];
+    const entries = Object.entries(dictionary).sort((a, b) => b[0].length - a[0].length);
 
-    for (const [phrase, info] of Object.entries(dictionary)) {
+    for (const [phrase, info] of entries) {
       const escaped = phrase.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
       const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
       if (regex.test(lower)) {
@@ -113,8 +114,9 @@ export class SpamDetectorService implements ISpamDetectorService {
     if (!text) return text;
     let fixed = text;
     const dictionary = this.getDictionary(language);
+    const entries = Object.entries(dictionary).sort((a, b) => b[0].length - a[0].length);
 
-    for (const [phrase, info] of Object.entries(dictionary)) {
+    for (const [phrase, info] of entries) {
       const escaped = phrase.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
       const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
       fixed = fixed.replace(regex, info.replacement);

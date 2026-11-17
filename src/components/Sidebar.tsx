@@ -201,19 +201,10 @@ export default function Sidebar({
         </nav>
       </div>
 
-      {/* Footer Area: Switch Mode & Copilot */}
+      {/* Footer Area: Copilot & Health */}
       <div className={`${isCollapsed ? 'p-2' : 'p-3'} border-t border-slate-800/80 space-y-2`}>
         {isCollapsed ? (
           <div className="flex flex-col items-center space-y-2">
-            {/* Collapsed Mode Switcher */}
-            <button
-              onClick={() => setMode(mode === 'simple' ? 'pro' : 'simple')}
-              className="w-11 h-11 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-sm flex items-center justify-center transition"
-              title={mode === 'simple' ? 'Cambiar a Modo Pro' : 'Cambiar a Modo Simple'}
-            >
-              {mode === 'simple' ? '⚡' : '🐣'}
-            </button>
-
             {/* Collapsed Copilot */}
             <button
               onClick={openCopilot}
@@ -237,31 +228,6 @@ export default function Sidebar({
           </div>
         ) : (
           <>
-            {/* Simple vs Pro Quick Switcher Button */}
-            {mode === 'simple' ? (
-              <button
-                onClick={() => setMode('pro')}
-                className="w-full flex items-center justify-between bg-slate-900 hover:bg-indigo-950/40 border border-slate-800 hover:border-indigo-500/30 px-3 py-2 rounded-xl text-[11px] text-slate-300 transition"
-              >
-                <div className="flex items-center gap-1.5">
-                  <span>⚡</span>
-                  <span className="font-semibold">{language === 'es' ? 'Ver Modo Pro (Avanzado)' : 'Open Pro Mode'}</span>
-                </div>
-                <span className="text-[10px] text-indigo-400">→</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setMode('simple')}
-                className="w-full flex items-center justify-between bg-slate-900 hover:bg-blue-950/40 border border-slate-800 hover:border-blue-500/30 px-3 py-2 rounded-xl text-[11px] text-slate-300 transition"
-              >
-                <div className="flex items-center gap-1.5">
-                  <span>🐣</span>
-                  <span className="font-semibold">{language === 'es' ? 'Volver a Modo Simple' : 'Back to Simple Mode'}</span>
-                </div>
-                <span className="text-[10px] text-blue-400">→</span>
-              </button>
-            )}
-
             <button
               onClick={openCopilot}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition border ${

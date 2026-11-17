@@ -38,10 +38,19 @@ export class UniboxClassifierService {
       };
     }
 
-    // 2. Not Interested Detection
+    // 2. Not Interested Detection (Check negations before positive triggers)
     if (
       text.includes('no me interesa') ||
+      text.includes('no nos interesa') ||
+      text.includes('no estoy interesado') ||
+      text.includes('no estamos interesados') ||
+      text.includes('no es de mi interés') ||
+      text.includes('no es de nuestro interés') ||
+      text.includes('cero interés') ||
       text.includes('not interested') ||
+      text.includes('uninterested') ||
+      text.includes('no me contactes') ||
+      text.includes('no me escribas') ||
       text.includes('remove me') ||
       text.includes('unsubscribe') ||
       text.includes('desuscribir') ||
@@ -51,7 +60,7 @@ export class UniboxClassifierService {
     ) {
       return {
         sentiment: 'not-interested',
-        confidence: 0.92,
+        confidence: 0.95,
         summary: 'El prospecto indicó desinterés o solicitó remoción de lista.',
         suggestedReply: 'Entendido y disculpa las molestias. Te he removido de nuestros contactos. ¡Éxitos!'
       };
@@ -134,25 +143,40 @@ export class UniboxClassifierService {
   ): Promise<ClassificationResult> {
     const result = this.classify(subject, body, context);
 
-    // Auto-create Deal in CRM if positive sentiment and dealRepo provided
+    // Auto-create or update Deal in CRM if positive sentiment and dealRepo provided
     if ((result.sentiment === 'interested' || result.sentiment === 'meeting-booked') && this.dealRepo) {
       try {
-        const deal: Deal = {
-          id: `deal-${uuidv4()}`,
-          leadId: context.leadId,
-          contactName: context.leadName,
-          contactEmail: context.leadEmail,
-          companyName: context.companyName || '',
-          title: `Oportunidad: ${context.companyName || context.leadName}`,
-          value: result.sentiment === 'meeting-booked' ? 5000 : 2500,
-          stage: result.sentiment === 'meeting-booked' ? 'demo' : 'positive',
-          daysInactive: 0,
-          createdAt: new Date().toISOString()
-        };
-        await this.dealRepo.saveDeal(deal);
-        result.autoCreatedDeal = deal;
+        const existingDeals = await this.dealRepo.getDeals();
+        const existingDeal = existingDeals.find(
+          d => (d.leadId && d.leadId === context.leadId) ||
+               (d.contactEmail && d.contactEmail.toLowerCase() === context.leadEmail.toLowerCase())
+        );
+
+        if (existingDeal) {
+          if (result.sentiment === 'meeting-booked' && existingDeal.stage !== 'won' && existingDeal.stage !== 'demo') {
+            existingDeal.stage = 'demo';
+            existingDeal.value = Math.max(existingDeal.value, 5000);
+            await this.dealRepo.updateDeal(existingDeal);
+          }
+          result.autoCreatedDeal = existingDeal;
+        } else {
+          const deal: Deal = {
+            id: `deal-${uuidv4()}`,
+            leadId: context.leadId,
+            contactName: context.leadName,
+            contactEmail: context.leadEmail,
+            companyName: context.companyName || '',
+            title: `Oportunidad: ${context.companyName || context.leadName}`,
+            value: result.sentiment === 'meeting-booked' ? 5000 : 2500,
+            stage: result.sentiment === 'meeting-booked' ? 'demo' : 'positive',
+            daysInactive: 0,
+            createdAt: new Date().toISOString()
+          };
+          await this.dealRepo.saveDeal(deal);
+          result.autoCreatedDeal = deal;
+        }
       } catch (err: any) {
-        console.warn('Could not auto-create CRM deal:', err.message);
+        console.warn('Could not auto-create or update CRM deal:', err.message);
       }
     }
 

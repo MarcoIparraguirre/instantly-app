@@ -118,6 +118,19 @@ export default function AccountsView() {
     fetchAccounts();
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedAccount(null);
+        setShowAddModal(false);
+      }
+    };
+    if (selectedAccount || showAddModal) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [selectedAccount, showAddModal]);
+
   const fetchAccounts = async () => {
     try {
       const res = await fetch('/api/accounts');
@@ -296,7 +309,13 @@ export default function AccountsView() {
 
       {/* Drawer Panel (Sliding in from Right) */}
       {selectedAccount && (
-        <div className="fixed inset-y-0 right-0 w-[540px] bg-[#0c121e] border-l border-slate-800 shadow-2xl z-50 flex flex-col transition-all">
+        <>
+          <div
+            onClick={() => setSelectedAccount(null)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 transition-opacity"
+            aria-hidden="true"
+          />
+          <div className="fixed inset-y-0 right-0 w-[540px] bg-[#0c121e] border-l border-slate-800 shadow-2xl z-50 flex flex-col transition-all">
           {/* Drawer Header */}
           <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/60 shrink-0">
             <div>
@@ -479,7 +498,8 @@ export default function AccountsView() {
             )}
           </div>
         </div>
-      )}
+      </>
+    )}
 
       {/* Add Mailbox Modal */}
       {showAddModal && (

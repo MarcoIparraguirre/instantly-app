@@ -32,6 +32,18 @@ export default function CopilotDrawer({ isOpen, onClose, campaign, onCampaignUpd
     }
   }, [language]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSend = async (customText?: string) => {
@@ -155,7 +167,13 @@ export default function CopilotDrawer({ isOpen, onClose, campaign, onCampaignUpd
   ];
 
   return (
-    <div className="fixed inset-y-0 right-0 w-[480px] bg-[#0c121e] border-l border-slate-800 shadow-2xl z-50 flex flex-col transition-all">
+    <>
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 transition-opacity"
+        aria-hidden="true"
+      />
+      <div className="fixed inset-y-0 right-0 w-[480px] bg-[#0c121e] border-l border-slate-800 shadow-2xl z-50 flex flex-col transition-all">
       {/* Header */}
       <div className="h-16 px-5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/60 backdrop-blur">
         <div className="flex items-center gap-3">
@@ -294,5 +312,6 @@ export default function CopilotDrawer({ isOpen, onClose, campaign, onCampaignUpd
         </form>
       </div>
     </div>
+  </>
   );
 }

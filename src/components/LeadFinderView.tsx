@@ -94,6 +94,11 @@ export default function LeadFinderView({
           label: language === 'es' ? '⚠️ Rebotado' : '⚠️ Bounced',
           cls: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
         };
+      case 'completed':
+        return {
+          label: language === 'es' ? '🏁 Secuencia Completa' : '🏁 Completed',
+          cls: 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+        };
       case 'pending':
       default:
         return {
@@ -366,7 +371,7 @@ export default function LeadFinderView({
               <table className="w-full text-left text-xs whitespace-nowrap min-w-max">
                 <thead className="bg-slate-950/90 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800">
                   <tr>
-                    <th className="py-3.5 px-4 w-10">
+                    <th className="py-3.5 px-4 w-12 sticky left-0 z-20 bg-slate-950 shadow-sm">
                       <button
                         onClick={toggleSelectAll}
                         className="text-slate-400 hover:text-white cursor-pointer"
@@ -379,9 +384,9 @@ export default function LeadFinderView({
                         )}
                       </button>
                     </th>
-                    <th className="py-3.5 px-4 font-bold text-white">Acción</th>
+                    <th className="py-3.5 px-4 font-bold text-white sticky left-12 z-20 bg-slate-950 border-r border-slate-800 shadow-[2px_0_6px_rgba(0,0,0,0.4)]">Email</th>
                     <th className="py-3.5 px-4 font-bold text-white">Estado</th>
-                    <th className="py-3.5 px-4 font-bold text-white">Email</th>
+                    <th className="py-3.5 px-4 font-bold text-white">Acción</th>
                     <th className="py-3.5 px-4 font-bold text-white">Grupo / Campaña</th>
                     <th className="py-3.5 px-4 font-bold text-white">Último Envío</th>
                     {dynamicColumns.map(col => (
@@ -410,14 +415,15 @@ export default function LeadFinderView({
                     filteredLeads.map(lead => {
                       const isSelected = selectedLeadIds.includes(lead.id);
                       const badge = getStatusBadge(lead.status);
+                      const stickyBg = isSelected ? 'bg-[#14233c]' : 'bg-[#0b0f17] group-hover:bg-slate-900';
                       return (
                         <tr
                           key={lead.id}
-                          className={`transition ${
+                          className={`group transition ${
                             isSelected ? 'bg-blue-600/10' : 'hover:bg-slate-800/40'
                           }`}
                         >
-                          <td className="py-3 px-4">
+                          <td className={`py-3 px-4 w-12 sticky left-0 z-10 ${stickyBg}`}>
                             <button
                               onClick={() => toggleSelectLead(lead.id)}
                               className="cursor-pointer"
@@ -429,14 +435,8 @@ export default function LeadFinderView({
                               )}
                             </button>
                           </td>
-                          <td className="py-3 px-4">
-                            <button
-                              onClick={() => setEditingLead(lead)}
-                              className="flex items-center gap-1.5 bg-slate-800 hover:bg-blue-600 text-slate-200 hover:text-white px-2.5 py-1 rounded-lg border border-slate-700 hover:border-blue-500 text-[11px] font-semibold transition cursor-pointer"
-                            >
-                              <Edit3 className="w-3 h-3" />
-                              <span>{language === 'es' ? 'Editar' : 'Edit'}</span>
-                            </button>
+                          <td className={`py-3 px-4 font-mono text-white font-semibold sticky left-12 z-10 border-r border-slate-800 shadow-[2px_0_6px_rgba(0,0,0,0.4)] ${stickyBg}`}>
+                            {lead.email}
                           </td>
                           <td className="py-3 px-4">
                             <span
@@ -445,8 +445,14 @@ export default function LeadFinderView({
                               {badge.label}
                             </span>
                           </td>
-                          <td className="py-3 px-4 font-mono text-white font-semibold">
-                            {lead.email}
+                          <td className="py-3 px-4">
+                            <button
+                              onClick={() => setEditingLead(lead)}
+                              className="flex items-center gap-1.5 bg-slate-800 hover:bg-blue-600 text-slate-200 hover:text-white px-2.5 py-1 rounded-lg border border-slate-700 hover:border-blue-500 text-[11px] font-semibold transition cursor-pointer"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>{language === 'es' ? 'Editar' : 'Edit'}</span>
+                            </button>
                           </td>
                           <td className="py-3 px-4 text-slate-300">
                             <span className="bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded-lg text-[11px]">
