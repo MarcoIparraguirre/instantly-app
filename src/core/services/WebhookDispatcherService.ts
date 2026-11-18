@@ -1,4 +1,5 @@
 import { IWebhookRepository } from '../interfaces/storage';
+import { validateWebhookUrl } from '../security/ssrfValidator';
 
 export interface WebhookPayload {
   event: 'lead.replied' | 'lead.bounced' | 'lead.unsubscribed' | 'lead.opened' | 'lead.clicked' | 'email.sent';
@@ -28,6 +29,13 @@ export class WebhookDispatcherService {
       await Promise.allSettled(
         matching.map(async w => {
           try {
+            // SSRF Defense: validate target URL destination
+            const validation = await validateWebhookUrl(w.url, true);
+            if (!validation.valid) {
+              console.warn(`SSRF Block: Webhook ${w.url} suppressed (${validation.reason})`);
+              return;
+            }
+
             const headers: Record<string, string> = {
               'Content-Type': 'application/json',
               'User-Agent': 'MiSender-Webhook-Engine/1.0',

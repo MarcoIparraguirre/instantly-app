@@ -5,23 +5,38 @@ export interface ISpintaxService {
   resolveVariations?(text: string, count?: number): string[];
 }
 
+const MAX_SPINTAX_LENGTH = 65536; // 64 KB safety threshold against memory/DoS exhaustion
+const INNER_SPINTAX_REGEX = /\{([^{}]+)\}/g;
+const HAS_SPINTAX_REGEX = /\{[^{}]*\|[^{}]*\}/;
+
 export class SpintaxService implements ISpintaxService {
   resolve(text: string): string {
     if (!text) return '';
-    // Only resolve spintax groups that contain '|', protecting template variables like {{firstName}}
-    const hasPattern = /\{([^{}]+?\|[^{}]+?)\}/;
-    const replacePattern = /\{([^{}]+?\|[^{}]+?)\}/g;
+    if (text.length > MAX_SPINTAX_LENGTH) {
+      text = text.slice(0, MAX_SPINTAX_LENGTH);
+    }
 
     let resolved = text;
     let iterations = 0;
-    const maxIterations = 20; // Prevent infinite loops on malformed inputs
+    const maxIterations = 20;
 
-    while (hasPattern.test(resolved) && iterations < maxIterations) {
-      resolved = resolved.replace(replacePattern, (_, choices) => {
-        const options = choices.split('|');
-        const randomChoice = options[Math.floor(Math.random() * options.length)];
-        return randomChoice.trim();
+    // Linear non-backtracking resolver O(N)
+    while (HAS_SPINTAX_REGEX.test(resolved) && iterations < maxIterations) {
+      let changed = false;
+      const next = resolved.replace(INNER_SPINTAX_REGEX, (fullMatch, content) => {
+        if (content.includes('|')) {
+          changed = true;
+          const options = content.split('|');
+          const randomChoice = options[Math.floor(Math.random() * options.length)];
+          return randomChoice.trim();
+        }
+        return fullMatch;
       });
+
+      if (!changed || next === resolved) {
+        break;
+      }
+      resolved = next;
       iterations++;
     }
 
@@ -30,7 +45,7 @@ export class SpintaxService implements ISpintaxService {
 
   hasSpintax(text: string): boolean {
     if (!text) return false;
-    return /\{([^{}]+?\|[^{}]+?)\}/.test(text);
+    return HAS_SPINTAX_REGEX.test(text);
   }
 
   resolveVariations(text: string, count: number = 3): string[] {

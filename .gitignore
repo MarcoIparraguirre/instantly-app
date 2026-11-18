@@ -20,6 +20,10 @@
 # production
 /build
 
+# local data storage & sensitive credentials
+/data/*.json
+/data/
+
 # misc
 .DS_Store
 *.pem

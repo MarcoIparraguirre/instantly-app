@@ -1,15 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/core/container';
+import { checkRateLimit } from '@/core/security/rateLimiter';
+
+const STRICT_EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+    
+    // Rate limit test emails: maximum 10 sends per 10-minute window per IP
+    const rateCheck = checkRateLimit('test-email', clientIp, 10, 10 * 60 * 1000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded: maximum 10 test emails allowed per 10 minutes. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
-    const toEmail = (body.toEmail || '').trim();
+    const rawToEmail = (body.toEmail || '').trim();
 
-    if (!toEmail) {
-      return NextResponse.json({ error: 'Destination email is required' }, { status: 400 });
+    // Prevent CRLF injection and validate strict RFC email format
+    if (!rawToEmail || !STRICT_EMAIL_REGEX.test(rawToEmail) || /[\r\n]/.test(rawToEmail)) {
+      return NextResponse.json({ error: 'Valid destination email is required (RFC 5322 compliant)' }, { status: 400 });
     }
+    const toEmail = rawToEmail.toLowerCase();
 
     const campaign = await container.campaignRepo.getCampaignById(id);
     if (!campaign) {
@@ -33,20 +49,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const variant = step.variants[0];
 
+    const safeFirstName = (body.firstName || 'Marco').replace(/[\r\n]/g, '').slice(0, 50);
+    const safeLastName = (body.lastName || '').replace(/[\r\n]/g, '').slice(0, 50);
+    const safeCompany = (body.companyName || 'Vectra Systems').replace(/[\r\n]/g, '').slice(0, 100);
+
     // Mock lead sample for rendering
     const sampleLead = {
       email: toEmail,
-      firstName: body.firstName || 'Marco',
-      lastName: body.lastName || '',
-      companyName: body.companyName || 'Vectra Systems',
+      firstName: safeFirstName,
+      lastName: safeLastName,
+      companyName: safeCompany,
       customVariables: {
-        Nombre: body.firstName || 'Marco',
-        Empresa: body.companyName || 'Vectra Systems'
+        Nombre: safeFirstName,
+        Empresa: safeCompany
       }
     };
 
     const rawSubject = container.templateRenderer.render(variant.subject, sampleLead);
-    const finalSubject = `[TEST] ${container.spintaxService.resolve(rawSubject)}`;
+    const finalSubject = `[TEST] ${container.spintaxService.resolve(rawSubject)}`.replace(/[\r\n]/g, ' ');
 
     const rawBody = container.templateRenderer.render(variant.body, sampleLead);
     const finalBody = container.spintaxService.resolve(rawBody);
@@ -56,7 +76,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       fromName: sender.name,
       to: toEmail,
       subject: finalSubject,
-      body: finalBody
+      body: finalBody,
+      headers: {
+        'X-MiSender-Test': 'true',
+        'X-MiSender-Campaign-Id': id
+      }
     });
 
     if (!mailResult.success) {

@@ -158,7 +158,8 @@ export class ImapInboxService {
           host,
           port: 993,
           servername: host,
-          rejectUnauthorized: false
+          rejectUnauthorized: process.env.NODE_TLS_REJECT_UNAUTHORIZED !== '0',
+          minVersion: 'TLSv1.2'
         },
         () => {}
       );
@@ -191,8 +192,9 @@ export class ImapInboxService {
         if (step === 'greeting' && buffer.includes('* OK')) {
           step = 'login';
           buffer = '';
-          const safePass = pass.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-          socket.write(`A1 LOGIN "${user}" "${safePass}"\r\n`);
+          const safeUser = user.replace(/[\r\n"]/g, '').trim();
+          const safePass = pass.replace(/[\r\n]/g, '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+          socket.write(`A1 LOGIN "${safeUser}" "${safePass}"\r\n`);
         } else if (step === 'login') {
           if (buffer.includes('A1 OK')) {
             step = 'select';

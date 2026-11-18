@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { SenderAccount } from '@/types';
 import { IAccountRepository } from '../../interfaces/storage';
 import { supabase as defaultClient } from '../../supabase/client';
+import { encryptCredential, decryptCredential } from '../../security/crypto';
 
 export class SupabaseAccountRepository implements IAccountRepository {
   private client: SupabaseClient;
@@ -21,7 +22,7 @@ export class SupabaseAccountRepository implements IAccountRepository {
       return [];
     }
 
-    return (data || []).map(this.mapToDomain);
+    return (data || []).map((row) => this.mapToDomain(row));
   }
 
   async getAccountById(id: string): Promise<SenderAccount | undefined> {
@@ -36,7 +37,7 @@ export class SupabaseAccountRepository implements IAccountRepository {
   }
 
   async saveAccounts(accounts: SenderAccount[]): Promise<void> {
-    const payloads = accounts.map(a => this.mapToDb(a));
+    const payloads = accounts.map((a) => this.mapToDb(a));
     const { error } = await this.client
       .from('sender_accounts')
       .upsert(payloads, { onConflict: 'id' });
@@ -48,7 +49,15 @@ export class SupabaseAccountRepository implements IAccountRepository {
   }
 
   async saveAccount(account: SenderAccount): Promise<void> {
-    const payload = this.mapToDb(account);
+    let passToStore = account.smtpPass;
+    if (passToStore === '••••••••' || passToStore === '********') {
+      const existing = await this.getAccountById(account.id);
+      if (existing) {
+        passToStore = existing.smtpPass;
+      }
+    }
+
+    const payload = this.mapToDb({ ...account, smtpPass: passToStore });
     const { error } = await this.client
       .from('sender_accounts')
       .upsert(payload, { onConflict: 'id' });
@@ -80,7 +89,7 @@ export class SupabaseAccountRepository implements IAccountRepository {
       smtpHost: row.smtp_host || '',
       smtpPort: row.smtp_port || 587,
       smtpUser: row.smtp_user || row.email,
-      smtpPass: row.smtp_pass || '',
+      smtpPass: decryptCredential(row.smtp_pass || ''),
       dailyLimit: row.daily_limit || 50,
       sentToday: row.sent_today || 0,
       status: row.status || 'active',
@@ -102,7 +111,7 @@ export class SupabaseAccountRepository implements IAccountRepository {
       smtp_host: account.smtpHost,
       smtp_port: account.smtpPort,
       smtp_user: account.smtpUser,
-      smtp_pass: account.smtpPass,
+      smtp_pass: encryptCredential(account.smtpPass || ''),
       daily_limit: account.dailyLimit,
       sent_today: account.sentToday || 0,
       status: account.status || 'active',

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/core/container';
 import { v4 as uuidv4 } from 'uuid';
 import { WebhookItem } from '@/types';
+import { validateWebhookUrl } from '@/core/security/ssrfValidator';
 
 export async function GET() {
   try {
@@ -17,6 +18,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     if (!body.url) {
       return NextResponse.json({ error: 'Webhook url is required' }, { status: 400 });
+    }
+
+    const validation = await validateWebhookUrl(body.url, true);
+    if (!validation.valid) {
+      return NextResponse.json({ error: `Security Error: ${validation.reason}` }, { status: 400 });
     }
 
     const webhook: WebhookItem = {

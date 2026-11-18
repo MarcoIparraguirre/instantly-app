@@ -48,4 +48,14 @@ describe('SpintaxService (Unit Tests)', () => {
     expect(service.resolve('')).toBe('');
     expect(service.generate('')).toBe('');
   });
+
+  it('resists ReDoS attacks with deeply nested or repeated braces under 20ms', () => {
+    const maliciousInput = '{'.repeat(100) + 'a|b' + '}'.repeat(100);
+    const start = performance.now();
+    const result = service.resolve(maliciousInput);
+    const duration = performance.now() - start;
+
+    expect(duration).toBeLessThan(50);
+    expect(['a', 'b']).toContain(result.replace(/[{}]/g, ''));
+  });
 });

@@ -1,17 +1,48 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://jxkfkcvosfjitrrknwrp.supabase.co';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4a2ZrY3Zvc2ZqaXRycmtud3JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3Mjg5NTQsImV4cCI6MjEwMjMwNDk1NH0.OW8y7DnwQAyYqdA091_I1Tz8wh-HbOaVA8kuZ-XbJak';
+  '';
 const schema = process.env.SUPABASE_SCHEMA || 'misender';
 
+let clientInstance: SupabaseClient<any, any, any> | null = null;
+
 export function getSupabaseClient(): SupabaseClient<any, any, any> {
-  return createClient(supabaseUrl, supabaseKey, {
+  if (clientInstance) return clientInstance;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️ Supabase credentials not found in environment variables. Falling back to placeholder client.');
+    }
+    return createClient('https://placeholder.supabase.co', 'placeholder-key', {
+      db: { schema }
+    });
+  }
+
+  clientInstance = createClient(url, key, {
     db: {
       schema
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
     }
   });
+
+  return clientInstance;
 }
 
-export const supabase = getSupabaseClient();
+export const supabase = new Proxy({} as SupabaseClient<any, any, any>, {
+  get(_target, prop) {
+    const client = getSupabaseClient();
+    const val = (client as any)[prop];
+    return typeof val === 'function' ? val.bind(client) : val;
+  }
+});

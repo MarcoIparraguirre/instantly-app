@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/core/container';
+import { checkRateLimit } from '@/core/security/rateLimiter';
 
 // 1x1 transparent GIF
 const TRANSPARENT_GIF = Buffer.from(
@@ -8,6 +9,19 @@ const TRANSPARENT_GIF = Buffer.from(
 );
 
 export async function GET(req: NextRequest) {
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+  const rateCheck = checkRateLimit('track-open', clientIp, 180, 60 * 1000);
+  
+  if (!rateCheck.allowed) {
+    return new NextResponse(TRANSPARENT_GIF, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/gif',
+        'Cache-Control': 'no-store, no-cache, must-revalidate'
+      }
+    });
+  }
+
   const leadId = req.nextUrl.searchParams.get('leadId');
   const campaignId = req.nextUrl.searchParams.get('campaignId');
 

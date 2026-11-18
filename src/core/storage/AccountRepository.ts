@@ -29,10 +29,14 @@ export class AccountRepository implements IAccountRepository {
   saveAccount(account: SenderAccount): void {
     const existing = this.getAccounts();
     const idx = existing.findIndex(a => a.id === account.id);
+    const toSave = { ...account };
     if (idx >= 0) {
-      existing[idx] = account;
+      if (toSave.smtpPass === '••••••••' || toSave.smtpPass === '********') {
+        toSave.smtpPass = existing[idx].smtpPass;
+      }
+      existing[idx] = toSave;
     } else {
-      existing.push(account);
+      existing.push(toSave);
     }
     this.saveAccounts(existing);
   }

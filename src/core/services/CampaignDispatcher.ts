@@ -10,6 +10,7 @@ import { IAccountRotator } from './AccountRotator';
 import { IMailer } from '../mailers/interfaces';
 import { WebhookDispatcherService } from './WebhookDispatcherService';
 import { CampaignRunResult, DispatchLog } from '@/lib/emailEngine';
+import { generateTrackingSignature } from '../security/crypto';
 
 export interface DispatchOptions {
   simulationOnly?: boolean;
@@ -240,7 +241,8 @@ export class CampaignDispatcher implements ICampaignDispatcher {
         if (isClickTrackingActive) {
           const urlRegex = /(https?:\/\/[^\s<>"']+)/g;
           formattedHtml = formattedHtml.replace(urlRegex, (matchedUrl) => {
-            const redirectUrl = `${baseUrl.replace(/\/$/, '')}/api/track/click?url=${encodeURIComponent(matchedUrl)}&leadId=${encodeURIComponent(lead.id)}&campaignId=${encodeURIComponent(campaign.id)}`;
+            const sig = generateTrackingSignature(matchedUrl, lead.id);
+            const redirectUrl = `${baseUrl.replace(/\/$/, '')}/api/track/click?url=${encodeURIComponent(matchedUrl)}&leadId=${encodeURIComponent(lead.id)}&campaignId=${encodeURIComponent(campaign.id)}&sig=${encodeURIComponent(sig)}`;
             return `<a href="${redirectUrl}" style="color:#2563eb;text-decoration:underline;">${matchedUrl}</a>`;
           });
         }

@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/core/container';
 import { v4 as uuidv4 } from 'uuid';
 import { SenderAccount } from '@/types';
+import { maskCredential } from '@/core/security/crypto';
 
 export async function GET() {
   const accounts = await container.accountRepo.getAccounts();
-  return NextResponse.json(accounts);
+  const safeAccounts = accounts.map(a => ({
+    ...a,
+    smtpPass: maskCredential(a.smtpPass)
+  }));
+  return NextResponse.json(safeAccounts);
 }
 
 export async function POST(req: NextRequest) {
@@ -77,7 +82,10 @@ export async function POST(req: NextRequest) {
     };
 
     await container.accountRepo.saveAccount(newAccount);
-    return NextResponse.json(newAccount, { status: 201 });
+    return NextResponse.json({
+      ...newAccount,
+      smtpPass: maskCredential(newAccount.smtpPass)
+    }, { status: 201 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Failed to save account' }, { status: 500 });
   }

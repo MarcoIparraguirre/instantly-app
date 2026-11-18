@@ -18,6 +18,7 @@ const DISPOSABLE_DOMAINS = new Set([
 
 export class EmailVerifierService {
   private emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  private mxCache = new Map<string, { hasMx: boolean; records: string[]; error?: string }>();
 
   async verifyEmail(email: string): Promise<EmailVerificationResult> {
     const norm = (email || '').trim().toLowerCase();
@@ -52,23 +53,38 @@ export class EmailVerifierService {
       };
     }
 
-    // 3. DNS MX Check
+    // 3. DNS MX Check (with cache)
     try {
-      const mx = await dns.promises.resolveMx(domain);
-      if (!mx || mx.length === 0) {
+      let cached = this.mxCache.get(domain);
+      if (!cached) {
+        try {
+          const mx = await dns.promises.resolveMx(domain);
+          if (mx && mx.length > 0) {
+            const sorted = mx.sort((a, b) => a.priority - b.priority).map(m => m.exchange);
+            cached = { hasMx: true, records: sorted };
+          } else {
+            cached = { hasMx: false, records: [] };
+          }
+        } catch (dnsErr: any) {
+          cached = { hasMx: false, records: [], error: dnsErr.message || 'Dominio no existe' };
+        }
+        this.mxCache.set(domain, cached);
+      }
+
+      if (!cached.hasMx) {
         return {
           email: norm,
           isValid: false,
-          score: 30,
+          score: cached.error ? 20 : 30,
           syntaxValid: true,
           domain,
           hasMx: false,
           isDisposable: false,
-          reason: `El dominio ${domain} no posee servidores de correo (MX) configurados.`
+          reason: cached.error
+            ? `Fallo de resolución DNS para el dominio ${domain}: ${cached.error}`
+            : `El dominio ${domain} no posee servidores de correo (MX) configurados.`
         };
       }
-
-      const mxRecords = mx.sort((a, b) => a.priority - b.priority).map(m => m.exchange);
 
       return {
         email: norm,
@@ -77,7 +93,7 @@ export class EmailVerifierService {
         syntaxValid: true,
         domain,
         hasMx: true,
-        mxRecords,
+        mxRecords: cached.records,
         isDisposable: false,
         reason: 'Correo con sintaxis válida y servidores MX activos y verificados.'
       };
@@ -95,7 +111,16 @@ export class EmailVerifierService {
     }
   }
 
-  async verifyBatch(emails: string[]): Promise<EmailVerificationResult[]> {
-    return Promise.all(emails.map(e => this.verifyEmail(e)));
+  /**
+   * Performs batch verification using bounded concurrency to prevent DNS socket exhaustion (SEC-12)
+   */
+  async verifyBatch(emails: string[], concurrency: number = 10): Promise<EmailVerificationResult[]> {
+    const results: EmailVerificationResult[] = [];
+    for (let i = 0; i < emails.length; i += concurrency) {
+      const chunk = emails.slice(i, i + concurrency);
+      const chunkResults = await Promise.all(chunk.map(e => this.verifyEmail(e)));
+      results.push(...chunkResults);
+    }
+    return results;
   }
 }

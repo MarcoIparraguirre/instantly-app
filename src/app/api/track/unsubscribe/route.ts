@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/core/container';
+import { checkRateLimit } from '@/core/security/rateLimiter';
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 export async function GET(req: NextRequest) {
   return handleUnsubscribe(req);
@@ -11,6 +21,12 @@ export async function POST(req: NextRequest) {
 
 async function handleUnsubscribe(req: NextRequest) {
   try {
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+    const rateCheck = checkRateLimit('track-unsub', clientIp, 30, 60 * 1000);
+    if (!rateCheck.allowed) {
+      return new NextResponse('Too Many Requests', { status: 429 });
+    }
+
     const { searchParams } = new URL(req.url);
     const leadId = searchParams.get('leadId');
     const campaignId = searchParams.get('campaignId');
@@ -48,6 +64,10 @@ async function handleUnsubscribe(req: NextRequest) {
       }).catch(() => {});
     }
 
+    const safeEmailDisplay = emailToBlock
+      ? escapeHtml(emailToBlock)
+      : 'ha sido removido';
+
     const html = `
       <!DOCTYPE html>
       <html lang="es">
@@ -67,7 +87,7 @@ async function handleUnsubscribe(req: NextRequest) {
           <div class="card">
             <div class="icon">✓</div>
             <h1>Desuscripción Confirmada</h1>
-            <p>Tu correo <strong>${emailToBlock || 'ha sido removido'}</strong> de nuestra lista de envíos. No recibirás más comunicaciones de esta campaña.</p>
+            <p>Tu correo <strong>${safeEmailDisplay}</strong> de nuestra lista de envíos. No recibirás más comunicaciones de esta campaña.</p>
           </div>
         </body>
       </html>
@@ -75,7 +95,10 @@ async function handleUnsubscribe(req: NextRequest) {
 
     return new NextResponse(html, {
       status: 200,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'X-Content-Type-Options': 'nosniff'
+      }
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Error processing unsubscribe' }, { status: 500 });
