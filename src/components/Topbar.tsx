@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Building2, Search, Zap, ChevronDown, Check, Sparkles, User, Settings,
-  Mail, Users, Inbox, Server, Kanban, BarChart3, Bot, Compass, X, Flame
+  Building2, Search, Zap, ChevronDown, Check, Sparkles, Settings,
+  Mail, Users, Inbox, Server, Kanban, BarChart3, Flame,
+  CreditCard, LogIn, LogOut, Plus, Crown
 } from 'lucide-react';
-import { Workspace, Campaign } from '@/types';
+import { Workspace, Campaign, SAAS_PLANS, normalizePlan } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { useViewMode } from '@/context/ViewModeContext';
 import { useAdminProfile } from '@/context/AdminProfileContext';
+import { useAuth } from '@/context/AuthContext';
 import LanguageToggle from './LanguageToggle';
 import AdminProfileModal from './AdminProfileModal';
 import WorkspaceManagerModal from './WorkspaceManagerModal';
@@ -33,14 +35,32 @@ export default function Topbar({
   campaigns = []
 }: TopbarProps) {
   const { t, language } = useLanguage();
-  const { mode, setMode, openModePicker } = useViewMode();
+  const { mode, setMode } = useViewMode();
   const { profile, setIsProfileModalOpen } = useAdminProfile();
+  const { user, openAuthModal, signOut } = useAuth();
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
   const [isWorkspaceManagerOpen, setIsWorkspaceManagerOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [trialDaysLeft, setTrialDaysLeft] = useState<number>(7);
+
+  const activePlan = normalizePlan(currentWorkspace.plan);
+  const planConfig = SAAS_PLANS[activePlan];
+  const subStatus = currentWorkspace.subscriptionStatus || 'trialing';
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!currentWorkspace.trialEndsAt) {
+        setTrialDaysLeft(7);
+        return;
+      }
+      const diff = new Date(currentWorkspace.trialEndsAt).getTime() - Date.now();
+      setTrialDaysLeft(Number.isNaN(diff) ? 7 : Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24))));
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [currentWorkspace.trialEndsAt]);
 
   // Global shortcut (Cmd+K / Ctrl+K) and Escape handler
   useEffect(() => {
@@ -62,11 +82,6 @@ export default function Topbar({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isCommandPaletteOpen]);
-
-  // Reset selectedIndex whenever search query or palette state changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [searchQuery, isCommandPaletteOpen]);
 
   const navItems = [
     { 
@@ -118,6 +133,13 @@ export default function Topbar({
       icon: BarChart3, 
       desc: language === 'es' ? 'Métricas de aperturas, clics y entregabilidad' : 'Open rates, clicks & deliverability metrics' 
     },
+    { 
+      id: 'billing', 
+      tab: 'billing', 
+      label: language === 'es' ? 'Facturación y Planes' : 'Billing & Plans', 
+      icon: CreditCard, 
+      desc: language === 'es' ? 'Plan SaaS activo, límites de casillas, Stripe y MercadoPago' : 'Active SaaS plan, usage limits, Stripe & MercadoPago' 
+    },
   ];
 
   const filteredNavItems = navItems.filter(item => 
@@ -151,6 +173,19 @@ export default function Topbar({
       icon: Zap,
       onSelect: () => {
         setMode(mode === 'simple' ? 'pro' : 'simple');
+        setIsCommandPaletteOpen(false);
+        setSearchQuery('');
+      }
+    },
+    {
+      id: 'action-auth',
+      label: user
+        ? (language === 'es' ? 'Crear Nuevo Workspace (Agencia)' : 'Create New Workspace (Agency)')
+        : (language === 'es' ? 'Iniciar Sesión / Prueba 7 días gratis' : 'Sign In / 7-Day Free Trial'),
+      desc: language === 'es' ? 'Autenticación SaaS y aislamiento multi-cliente' : 'SaaS authentication & multi-client isolation',
+      icon: user ? Building2 : LogIn,
+      onSelect: () => {
+        openAuthModal(user ? 'workspace' : 'signin');
         setIsCommandPaletteOpen(false);
         setSearchQuery('');
       }
@@ -216,34 +251,52 @@ export default function Topbar({
               <div className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                 {t('topbar.switchWorkspace')}
               </div>
-              {workspaces.map((ws) => (
-                <button
-                  key={ws.id}
-                  onClick={() => {
-                    onSelectWorkspace(ws);
-                    setIsWorkspaceMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition ${
-                    currentWorkspace.id === ws.id
-                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                      : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
-                  }`}
-                >
-                  <div className="text-left truncate pr-2">
-                    <div className="font-semibold text-white">{ws.name}</div>
-                    <div className="text-[10px] text-slate-400">{ws.clientName}</div>
-                  </div>
-                  {currentWorkspace.id === ws.id && <Check className="w-4 h-4 text-blue-400 shrink-0" />}
-                </button>
-              ))}
+              {workspaces.map((ws) => {
+                const wsPlan = SAAS_PLANS[normalizePlan(ws.plan)].name;
+                return (
+                  <button
+                    key={ws.id}
+                    onClick={() => {
+                      onSelectWorkspace(ws);
+                      setIsWorkspaceMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition ${
+                      currentWorkspace.id === ws.id
+                        ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                        : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                    }`}
+                  >
+                    <div className="text-left truncate pr-2">
+                      <div className="font-semibold text-white flex items-center gap-1.5">
+                        <span className="truncate">{ws.name}</span>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700 font-mono shrink-0">
+                          {wsPlan}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-400">{ws.clientName}</div>
+                    </div>
+                    {currentWorkspace.id === ws.id && <Check className="w-4 h-4 text-blue-400 shrink-0" />}
+                  </button>
+                );
+              })}
 
-              <div className="pt-1 border-t border-slate-800/80">
+              <div className="pt-1 border-t border-slate-800/80 space-y-1">
+                <button
+                  onClick={() => {
+                    setIsWorkspaceMenuOpen(false);
+                    openAuthModal('workspace');
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/30 rounded-xl transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{language === 'es' ? 'Nuevo Workspace (Agencia)...' : 'New Workspace (Agency)...'}</span>
+                </button>
                 <button
                   onClick={() => {
                     setIsWorkspaceMenuOpen(false);
                     setIsWorkspaceManagerOpen(true);
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-blue-400 hover:text-blue-300 hover:bg-blue-950/30 rounded-xl transition"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-blue-400 hover:text-blue-300 hover:bg-blue-950/30 rounded-xl transition cursor-pointer"
                 >
                   <Settings className="w-3.5 h-3.5" />
                   <span>{language === 'es' ? 'Gestionar Espacios de Trabajo...' : 'Manage Workspaces...'}</span>
@@ -260,7 +313,7 @@ export default function Topbar({
             setSearchQuery('');
             setSelectedIndex(0);
           }}
-          className="relative w-80 cursor-pointer"
+          className="relative w-64 xl:w-72 cursor-pointer"
         >
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -306,17 +359,43 @@ export default function Topbar({
           </button>
         </div>
 
+        {/* Clickable Plan / Trial Badge */}
+        <button
+          type="button"
+          onClick={() => onNavigate?.('billing')}
+          title={language === 'es' ? 'Ver Facturación y Planes SaaS' : 'View SaaS Billing & Plans'}
+          className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+            subStatus === 'active'
+              ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300 hover:bg-emerald-900/50'
+              : subStatus === 'past_due'
+                ? 'bg-rose-950/40 border-rose-500/30 text-rose-300 hover:bg-rose-900/50'
+                : 'bg-amber-950/40 border-amber-500/30 text-amber-300 hover:bg-amber-900/50'
+          }`}
+        >
+          <Crown className="w-3.5 h-3.5 shrink-0" />
+          <span>{planConfig.name}</span>
+          <span className="text-[10px] opacity-85 font-mono">
+            {subStatus === 'trialing'
+              ? `• Trial ${trialDaysLeft}d`
+              : subStatus === 'active'
+                ? (language === 'es' ? '• Activo' : '• Active')
+                : subStatus === 'past_due'
+                  ? '• Past Due'
+                  : '• Canceled'}
+          </span>
+        </button>
+
         {/* Verification Credits Badge */}
         <div className="flex items-center gap-1.5 bg-indigo-950/40 border border-indigo-500/30 text-indigo-300 px-3 py-1 rounded-xl text-xs font-semibold shadow-sm">
           <Zap className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400" />
           <span>{currentWorkspace.credits.toLocaleString()}</span>
-          <span className="text-[10px] text-indigo-400/80 font-normal">{t('topbar.creditsAvailable')}</span>
+          <span className="hidden lg:inline text-[10px] text-indigo-400/80 font-normal">{t('topbar.creditsAvailable')}</span>
         </div>
 
         {/* MiSender Copilot Trigger */}
         <button
           onClick={openCopilot}
-          className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-md shadow-indigo-600/20 transition"
+          className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-md shadow-indigo-600/20 transition cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5" />
           <span>Copilot</span>
@@ -325,47 +404,114 @@ export default function Topbar({
         {/* Language Switcher */}
         <LanguageToggle />
 
-        {/* User Profile Avatar */}
+        {/* Auth / Sign In Button when unauthenticated */}
+        {!user && (
+          <button
+            type="button"
+            onClick={() => openAuthModal('signin')}
+            className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer"
+          >
+            <LogIn className="w-3.5 h-3.5 text-blue-400" />
+            <span className="hidden sm:inline">{language === 'es' ? 'Acceder' : 'Sign In'}</span>
+          </button>
+        )}
+
+        {/* User Profile / Auth Avatar */}
         <div className="relative flex items-center gap-2 pl-2 border-l border-slate-800">
           <button
             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-            title={`${profile.name} (${profile.role}) - ${profile.initials}`}
+            title={
+              user
+                ? `${user.fullName || user.email} (${user.email})`
+                : `${profile.name} (${profile.role}) - ${profile.initials}`
+            }
             className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 hover:scale-105 active:scale-95 flex items-center justify-center text-white font-black text-xs shadow-md transition cursor-pointer"
           >
-            {profile.initials}
+            {user ? user.avatarInitials : profile.initials}
           </button>
 
           {isProfileMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-64 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-3.5 z-50 space-y-3 animate-in fade-in">
+            <div className="absolute right-0 top-full mt-2 w-64 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-3.5 z-50 space-y-2.5 animate-in fade-in">
               <div className="border-b border-slate-800/80 pb-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="font-bold text-white text-xs truncate max-w-[150px]">{profile.name}</div>
-                  <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase font-semibold">
-                    {profile.role}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-bold text-white text-xs truncate max-w-[140px]">
+                    {user ? (user.fullName || user.email) : profile.name}
+                  </div>
+                  <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase font-semibold shrink-0">
+                    {user ? (user.isDemo ? 'Demo SaaS' : 'SaaS Auth') : profile.role}
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-400 font-mono truncate mt-0.5">{profile.email}</div>
+                <div className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
+                  {user ? user.email : profile.email}
+                </div>
                 <div className="text-[10px] text-slate-400 mt-1">
-                  {language === 'es' ? `Empresa: ${profile.company}` : `Company: ${profile.company}`}
+                  {language === 'es'
+                    ? `Workspace: ${currentWorkspace.name}`
+                    : `Workspace: ${currentWorkspace.name}`}
                 </div>
               </div>
 
-              <div className="text-[10px] text-indigo-400 bg-indigo-950/30 border border-indigo-500/20 rounded-xl p-2 leading-tight">
-                {language === 'es'
-                  ? `Iniciales actuales: "${profile.initials}" (Usuario Admin activo)`
-                  : `Current initials: "${profile.initials}" (Active Admin User)`}
-              </div>
+              {!user ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    openAuthModal('signin');
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>{language === 'es' ? 'Iniciar Sesión / Crear Cuenta' : 'Sign In / Create Account'}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    openAuthModal('workspace');
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>{language === 'es' ? 'Nuevo Workspace (Agencia)' : 'New Workspace (Agency)'}</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  onNavigate?.('billing');
+                }}
+                className="w-full flex items-center justify-center gap-2 bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
+              >
+                <CreditCard className="w-3.5 h-3.5 text-blue-400" />
+                <span>{language === 'es' ? 'Facturación y Planes' : 'Billing & Plans'}</span>
+              </button>
 
               <button
                 onClick={() => {
                   setIsProfileMenuOpen(false);
                   setIsProfileModalOpen(true);
                 }}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-xl py-2 text-xs font-semibold transition"
+                className="w-full flex items-center justify-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
               >
                 <Settings className="w-3.5 h-3.5" />
                 <span>{language === 'es' ? 'Gestionar Mi Perfil Admin' : 'Manage Admin Profile'}</span>
               </button>
+
+              {user && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    signOut();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-rose-950/30 hover:bg-rose-900/40 text-rose-400 border border-rose-500/30 rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>{language === 'es' ? 'Cerrar Sesión' : 'Sign Out'}</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -408,7 +554,10 @@ export default function Topbar({
                 type="text"
                 autoFocus
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSelectedIndex(0);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'ArrowDown') {
                     e.preventDefault();
