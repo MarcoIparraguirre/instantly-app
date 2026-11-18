@@ -37,6 +37,17 @@ export default function CampaignEditor({
   const [activeVariantIndex, setActiveVariantIndex] = useState(0);
   const [previewSpintaxModal, setPreviewSpintaxModal] = useState(false);
   const [spintaxPreviews, setSpintaxPreviews] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!previewSpintaxModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPreviewSpintaxModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewSpintaxModal]);
   const [isSending, setIsSending] = useState(false);
   const [dispatchResult, setDispatchResult] = useState<any | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -93,6 +104,7 @@ export default function CampaignEditor({
 
   const campaignLeads = leads.filter(l => l.campaignId === campaign.id);
   const allRelevantLeads = campaignLeads.length > 0 ? campaignLeads : leads;
+  const availableLeads = allRelevantLeads;
 
   // Extract detected unique variables from campaign leads' customVariables
   const detectedVariables = Array.from(
@@ -645,10 +657,12 @@ export default function CampaignEditor({
                   <thead className="bg-slate-950/80 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800">
                     <tr>
                       <th className="py-3 px-4 font-bold text-white w-12 sticky left-0 z-20 bg-slate-950 shadow-sm">#</th>
-                      <th className="py-3 px-4 font-bold text-white sticky left-12 z-20 bg-slate-950 border-r border-slate-800 shadow-[2px_0_6px_rgba(0,0,0,0.4)]">Email</th>
+                      <th className="py-3 px-4 font-bold text-white w-36 min-w-[144px] sticky left-12 z-20 bg-slate-950 shadow-sm">
+                        {language === 'es' ? 'Nombre' : 'Name'}
+                      </th>
+                      <th className="py-3 px-4 font-bold text-white min-w-[200px] sticky left-[192px] z-20 bg-slate-950 border-r border-slate-800 shadow-[2px_0_6px_rgba(0,0,0,0.4)]">Email</th>
                       <th className="py-3 px-4 font-bold text-white">Estado / Status</th>
                       <th className="py-3 px-4 font-bold text-white">Acción</th>
-                      <th className="py-3 px-4 font-bold text-white">Nombre / Name</th>
                       <th className="py-3 px-4 font-bold text-white">Empresa / Company</th>
                       {detectedVariables.map((col) => (
                         <th key={col} className="py-3 px-4 text-blue-400 bg-blue-950/30 border-l border-slate-800/80 font-mono font-bold">
@@ -701,7 +715,10 @@ export default function CampaignEditor({
                         return (
                           <tr key={l.id} className="group hover:bg-slate-800/40 transition">
                             <td className="py-2.5 px-4 text-slate-500 font-mono text-[10px] w-12 sticky left-0 z-10 bg-[#090d16] group-hover:bg-slate-900 transition">{i + 1}</td>
-                            <td className="py-2.5 px-4 font-mono text-white font-medium sticky left-12 z-10 bg-[#090d16] group-hover:bg-slate-900 border-r border-slate-800 shadow-[2px_0_6px_rgba(0,0,0,0.4)] transition">{l.email}</td>
+                            <td className="py-2.5 px-4 text-slate-300 w-36 min-w-[144px] max-w-[144px] truncate sticky left-12 z-10 bg-[#090d16] group-hover:bg-slate-900 transition">
+                              {[l.firstName, l.lastName].filter(Boolean).join(' ') || '-'}
+                            </td>
+                            <td className="py-2.5 px-4 font-mono text-white font-medium min-w-[200px] sticky left-[192px] z-10 bg-[#090d16] group-hover:bg-slate-900 border-r border-slate-800 shadow-[2px_0_6px_rgba(0,0,0,0.4)] transition">{l.email}</td>
                             <td className="py-2.5 px-4">
                               <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${st.cls}`}>
                                 {st.text}
@@ -717,7 +734,6 @@ export default function CampaignEditor({
                                 <span>{language === 'es' ? 'Editar' : 'Edit'}</span>
                               </button>
                             </td>
-                            <td className="py-2.5 px-4 text-slate-300">{l.firstName} {l.lastName}</td>
                             <td className="py-2.5 px-4 text-slate-400">{l.companyName || '-'}</td>
                             {detectedVariables.map((col) => (
                               <td 
@@ -880,19 +896,22 @@ export default function CampaignEditor({
               {sequenceMode === 'preview' && (
                 <div className="flex items-center gap-3 flex-wrap">
                   {/* Lead Selector for Preview */}
-                  {campaignLeads.length > 0 && (
+                  {availableLeads.length > 0 && (
                     <div className="flex items-center gap-1.5 text-xs">
                       <span className="text-slate-400">{language === 'es' ? 'Ver como:' : 'Preview as:'}</span>
                       <select
                         value={previewLeadIndex}
                         onChange={(e) => setPreviewLeadIndex(Number(e.target.value))}
-                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1 text-xs focus:outline-none"
+                        className="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1 text-xs focus:outline-none cursor-pointer"
                       >
-                        {campaignLeads.map((l, i) => (
-                          <option key={l.id} value={i}>
-                            {l.firstName ? `${l.firstName} (${l.email})` : l.email}
-                          </option>
-                        ))}
+                        {availableLeads.map((l, i) => {
+                          const fullName = [l.firstName, l.lastName].filter(Boolean).join(' ');
+                          return (
+                            <option key={l.id || i} value={i}>
+                              Lead #{i + 1}: {fullName ? `${fullName} (${l.email})` : l.email}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                   )}
@@ -905,7 +924,7 @@ export default function CampaignEditor({
                       className={`p-1.5 rounded-md transition cursor-pointer ${
                         previewDevice === 'desktop' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-white'
                       }`}
-                      title={language === 'es' ? 'Vista Escritorio (600px)' : 'Desktop View'}
+                      title={language === 'es' ? 'Vista Escritorio (640px)' : 'Desktop View (640px)'}
                     >
                       <Monitor className="w-4 h-4" />
                     </button>
@@ -915,7 +934,7 @@ export default function CampaignEditor({
                       className={`p-1.5 rounded-md transition cursor-pointer ${
                         previewDevice === 'mobile' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-white'
                       }`}
-                      title={language === 'es' ? 'Vista Móvil (375px)' : 'Mobile View'}
+                      title={language === 'es' ? 'Vista Móvil (375px)' : 'Mobile View (375px)'}
                     >
                       <Smartphone className="w-4 h-4" />
                     </button>
@@ -1068,14 +1087,19 @@ export default function CampaignEditor({
               </>
             ) : (
               /* Live Email Preview Container */
-              <div className="flex flex-col items-center py-4">
+              <div className="flex flex-col items-center py-4 px-2 w-full">
                 {(() => {
-                  const targetLead = campaignLeads[previewLeadIndex] || campaignLeads[0] || {
+                  const safeLeadIndex = Math.min(previewLeadIndex, Math.max(0, availableLeads.length - 1));
+                  const targetLead = availableLeads[safeLeadIndex] || {
                     firstName: 'Juan',
                     lastName: 'Pérez',
                     companyName: 'Acme Corp',
                     email: 'juan.perez@empresa.com',
-                    customVariables: {}
+                    customVariables: {
+                      cargo: 'Director Comercial',
+                      ciudad: 'Buenos Aires',
+                      telefono: '+54 11 5555-0123'
+                    }
                   };
                   const senderAcct = accounts.find(a => campaign.senderAccountIds?.includes(a.id)) || accounts[0] || {
                     name: 'Ventas Misender',
@@ -1083,18 +1107,25 @@ export default function CampaignEditor({
                   };
 
                   const renderLeadText = (text: string) => {
-                    // Seeded spintax resolve
                     const withSpintax = resolveSpintax(text || '');
                     let res = withSpintax;
-                    res = res.replace(/\{\{\s*firstName\s*\}\}/gi, targetLead.firstName || 'Juan');
-                    res = res.replace(/\{\{\s*lastName\s*\}\}/gi, targetLead.lastName || 'Pérez');
-                    res = res.replace(/\{\{\s*companyName\s*\}\}/gi, targetLead.companyName || 'Acme Corp');
-                    res = res.replace(/\{\{\s*email\s*\}\}/gi, targetLead.email || 'juan@empresa.com');
+                    res = res.replace(/\{\{\s*(firstName|nombre|primerNombre|primer_nombre)\s*\}\}/gi, targetLead.firstName || 'Juan');
+                    res = res.replace(/\{\{\s*(lastName|apellido)\s*\}\}/gi, targetLead.lastName || 'Pérez');
+                    res = res.replace(/\{\{\s*(companyName|empresa|compania|compañía|organizacion|organización)\s*\}\}/gi, targetLead.companyName || 'Acme Corp');
+                    res = res.replace(/\{\{\s*(email|correo|mail)\s*\}\}/gi, targetLead.email || 'juan.perez@empresa.com');
+                    if (targetLead.website) {
+                      res = res.replace(/\{\{\s*(website|sitio|web)\s*\}\}/gi, targetLead.website);
+                    }
                     if (targetLead.customVariables) {
                       for (const [k, v] of Object.entries(targetLead.customVariables)) {
-                        res = res.replace(new RegExp(`\\{\\{\\s*${k}\\s*\\}\\}`, 'gi'), String(v || ''));
+                        const escaped = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        res = res.replace(new RegExp(`\\{\\{\\s*${escaped}\\s*\\}\\}`, 'gi'), String(v ?? ''));
                       }
                     }
+                    detectedVariables.forEach(v => {
+                      const escaped = v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                      res = res.replace(new RegExp(`\\{\\{\\s*${escaped}\\s*\\}\\}`, 'gi'), String(targetLead.customVariables?.[v] ?? ''));
+                    });
                     return res;
                   };
 
@@ -1110,38 +1141,42 @@ export default function CampaignEditor({
                     >
                       {/* Window Header */}
                       <div className="bg-slate-900 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
                           <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
                           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
                         </div>
-                        <span className="text-[11px] font-mono text-slate-400">
+                        <span className="text-[11px] font-mono text-slate-400 truncate text-center px-2">
                           {previewDevice === 'mobile' ? '📱 Mobile Mail (375px)' : '💻 Desktop Mail (640px)'}
                         </span>
-                        <div className="w-8" />
+                        <div className="w-8 shrink-0" />
                       </div>
 
                       {/* Email Envelope Meta */}
-                      <div className="p-4 bg-slate-900/60 border-b border-slate-800 text-xs space-y-1.5">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-slate-500 font-medium w-12 text-right">De:</span>
-                          <span className="text-white font-medium">{senderAcct.name}</span>
-                          <span className="text-slate-400 font-mono text-[11px]">&lt;{senderAcct.email}&gt;</span>
+                      <div className="p-4 bg-slate-900/60 border-b border-slate-800 text-xs space-y-2">
+                        <div className="flex items-start sm:items-center gap-2">
+                          <span className="text-slate-500 font-medium w-12 text-right shrink-0">De:</span>
+                          <div className="flex flex-wrap items-baseline gap-1.5 min-w-0">
+                            <span className="text-white font-medium truncate">{senderAcct.name}</span>
+                            <span className="text-slate-400 font-mono text-[11px] truncate">&lt;{senderAcct.email}&gt;</span>
+                          </div>
                         </div>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-slate-500 font-medium w-12 text-right">Para:</span>
-                          <span className="text-white font-medium">{targetLead.firstName} {targetLead.lastName}</span>
-                          <span className="text-slate-400 font-mono text-[11px]">&lt;{targetLead.email}&gt;</span>
+                        <div className="flex items-start sm:items-center gap-2">
+                          <span className="text-slate-500 font-medium w-12 text-right shrink-0">Para:</span>
+                          <div className="flex flex-wrap items-baseline gap-1.5 min-w-0">
+                            <span className="text-white font-medium truncate">{targetLead.firstName} {targetLead.lastName}</span>
+                            <span className="text-slate-400 font-mono text-[11px] truncate">&lt;{targetLead.email}&gt;</span>
+                          </div>
                         </div>
-                        <div className="flex items-baseline gap-2 pt-1 border-t border-slate-800/60">
-                          <span className="text-slate-500 font-medium w-12 text-right">Asunto:</span>
-                          <span className="text-white font-bold">{previewSubject || '(Sin asunto)'}</span>
+                        <div className="flex items-start sm:items-center gap-2 pt-1 border-t border-slate-800/60">
+                          <span className="text-slate-500 font-medium w-12 text-right shrink-0">Asunto:</span>
+                          <span className="text-white font-bold break-words min-w-0">{previewSubject || '(Sin asunto)'}</span>
                         </div>
                       </div>
 
                       {/* Email Body Content */}
-                      <div className="p-6 bg-slate-950 min-h-[220px]">
-                        <div className="whitespace-pre-wrap font-sans text-sm text-slate-100 leading-relaxed">
+                      <div className="p-5 sm:p-6 bg-slate-950 min-h-[220px]">
+                        <div className="whitespace-pre-wrap font-sans text-sm text-slate-100 leading-relaxed break-words">
                           {previewBody || (
                             <span className="text-slate-500 italic">
                               {language === 'es' ? 'El cuerpo del correo está vacío.' : 'Email body is empty.'}
@@ -1475,8 +1510,14 @@ export default function CampaignEditor({
 
         {/* Spintax Preview Modal */}
         {previewSpintaxModal && (
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-[#0e1422] border border-slate-800 rounded-3xl p-6 max-w-2xl w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
+          <div 
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setPreviewSpintaxModal(false)}
+          >
+            <div 
+              className="bg-[#0e1422] border border-slate-800 rounded-3xl p-6 max-w-2xl w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center">

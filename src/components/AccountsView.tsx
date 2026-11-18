@@ -118,16 +118,37 @@ export default function AccountsView() {
     fetchAccounts();
   }, []);
 
+  // Escape key listener for active drawer or modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setSelectedAccount(null);
-        setShowAddModal(false);
+        if (showAddModal) {
+          setShowAddModal(false);
+        } else if (selectedAccount) {
+          setSelectedAccount(null);
+        }
       }
     };
     if (selectedAccount || showAddModal) {
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [selectedAccount, showAddModal]);
+
+  // Mutual exclusivity: close accounts drawer/modal when copilot drawer opens
+  useEffect(() => {
+    const handleCloseFromCopilot = () => {
+      setSelectedAccount(null);
+      setShowAddModal(false);
+    };
+    window.addEventListener('misender:close-accounts-drawer', handleCloseFromCopilot);
+    return () => window.removeEventListener('misender:close-accounts-drawer', handleCloseFromCopilot);
+  }, []);
+
+  // Mutual exclusivity: notify copilot to close when an account drawer or modal is opened
+  useEffect(() => {
+    if (selectedAccount || showAddModal) {
+      window.dispatchEvent(new CustomEvent('misender:close-copilot'));
     }
   }, [selectedAccount, showAddModal]);
 
@@ -208,7 +229,10 @@ export default function AccountsView() {
         </div>
 
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => {
+            setSelectedAccount(null);
+            setShowAddModal(true);
+          }}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-md shadow-blue-600/30 transition"
         >
           <Plus className="w-4 h-4" />
@@ -235,7 +259,10 @@ export default function AccountsView() {
               {accounts.map((acc) => (
                 <tr
                   key={acc.id}
-                  onClick={() => setSelectedAccount(acc)}
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setSelectedAccount(acc);
+                  }}
                   className="hover:bg-slate-800/50 cursor-pointer transition"
                 >
                   <td className="py-4 px-5">
@@ -285,6 +312,7 @@ export default function AccountsView() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          setShowAddModal(false);
                           setSelectedAccount(acc);
                         }}
                         className="text-blue-400 hover:text-blue-300 text-xs font-semibold"
@@ -312,7 +340,7 @@ export default function AccountsView() {
         <>
           <div
             onClick={() => setSelectedAccount(null)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 transition-opacity"
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 transition-opacity"
             aria-hidden="true"
           />
           <div className="fixed inset-y-0 right-0 w-[540px] bg-[#0c121e] border-l border-slate-800 shadow-2xl z-50 flex flex-col transition-all">
@@ -513,8 +541,16 @@ export default function AccountsView() {
 
       {/* Add Mailbox Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAddModal(false);
+          }}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl"
+          >
             <h2 className="text-base font-bold text-white flex items-center gap-2">
               <Server className="w-4 h-4 text-blue-400" />
               {t('accounts.modalTitle')}

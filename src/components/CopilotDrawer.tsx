@@ -44,6 +44,24 @@ export default function CopilotDrawer({ isOpen, onClose, campaign, onCampaignUpd
     }
   }, [isOpen, onClose]);
 
+  // Mutual exclusivity: close copilot when an accounts drawer/modal is opened
+  useEffect(() => {
+    const handleCloseFromAccounts = () => {
+      if (isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('misender:close-copilot', handleCloseFromAccounts);
+    return () => window.removeEventListener('misender:close-copilot', handleCloseFromAccounts);
+  }, [isOpen, onClose]);
+
+  // Mutual exclusivity: notify accounts view to close its drawers/modals when copilot opens
+  useEffect(() => {
+    if (isOpen) {
+      window.dispatchEvent(new CustomEvent('misender:close-accounts-drawer'));
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSend = async (customText?: string) => {
@@ -170,7 +188,7 @@ export default function CopilotDrawer({ isOpen, onClose, campaign, onCampaignUpd
     <>
       <div
         onClick={onClose}
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 transition-opacity"
+        className="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 transition-opacity"
         aria-hidden="true"
       />
       <div className="fixed inset-y-0 right-0 w-[480px] bg-[#0c121e] border-l border-slate-800 shadow-2xl z-50 flex flex-col transition-all">

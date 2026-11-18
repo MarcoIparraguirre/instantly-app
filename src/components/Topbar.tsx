@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Search, Zap, ChevronDown, Check, Sparkles, User, Settings,
-  Mail, Users, Inbox, Server, Kanban, BarChart3, Bot, Compass, X
+  Mail, Users, Inbox, Server, Kanban, BarChart3, Bot, Compass, X, Flame
 } from 'lucide-react';
 import { Workspace, Campaign } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
@@ -40,36 +40,152 @@ export default function Topbar({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
+  // Global shortcut (Cmd+K / Ctrl+K) and Escape handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setIsCommandPaletteOpen(prev => !prev);
-      } else if (e.key === 'Escape') {
+        setIsCommandPaletteOpen(prev => {
+          if (!prev) {
+            setSearchQuery('');
+            setSelectedIndex(0);
+          }
+          return !prev;
+        });
+      } else if (e.key === 'Escape' && isCommandPaletteOpen) {
         setIsCommandPaletteOpen(false);
+        setSearchQuery('');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isCommandPaletteOpen]);
+
+  // Reset selectedIndex whenever search query or palette state changes
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [searchQuery, isCommandPaletteOpen]);
 
   const navItems = [
-    { id: 'campaigns', label: language === 'es' ? 'Campañas Outbound' : 'Outbound Campaigns', icon: Mail, desc: language === 'es' ? 'Gestionar secuencias y envíos' : 'Manage sequences & outreach' },
-    { id: 'leads', label: language === 'es' ? 'Base de Contactos & Leads' : 'Leads & Contacts Database', icon: Users, desc: language === 'es' ? 'Sincronizar Google Sheets o CSV' : 'Sync Google Sheets or CSV' },
-    { id: 'unibox', label: language === 'es' ? 'Unibox Unificada' : 'Unified Unibox', icon: Inbox, desc: language === 'es' ? 'Bandeja de respuestas con IA' : 'AI replies & inbox' },
-    { id: 'accounts', label: language === 'es' ? 'Casillas, Warmup & Auditor DNS' : 'Mailboxes, Warmup & DNS', icon: Server, desc: language === 'es' ? 'Salud SPF, DKIM, DMARC y P2P' : 'SPF, DKIM, DMARC & P2P health' },
-    { id: 'crm', label: language === 'es' ? 'Pipeline y Flujo de Tratos (CRM)' : 'Deals Pipeline (CRM)', icon: Kanban, desc: language === 'es' ? 'Embudo de conversión comercial' : 'Sales conversion funnel' },
-    { id: 'analytics', label: language === 'es' ? 'Analíticas y Rendimiento' : 'Analytics & Deliverability', icon: BarChart3, desc: language === 'es' ? 'Métricas de aperturas y respuestas' : 'Open and reply metrics' },
+    { 
+      id: 'campaigns', 
+      tab: 'campaigns', 
+      label: language === 'es' ? 'Campañas' : 'Campaigns', 
+      icon: Mail, 
+      desc: language === 'es' ? 'Gestionar secuencias y envíos outbound' : 'Manage sequences & outbound outreach' 
+    },
+    { 
+      id: 'leads', 
+      tab: 'finder', 
+      label: language === 'es' ? 'Leads' : 'Leads', 
+      icon: Users, 
+      desc: language === 'es' ? 'Buscador B2B, importación y base de prospectos' : 'B2B search, CSV import & prospect database' 
+    },
+    { 
+      id: 'accounts', 
+      tab: 'accounts', 
+      label: language === 'es' ? 'Casillas' : 'Mailboxes', 
+      icon: Server, 
+      desc: language === 'es' ? 'Casillas de correo SMTP, límites y auditor DNS' : 'SMTP mailboxes, daily limits & DNS audit' 
+    },
+    { 
+      id: 'unibox', 
+      tab: 'unibox', 
+      label: language === 'es' ? 'Unibox' : 'Unibox', 
+      icon: Inbox, 
+      desc: language === 'es' ? 'Bandeja centralizada y respuestas con IA' : 'Unified inbox & AI reply sentiments' 
+    },
+    { 
+      id: 'crm', 
+      tab: 'crm', 
+      label: language === 'es' ? 'CRM' : 'CRM', 
+      icon: Kanban, 
+      desc: language === 'es' ? 'Pipeline y flujo de tratos comerciales' : 'Sales pipeline & dealflow kanban' 
+    },
+    { 
+      id: 'warmup', 
+      tab: 'accounts', 
+      label: language === 'es' ? 'Calentamiento' : 'Warmup', 
+      icon: Flame, 
+      desc: language === 'es' ? 'Red P2P de reputación y warmup de casillas' : 'P2P network warmup & deliverability reputation' 
+    },
+    { 
+      id: 'analytics', 
+      tab: 'analytics', 
+      label: language === 'es' ? 'Analíticas' : 'Analytics', 
+      icon: BarChart3, 
+      desc: language === 'es' ? 'Métricas de aperturas, clics y entregabilidad' : 'Open rates, clicks & deliverability metrics' 
+    },
   ];
 
   const filteredNavItems = navItems.filter(item => 
-    !searchQuery.trim() || item.label.toLowerCase().includes(searchQuery.toLowerCase())
+    !searchQuery.trim() || 
+    item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.desc.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredCampaigns = (campaigns || []).filter(c =>
     !searchQuery.trim() || c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const actionItems = [
+    {
+      id: 'action-copilot',
+      label: language === 'es' ? 'Abrir MiSender Copilot con IA' : 'Open MiSender Copilot AI',
+      desc: language === 'es' ? 'Consultar optimizaciones o crear secuencias' : 'Ask optimizations or draft sequences',
+      icon: Sparkles,
+      onSelect: () => {
+        openCopilot();
+        setIsCommandPaletteOpen(false);
+        setSearchQuery('');
+      }
+    },
+    {
+      id: 'action-mode',
+      label: mode === 'simple'
+        ? (language === 'es' ? 'Cambiar a Modo Pro ⚡' : 'Switch to Pro Mode ⚡')
+        : (language === 'es' ? 'Cambiar a Modo Simple 🐣' : 'Switch to Simple Mode 🐣'),
+      desc: language === 'es' ? 'Alternar interfaz de trabajo' : 'Toggle experience mode',
+      icon: Zap,
+      onSelect: () => {
+        setMode(mode === 'simple' ? 'pro' : 'simple');
+        setIsCommandPaletteOpen(false);
+        setSearchQuery('');
+      }
+    }
+  ];
+
+  const filteredActions = actionItems.filter(a =>
+    !searchQuery.trim() ||
+    a.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    a.desc.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Unified list of selectable items for keyboard navigation (ArrowUp / ArrowDown / Enter)
+  const selectableItems = [
+    ...filteredNavItems.map(item => ({
+      id: `nav-${item.id}`,
+      onSelect: () => {
+        if (onNavigate) onNavigate(item.tab);
+        setIsCommandPaletteOpen(false);
+        setSearchQuery('');
+      }
+    })),
+    ...filteredCampaigns.slice(0, 5).map(camp => ({
+      id: `camp-${camp.id}`,
+      onSelect: () => {
+        if (onNavigate) onNavigate('campaigns', camp.id);
+        setIsCommandPaletteOpen(false);
+        setSearchQuery('');
+      }
+    })),
+    ...filteredActions.map(action => ({
+      id: action.id,
+      onSelect: action.onSelect
+    }))
+  ];
 
   return (
     <header className="h-14 border-b border-slate-800 bg-[#090d16] px-5 flex items-center justify-between shrink-0 select-none z-30">
@@ -139,7 +255,11 @@ export default function Topbar({
 
         {/* Global Search / Command Palette Trigger */}
         <div 
-          onClick={() => setIsCommandPaletteOpen(true)}
+          onClick={() => {
+            setIsCommandPaletteOpen(true);
+            setSearchQuery('');
+            setSelectedIndex(0);
+          }}
           className="relative w-80 cursor-pointer"
         >
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -270,8 +390,17 @@ export default function Topbar({
 
       {/* Command Palette Modal (⌘K / Ctrl+K) */}
       {isCommandPaletteOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-[#0f172a] border border-slate-800 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col">
+        <div 
+          onClick={() => {
+            setIsCommandPaletteOpen(false);
+            setSearchQuery('');
+          }}
+          className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-[#0f172a] border border-slate-800 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col"
+          >
             {/* Search Input */}
             <div className="px-4 py-3.5 border-b border-slate-800 flex items-center gap-3 bg-slate-900/90">
               <Search className="w-4 h-4 text-slate-400 shrink-0" />
@@ -280,11 +409,36 @@ export default function Topbar({
                 autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={language === 'es' ? 'Escribe un comando o busca una sección...' : 'Type a command or search...'}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (selectableItems.length > 0) {
+                      setSelectedIndex(prev => (prev + 1) % selectableItems.length);
+                    }
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (selectableItems.length > 0) {
+                      setSelectedIndex(prev => (prev - 1 + selectableItems.length) % selectableItems.length);
+                    }
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selectableItems[selectedIndex]) {
+                      selectableItems[selectedIndex].onSelect();
+                    }
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setIsCommandPaletteOpen(false);
+                    setSearchQuery('');
+                  }
+                }}
+                placeholder={language === 'es' ? 'Escribe o busca una vista (Campañas, Leads, Casillas, Unibox, CRM, Calentamiento)...' : 'Type or search a view (Campaigns, Leads, Mailboxes, Unibox, CRM, Warmup)...'}
                 className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none"
               />
               <button
-                onClick={() => setIsCommandPaletteOpen(false)}
+                onClick={() => {
+                  setIsCommandPaletteOpen(false);
+                  setSearchQuery('');
+                }}
                 className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
               >
                 <kbd className="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 font-mono">ESC</kbd>
@@ -293,133 +447,179 @@ export default function Topbar({
 
             {/* Results List */}
             <div className="max-h-96 overflow-y-auto p-2 space-y-3">
-              {/* Navigation Items */}
-              {filteredNavItems.length > 0 && (
-                <div className="space-y-1">
-                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    {language === 'es' ? 'Navegación Rápida' : 'Quick Navigation'}
-                  </div>
-                  {filteredNavItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          if (onNavigate) onNavigate(item.id);
-                          setIsCommandPaletteOpen(false);
-                          setSearchQuery('');
-                        }}
-                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-slate-800/80 group transition cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition">
-                            <Icon className="w-3.5 h-3.5" />
-                          </div>
-                          <div>
-                            <div className="text-xs font-semibold text-white">{item.label}</div>
-                            <div className="text-[11px] text-slate-400">{item.desc}</div>
-                          </div>
-                        </div>
-                        <span className="text-[10px] text-slate-500 font-mono">Ir a vista ↵</span>
-                      </button>
-                    );
-                  })}
+              {selectableItems.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-xs">
+                  <Search className="w-6 h-6 mx-auto mb-2 text-slate-600" />
+                  <p className="font-medium text-slate-300">
+                    {language === 'es' ? 'No se encontraron vistas ni comandos' : 'No views or commands found'}
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-1 font-mono">
+                    &quot;{searchQuery}&quot;
+                  </p>
                 </div>
+              ) : (
+                <>
+                  {/* Navigation Items */}
+                  {filteredNavItems.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        {language === 'es' ? 'Vistas Principales' : 'Main Views'}
+                      </div>
+                      {filteredNavItems.map((item, idx) => {
+                        const Icon = item.icon;
+                        const isSelected = selectedIndex === idx;
+                        return (
+                          <button
+                            key={item.id}
+                            onMouseEnter={() => setSelectedIndex(idx)}
+                            onClick={() => {
+                              if (onNavigate) onNavigate(item.tab);
+                              setIsCommandPaletteOpen(false);
+                              setSearchQuery('');
+                            }}
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition cursor-pointer ${
+                              isSelected
+                                ? 'bg-blue-600/20 border border-blue-500/40 text-white shadow-sm ring-1 ring-blue-500/20'
+                                : 'hover:bg-slate-800/80 text-slate-300 border border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${
+                                isSelected
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-blue-500/10 text-blue-400'
+                              }`}>
+                                <Icon className="w-3.5 h-3.5" />
+                              </div>
+                              <div>
+                                <div className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-slate-200'}`}>
+                                  {item.label}
+                                </div>
+                                <div className="text-[11px] text-slate-400">{item.desc}</div>
+                              </div>
+                            </div>
+                            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                              isSelected ? 'bg-blue-500/20 text-blue-300 font-semibold' : 'text-slate-500'
+                            }`}>
+                              {language === 'es' ? 'Ir a vista ↵' : 'Go to view ↵'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Campaigns */}
+                  {filteredCampaigns.length > 0 && (
+                    <div className="space-y-1 pt-1 border-t border-slate-800/60">
+                      <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        {language === 'es' ? 'Campañas' : 'Campaigns'}
+                      </div>
+                      {filteredCampaigns.slice(0, 5).map((camp, idx) => {
+                        const itemIdx = filteredNavItems.length + idx;
+                        const isSelected = selectedIndex === itemIdx;
+                        return (
+                          <button
+                            key={camp.id}
+                            onMouseEnter={() => setSelectedIndex(itemIdx)}
+                            onClick={() => {
+                              if (onNavigate) onNavigate('campaigns', camp.id);
+                              setIsCommandPaletteOpen(false);
+                              setSearchQuery('');
+                            }}
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition cursor-pointer ${
+                              isSelected
+                                ? 'bg-emerald-600/20 border border-emerald-500/40 text-white shadow-sm ring-1 ring-emerald-500/20'
+                                : 'hover:bg-slate-800/80 text-slate-300 border border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${
+                                isSelected
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-emerald-500/10 text-emerald-400'
+                              }`}>
+                                <Mail className="w-3.5 h-3.5" />
+                              </div>
+                              <div>
+                                <div className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-slate-200'}`}>
+                                  {camp.name}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  {camp.status} • {camp.steps.length} {language === 'es' ? 'pasos' : 'steps'}
+                                </div>
+                              </div>
+                            </div>
+                            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                              isSelected ? 'bg-emerald-500/20 text-emerald-300 font-semibold' : 'text-slate-500'
+                            }`}>
+                              {language === 'es' ? 'Abrir ↵' : 'Open ↵'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  {filteredActions.length > 0 && (
+                    <div className="space-y-1 pt-1 border-t border-slate-800/60">
+                      <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        {language === 'es' ? 'Acciones' : 'Actions'}
+                      </div>
+                      {filteredActions.map((action, idx) => {
+                        const itemIdx = filteredNavItems.length + filteredCampaigns.slice(0, 5).length + idx;
+                        const isSelected = selectedIndex === itemIdx;
+                        const Icon = action.icon;
+                        return (
+                          <button
+                            key={action.id}
+                            onMouseEnter={() => setSelectedIndex(itemIdx)}
+                            onClick={() => action.onSelect()}
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition cursor-pointer ${
+                              isSelected
+                                ? 'bg-indigo-600/20 border border-indigo-500/40 text-white shadow-sm ring-1 ring-indigo-500/20'
+                                : 'hover:bg-slate-800/80 text-slate-300 border border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${
+                                isSelected
+                                  ? 'bg-indigo-600 text-white'
+                                  : 'bg-indigo-500/10 text-indigo-400'
+                              }`}>
+                                <Icon className="w-3.5 h-3.5" />
+                              </div>
+                              <div>
+                                <div className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-slate-200'}`}>
+                                  {action.label}
+                                </div>
+                                <div className="text-[11px] text-slate-400">{action.desc}</div>
+                              </div>
+                            </div>
+                            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                              isSelected ? 'bg-indigo-500/20 text-indigo-300 font-semibold' : 'text-slate-500'
+                            }`}>
+                              {language === 'es' ? 'Acción ↵' : 'Action ↵'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
-
-              {/* Campaigns */}
-              {filteredCampaigns.length > 0 && (
-                <div className="space-y-1 pt-1 border-t border-slate-800/60">
-                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    {language === 'es' ? 'Campañas' : 'Campaigns'}
-                  </div>
-                  {filteredCampaigns.slice(0, 5).map((camp) => (
-                    <button
-                      key={camp.id}
-                      onClick={() => {
-                        if (onNavigate) onNavigate('campaigns', camp.id);
-                        setIsCommandPaletteOpen(false);
-                        setSearchQuery('');
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-slate-800/80 group transition cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition">
-                          <Mail className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <div className="text-xs font-semibold text-white">{camp.name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">
-                            {camp.status} • {camp.steps.length} {language === 'es' ? 'pasos' : 'steps'}
-                          </div>
-                        </div>
-                      </div>
-                      <span className="text-[10px] text-slate-500 font-mono">Abrir ↵</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="space-y-1 pt-1 border-t border-slate-800/60">
-                <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  {language === 'es' ? 'Acciones' : 'Actions'}
-                </div>
-                <button
-                  onClick={() => {
-                    openCopilot();
-                    setIsCommandPaletteOpen(false);
-                    setSearchQuery('');
-                  }}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-slate-800/80 group transition cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition">
-                      <Sparkles className="w-3.5 h-3.5" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-white">
-                        {language === 'es' ? 'Abrir MiSender Copilot con IA' : 'Open MiSender Copilot AI'}
-                      </div>
-                      <div className="text-[11px] text-slate-400">
-                        {language === 'es' ? 'Consultar optimizaciones o crear secuencias' : 'Ask optimizations or draft sequences'}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-mono">Acción ↵</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setMode(mode === 'simple' ? 'pro' : 'simple');
-                    setIsCommandPaletteOpen(false);
-                    setSearchQuery('');
-                  }}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-slate-800/80 group transition cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition">
-                      <Zap className="w-3.5 h-3.5" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-white">
-                        {mode === 'simple'
-                          ? (language === 'es' ? 'Cambiar a Modo Pro ⚡' : 'Switch to Pro Mode ⚡')
-                          : (language === 'es' ? 'Cambiar a Modo Simple 🐣' : 'Switch to Simple Mode 🐣')}
-                      </div>
-                      <div className="text-[11px] text-slate-400">
-                        {language === 'es' ? 'Alternar interfaz de trabajo' : 'Toggle experience mode'}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-mono">Cambiar ↵</span>
-                </button>
-              </div>
             </div>
 
             {/* Footer */}
             <div className="px-4 py-2 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-500 font-mono">
-              <span>Navega con ratón o teclado</span>
+              <span className="flex items-center gap-2">
+                <span>↑↓ Navegar</span>
+                <span>•</span>
+                <span>↵ Seleccionar</span>
+                <span>•</span>
+                <span>ESC Cerrar</span>
+              </span>
               <span>MiSender Command v2.0</span>
             </div>
           </div>

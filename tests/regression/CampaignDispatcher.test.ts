@@ -300,4 +300,147 @@ describe('CampaignDispatcher (Regression Tests)', () => {
     const sendArgs = mockMailer.send.mock.calls[0][1];
     expect(sendArgs.html).toContain('/api/track/click?url=https%3A%2F%2Fmyproduct.com%2Fdemo');
   });
+
+  it('skips leads sharing domain with replied lead when stopOnDomainReply is true', async () => {
+    const mockMailer = {
+      send: vi.fn().mockResolvedValue({ success: true, mode: 'simulated' })
+    };
+
+    const camp = campaignRepo.getCampaignById(testCampaignId)!;
+    camp.options = {
+      stopOnReply: true,
+      stopOnDomainReply: true,
+      plainTextMode: false,
+      openTracking: true,
+      clickTracking: true
+    };
+    campaignRepo.saveCampaign(camp);
+
+    // Setup 3 leads:
+    // Lead 1: target.com - already replied
+    // Lead 2: target.com - pending (should be skipped!)
+    // Lead 3: othercompany.com - pending (should be sent!)
+    const mixedLeads: Lead[] = [
+      {
+        id: 'lead-replied-domain',
+        campaignId: testCampaignId,
+        email: 'alice@target.com',
+        firstName: 'Alice',
+        lastName: 'Smith',
+        companyName: 'TargetCo',
+        status: 'replied',
+        currentStep: 1
+      },
+      {
+        id: 'lead-pending-same-domain',
+        campaignId: testCampaignId,
+        email: 'bob@target.com',
+        firstName: 'Bob',
+        lastName: 'Jones',
+        companyName: 'TargetCo',
+        status: 'pending',
+        currentStep: 1
+      },
+      {
+        id: 'lead-pending-diff-domain',
+        campaignId: testCampaignId,
+        email: 'carol@different.org',
+        firstName: 'Carol',
+        lastName: 'White',
+        companyName: 'DifferentOrg',
+        status: 'pending',
+        currentStep: 1
+      }
+    ];
+    leadRepo.saveLeads(mixedLeads);
+
+    const testDispatcher = new CampaignDispatcher(
+      campaignRepo,
+      leadRepo,
+      accountRepo,
+      new TemplateRenderer(),
+      new SpintaxService(),
+      new RoundRobinAccountRotator(),
+      mockMailer as any,
+      mockMailer as any
+    );
+
+    const result = await testDispatcher.dispatchStep(testCampaignId, {
+      simulationOnly: true
+    });
+
+    // Only Carol (different.org) should be sent
+    expect(result.sentCount).toBe(1);
+    expect(mockMailer.send).toHaveBeenCalledTimes(1);
+    expect(mockMailer.send.mock.calls[0][1].to).toBe('carol@different.org');
+
+    // Bob should be logged as skipped due to domain reply
+    const bobLog = result.logs.find(l => l.leadEmail === 'bob@target.com');
+    expect(bobLog).toBeDefined();
+    expect(bobLog?.status).toBe('error');
+    expect(bobLog?.error).toContain('already replied in this campaign');
+
+    // Bob's status should remain pending (not sent or completed)
+    const bobLead = leadRepo.getLeads(testCampaignId).find(l => l.id === 'lead-pending-same-domain');
+    expect(bobLead?.status).toBe('pending');
+  });
+
+  it('sends to leads sharing domain when stopOnDomainReply is false', async () => {
+    const mockMailer = {
+      send: vi.fn().mockResolvedValue({ success: true, mode: 'simulated' })
+    };
+
+    const camp = campaignRepo.getCampaignById(testCampaignId)!;
+    camp.options = {
+      stopOnReply: true,
+      stopOnDomainReply: false,
+      plainTextMode: false,
+      openTracking: true,
+      clickTracking: true
+    };
+    campaignRepo.saveCampaign(camp);
+
+    const leads: Lead[] = [
+      {
+        id: 'lead-replied-domain',
+        campaignId: testCampaignId,
+        email: 'alice@target.com',
+        firstName: 'Alice',
+        lastName: 'Smith',
+        companyName: 'TargetCo',
+        status: 'replied',
+        currentStep: 1
+      },
+      {
+        id: 'lead-pending-same-domain',
+        campaignId: testCampaignId,
+        email: 'bob@target.com',
+        firstName: 'Bob',
+        lastName: 'Jones',
+        companyName: 'TargetCo',
+        status: 'pending',
+        currentStep: 1
+      }
+    ];
+    leadRepo.saveLeads(leads);
+
+    const testDispatcher = new CampaignDispatcher(
+      campaignRepo,
+      leadRepo,
+      accountRepo,
+      new TemplateRenderer(),
+      new SpintaxService(),
+      new RoundRobinAccountRotator(),
+      mockMailer as any,
+      mockMailer as any
+    );
+
+    const result = await testDispatcher.dispatchStep(testCampaignId, {
+      simulationOnly: true
+    });
+
+    expect(result.sentCount).toBe(1);
+    expect(mockMailer.send).toHaveBeenCalledTimes(1);
+    expect(mockMailer.send.mock.calls[0][1].to).toBe('bob@target.com');
+  });
 });

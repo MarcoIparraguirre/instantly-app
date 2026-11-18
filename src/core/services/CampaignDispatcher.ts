@@ -159,6 +159,17 @@ export class CampaignDispatcher implements ICampaignDispatcher {
     let bouncedCount = 0;
     const baseUrl = options?.baseUrl || process.env.NEXT_PUBLIC_APP_URL || '';
 
+    // Precompute replied domains if stopOnDomainReply is enabled
+    const repliedDomains = new Set<string>();
+    if (campaign.options?.stopOnDomainReply) {
+      for (const l of allLeads) {
+        if (l.status === 'replied') {
+          const dom = l.email.split('@')[1]?.toLowerCase().trim();
+          if (dom) repliedDomains.add(dom);
+        }
+      }
+    }
+
     for (const lead of leads) {
       // 1. Check Global Blocklist
       if (this.blocklistRepo && (await this.blocklistRepo.isBlocked(lead.email))) {
@@ -174,6 +185,23 @@ export class CampaignDispatcher implements ICampaignDispatcher {
           error: 'Email or domain is in global blocklist suppression'
         });
         continue;
+      }
+
+      // 2. Check stopOnDomainReply: protect domain relationship if another lead from @domain.com replied
+      if (campaign.options?.stopOnDomainReply) {
+        const leadDomain = lead.email.split('@')[1]?.toLowerCase().trim();
+        if (leadDomain && repliedDomains.has(leadDomain)) {
+          logs.push({
+            timestamp: new Date().toISOString(),
+            leadEmail: lead.email,
+            senderEmail: 'N/A',
+            subject: 'Omitido por respuesta previa de dominio (stopOnDomainReply)',
+            stepNumber: lead.currentStep,
+            status: 'error',
+            error: `Domain @${leadDomain} already replied in this campaign`
+          });
+          continue;
+        }
       }
 
       const step = campaign.steps.find(s => s.stepNumber === lead.currentStep) || campaign.steps[0];

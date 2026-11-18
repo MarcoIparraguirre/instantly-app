@@ -384,7 +384,10 @@ export default function LeadFinderView({
                         )}
                       </button>
                     </th>
-                    <th className="py-3.5 px-4 font-bold text-white sticky left-12 z-20 bg-slate-950 border-r border-slate-800 shadow-[2px_0_6px_rgba(0,0,0,0.4)]">Email</th>
+                    <th className="py-3.5 px-4 font-bold text-white w-36 min-w-[144px] sticky left-12 z-20 bg-slate-950 shadow-sm">
+                      {language === 'es' ? 'Nombre' : 'Name'}
+                    </th>
+                    <th className="py-3.5 px-4 font-bold text-white min-w-[200px] sticky left-[192px] z-20 bg-slate-950 border-r border-slate-800 shadow-[2px_0_6px_rgba(0,0,0,0.4)]">Email</th>
                     <th className="py-3.5 px-4 font-bold text-white">Estado</th>
                     <th className="py-3.5 px-4 font-bold text-white">Acción</th>
                     <th className="py-3.5 px-4 font-bold text-white">Grupo / Campaña</th>
@@ -403,7 +406,7 @@ export default function LeadFinderView({
                   {filteredLeads.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={6 + dynamicColumns.length}
+                        colSpan={7 + dynamicColumns.length}
                         className="py-12 text-center text-slate-500"
                       >
                         {language === 'es'
@@ -435,7 +438,10 @@ export default function LeadFinderView({
                               )}
                             </button>
                           </td>
-                          <td className={`py-3 px-4 font-mono text-white font-semibold sticky left-12 z-10 border-r border-slate-800 shadow-[2px_0_6px_rgba(0,0,0,0.4)] ${stickyBg}`}>
+                          <td className={`py-3 px-4 text-slate-300 w-36 min-w-[144px] max-w-[144px] truncate sticky left-12 z-10 ${stickyBg}`}>
+                            {[lead.firstName, lead.lastName].filter(Boolean).join(' ') || '-'}
+                          </td>
+                          <td className={`py-3 px-4 font-mono text-white font-semibold min-w-[200px] sticky left-[192px] z-10 border-r border-slate-800 shadow-[2px_0_6px_rgba(0,0,0,0.4)] ${stickyBg}`}>
                             {lead.email}
                           </td>
                           <td className="py-3 px-4">

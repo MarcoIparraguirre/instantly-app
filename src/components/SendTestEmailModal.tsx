@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Send, X, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAdminProfile } from '@/context/AdminProfileContext';
@@ -22,6 +22,17 @@ export default function SendTestEmailModal({
   const [recipientName, setRecipientName] = useState(profile.name || 'Marco');
   const [isSending, setIsSending] = useState(false);
   const [result, setResult] = useState<{ success?: boolean; error?: string; messageId?: string } | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -56,8 +67,14 @@ export default function SendTestEmailModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 select-none">
-      <div className="bg-[#0e1422] border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
+    <div 
+      className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 select-none"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-[#0e1422] border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center">
