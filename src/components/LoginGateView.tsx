@@ -5,24 +5,23 @@ import {
   Zap,
   ShieldCheck,
   Building2,
-  UserCog,
-  Eye,
   Mail,
   Lock,
   User,
   ArrowRight,
   Sparkles,
   AlertCircle,
-  CheckCircle2,
-  Crown,
+  Flame,
+  Inbox,
+  Send,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { WorkspacePlan, UserRole } from '@/types';
+import { WorkspacePlan } from '@/types';
 import LanguageToggle from './LanguageToggle';
 
 export default function LoginGateView() {
-  const { signIn, signUp, signInWithGoogle, signInAsRole } = useAuth();
+  const { signIn, signUp, signInWithGoogle } = useAuth();
   const { language } = useLanguage();
   const isEs = language === 'es';
 
@@ -60,7 +59,7 @@ export default function LoginGateView() {
     const res = await signUp(signupEmail, signupPassword, {
       fullName,
       company,
-      workspaceName: company || fullName || 'Mi Agencia Principal',
+      workspaceName: company || fullName || 'Espacio Principal',
       plan: signupPlan,
     });
     setSubmitting(false);
@@ -77,64 +76,44 @@ export default function LoginGateView() {
     if (res.error) {
       setErrorMsg(
         isEs
-          ? `Google OAuth: ${res.error}. Puedes usar los accesos rápidos o email y contraseña.`
-          : `Google OAuth: ${res.error}. Use quick role access or email & password.`
+          ? `Google OAuth no está disponible en este entorno: ${res.error}. Ingresa con tu email y contraseña.`
+          : `Google OAuth: ${res.error}. Please sign in with email & password.`
       );
     }
   };
 
-  const quickRoleCards: Array<{
-    role: UserRole;
-    title: string;
-    subtitle: string;
-    desc: string;
-    icon: React.ElementType;
-    badge: string;
-    accent: string;
-  }> = [
+  const productHighlights = [
     {
-      role: 'super_admin',
-      title: isEs ? 'Super Admin (Fundador — Marco)' : 'Super Admin (Founder — Marco)',
-      subtitle: 'marcos@vectrasystems.com.ar',
+      icon: Flame,
+      title: isEs ? 'Rotación de Casillas & Warmup P2P' : 'Mailbox Rotation & P2P Warmup',
       desc: isEs
-        ? 'Acceso total + Backoffice SaaS para dar de alta agencias, planes y cobros.'
-        : 'Full access + SaaS Backoffice to onboard agencies, plans & billing.',
-      icon: Crown,
-      badge: 'Nivel 1 • Tú',
-      accent: 'border-amber-500/40 bg-amber-950/20 hover:bg-amber-950/40 text-amber-300',
+        ? 'Distribuye envíos entre múltiples cuentas SMTP y protege la reputación de tus dominios en piloto automático.'
+        : 'Spread volume across multiple SMTP accounts and protect domain reputation automatically.',
+      accent: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
     },
     {
-      role: 'admin',
-      title: isEs ? 'Dueño de Agencia' : 'Agency Owner',
-      subtitle: 'sofia@agenciab2b.com',
+      icon: Send,
+      title: isEs ? 'Secuencias con Spintax y Parada por Dominio' : 'Spintax Sequences & Domain Stop',
       desc: isEs
-        ? 'Gestiona Workspaces por cada cliente, invita a su equipo y administra su plan.'
-        : 'Manages client workspaces, invites team members & pays subscription.',
+        ? 'Personalización con variables dinámicas, pruebas A/Z y detención automática cuando responde cualquier colega.'
+        : 'Dynamic variables, A/Z variants, and automatic sequence stop on company-domain replies.',
+      accent: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+    },
+    {
+      icon: Inbox,
+      title: isEs ? 'Unibox Centralizado + Pipeline CRM' : 'Unified Unibox + CRM Pipeline',
+      desc: isEs
+        ? 'Clasifica respuestas con IA (Interesado, Reunión) y mueve oportunidades directo a tu tablero comercial.'
+        : 'AI sentiment tagging and one-click deal promotion straight into your sales pipeline.',
+      accent: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+    },
+    {
       icon: Building2,
-      badge: 'Nivel 2 • Tu Cliente',
-      accent: 'border-blue-500/40 bg-blue-950/20 hover:bg-blue-950/40 text-blue-300',
-    },
-    {
-      role: 'campaign_manager',
-      title: isEs ? 'Gestor de Campañas (SDR)' : 'Campaign Manager (SDR)',
-      subtitle: 'lucas@agenciab2b.com',
+      title: isEs ? 'Workspaces Multi-Cliente & Permisos' : 'Client Workspaces & Team Roles',
       desc: isEs
-        ? 'Crea campañas, importa leads y responde en Unibox (sin Facturación ni Equipo).'
-        : 'Operates campaigns, leads & Unibox (no billing or team admin access).',
-      icon: UserCog,
-      badge: 'Nivel 3 • Operador',
-      accent: 'border-emerald-500/40 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-300',
-    },
-    {
-      role: 'viewer',
-      title: isEs ? 'Cliente Final (Solo Lectura)' : 'End Client (Read-Only)',
-      subtitle: 'martin@clientefinal.com',
-      desc: isEs
-        ? 'Ve métricas, Unibox y pipeline CRM de su campaña sin modificar configuraciones.'
-        : 'Views analytics, Unibox & CRM pipeline without modifying settings.',
-      icon: Eye,
-      badge: 'Nivel 3 • Vista Cliente',
-      accent: 'border-purple-500/40 bg-purple-950/20 hover:bg-purple-950/40 text-purple-300',
+        ? 'Separa casillas, leads y métricas por cada cliente desde una sola cuenta con accesos por rol.'
+        : 'Keep mailboxes, leads, and metrics strictly isolated per client with role-based access.',
+      accent: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
     },
   ];
 
@@ -161,8 +140,8 @@ export default function LoginGateView() {
             </div>
             <p className="text-[11px] text-slate-400">
               {isEs
-                ? 'Infraestructura multi-agencia para cold email y entregabilidad B2B'
-                : 'Multi-agency B2B cold email & deliverability platform'}
+                ? 'Infraestructura de prospección B2B y entregabilidad multi-agencia'
+                : 'B2B cold outreach & multi-agency deliverability infrastructure'}
             </p>
           </div>
         </div>
@@ -171,85 +150,53 @@ export default function LoginGateView() {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Value Prop + 1-Click Role Switcher for Demo & Testing */}
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          {/* Left Column: Clean Product Value Proposition */}
           <div className="lg:col-span-7 space-y-6">
             <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-semibold">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>
                   {isEs
-                    ? 'Aislamiento Multi-Agencia & Control de Roles (RBAC)'
-                    : 'Multi-Agency Isolation & Role-Based Access Control'}
+                    ? 'Plataforma Outbound para Agencias y Equipos B2B'
+                    : 'Outbound Platform for Agencies & B2B Teams'}
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
                 {isEs
-                  ? 'Entra a tu operación outbound o prueba cada nivel de acceso en 1 clic'
-                  : 'Sign in to your outbound operation or test each role in 1 click'}
+                  ? 'Escala tus campañas en frío manteniendo alta entregabilidad en cada dominio'
+                  : 'Scale your cold outreach while protecting deliverability on every domain'}
               </h1>
               <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
                 {isEs
-                  ? 'Al crear una cuenta de agencia, tu Workspace principal nace automáticamente. Luego, desde adentro de la app, cada agencia crea Workspaces separados para sus clientes y usuarios para su equipo.'
-                  : 'When an agency signs up, its primary workspace is provisioned automatically. Inside the app, agencies create separate client workspaces and invite team members.'}
+                  ? 'Inicia sesión para gestionar tus campañas, casillas y prospectos, o crea tu cuenta con 7 días de prueba gratis.'
+                  : 'Sign in to manage your campaigns, mailboxes, and leads, or create an account with a 7-day free trial.'}
               </p>
             </div>
 
-            {/* 1-Click Role Demo Cards */}
-            <div className="bg-[#0c1220] border border-slate-800/90 rounded-3xl p-5 space-y-4 shadow-xl">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span>
-                      {isEs
-                        ? 'Acceso Rápido por Rol (Pruebas de Fundador)'
-                        : '1-Click Role Preview (Founder Testing)'}
-                    </span>
-                  </h2>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    {isEs
-                      ? 'Haz clic en cualquier perfil para comprobar qué ve y qué tiene bloqueado cada rol.'
-                      : 'Click any profile to verify what each role sees and what actions are restricted.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {quickRoleCards.map((card) => {
-                  const Icon = card.icon;
-                  return (
-                    <button
-                      key={card.role}
-                      type="button"
-                      onClick={() => void signInAsRole(card.role)}
-                      className={`text-left p-4 rounded-2xl border transition cursor-pointer group ${card.accent}`}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {productHighlights.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.title}
+                    className="bg-[#0c1220] border border-slate-800/90 rounded-2xl p-4 space-y-2"
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-xl border flex items-center justify-center ${item.accent}`}
                     >
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 shrink-0" />
-                          <span className="text-[10px] font-mono uppercase font-bold opacity-90">
-                            {card.badge}
-                          </span>
-                        </div>
-                        <ArrowRight className="w-3.5 h-3.5 opacity-60 group-hover:translate-x-0.5 transition-transform" />
-                      </div>
-                      <div className="font-bold text-white text-xs">{card.title}</div>
-                      <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                        {card.subtitle}
-                      </div>
-                      <p className="text-[11px] text-slate-300/90 mt-2 leading-snug">
-                        {card.desc}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <h2 className="font-bold text-white text-xs">{item.title}</h2>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">{item.desc}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Right Column: Real Login / Agency Signup Card (Strictly 2 Tabs) */}
+          {/* Right Column: Login / Create Account Card (Strictly 2 Tabs) */}
           <div className="lg:col-span-5 bg-[#0f172a] border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
             <div className="px-6 pt-5 pb-4 border-b border-slate-800 bg-slate-900/50">
               <div className="grid grid-cols-2 gap-1.5 bg-slate-950/80 border border-slate-800 p-1 rounded-2xl">
@@ -279,7 +226,7 @@ export default function LoginGateView() {
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  {isEs ? 'Crear Cuenta de Agencia' : 'Create Agency Account'}
+                  {isEs ? 'Crear Cuenta' : 'Create Account'}
                 </button>
               </div>
             </div>
@@ -340,7 +287,7 @@ export default function LoginGateView() {
                         required
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
-                        placeholder="agencia@tudominio.com"
+                        placeholder="nombre@tuempresa.com"
                         className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none transition"
                       />
                     </div>
@@ -348,7 +295,7 @@ export default function LoginGateView() {
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
                         <Lock className="w-3.5 h-3.5 text-indigo-400" />
-                        <span>{isEs ? 'Contraseña / Código de Acceso' : 'Password / Access Code'}</span>
+                        <span>{isEs ? 'Contraseña' : 'Password'}</span>
                       </label>
                       <input
                         type="password"
@@ -372,58 +319,49 @@ export default function LoginGateView() {
                             : 'Signing in...'
                           : isEs
                             ? 'Ingresar a MiSender'
-                            : 'Enter MiSender'}
+                            : 'Sign In'}
                       </span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </form>
-
-                  <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-3 text-[11px] text-slate-400 flex items-start gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                    <span>
-                      {isEs
-                        ? 'Si tu agencia o usuario fue creado desde el Backoffice o Mi Equipo, ingresa tu correo y el sistema te llevará directo a tu Workspace con tu rol.'
-                        : 'If your account was provisioned from Backoffice or My Team, sign in with your email to enter your assigned workspace and role.'}
-                    </span>
-                  </div>
                 </div>
               ) : (
                 <form onSubmit={handleSignUp} className="space-y-3.5">
                   <div className="bg-indigo-950/30 border border-indigo-500/30 rounded-2xl p-3 text-[11px] text-slate-300 leading-snug">
                     <span className="font-bold text-white">
-                      {isEs ? 'Alta automática (7 días de prueba):' : 'Instant trial (7 days free):'}
+                      {isEs ? 'Prueba gratis de 7 días:' : '7-day free trial:'}
                     </span>{' '}
                     {isEs
-                      ? 'Creas tu usuario Admin y automáticamente activamos el Workspace principal de tu agencia.'
-                      : 'Creates your Admin user and automatically sets up your agency primary workspace.'}
+                      ? 'Crea tu cuenta y activamos tu espacio de trabajo principal automáticamente.'
+                      : 'Create your account and we provision your primary workspace automatically.'}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
                         <User className="w-3.5 h-3.5 text-blue-400" />
-                        <span>{isEs ? 'Tu Nombre' : 'Full Name'}</span>
+                        <span>{isEs ? 'Nombre Completo' : 'Full Name'}</span>
                       </label>
                       <input
                         type="text"
                         required
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Sofía Méndez"
+                        placeholder="Tu nombre"
                         className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
                         <Building2 className="w-3.5 h-3.5 text-purple-400" />
-                        <span>{isEs ? 'Nombre de Agencia' : 'Agency Name'}</span>
+                        <span>{isEs ? 'Empresa / Agencia' : 'Company / Agency'}</span>
                       </label>
                       <input
                         type="text"
                         required
                         value={company}
                         onChange={(e) => setCompany(e.target.value)}
-                        placeholder="Agencia Growth B2B"
+                        placeholder="Nombre de tu empresa"
                         className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
                       />
                     </div>
@@ -438,7 +376,7 @@ export default function LoginGateView() {
                       required
                       value={signupEmail}
                       onChange={(e) => setSignupEmail(e.target.value)}
-                      placeholder="sofia@agenciab2b.com"
+                      placeholder="nombre@tuempresa.com"
                       className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
                     />
                   </div>
@@ -483,8 +421,8 @@ export default function LoginGateView() {
                     <span>
                       {submitting
                         ? isEs
-                          ? 'Configurando agencia...'
-                          : 'Setting up agency...'
+                          ? 'Creando cuenta...'
+                          : 'Creating account...'
                         : isEs
                           ? 'Crear Cuenta y Entrar'
                           : 'Create Account & Enter'}

@@ -29,7 +29,6 @@ export default function AuthModal() {
     signIn,
     signUp,
     signInWithGoogle,
-    signInDemo,
     createWorkspace,
   } = useAuth();
   const { language } = useLanguage();
@@ -129,8 +128,8 @@ export default function AuthModal() {
     if (res.error) {
       setErrorMsg(
         isEs
-          ? `Google OAuth: ${res.error}. Puedes usar Acceso Demo Staging o email/contraseña.`
-          : `Google OAuth: ${res.error}. You can use Staging Demo Access or email/password.`
+          ? `Google OAuth: ${res.error}. Ingresa con email y contraseña.`
+          : `Google OAuth: ${res.error}. Sign in with email & password.`
       );
     }
   };
@@ -370,22 +369,6 @@ export default function AuthModal() {
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </form>
-
-              {/* Staging Demo Fallback */}
-              <div className="pt-2 border-t border-slate-800/80">
-                <button
-                  type="button"
-                  onClick={() => signInDemo()}
-                  className="w-full flex items-center justify-center gap-2 bg-indigo-950/40 hover:bg-indigo-900/50 border border-indigo-500/30 text-indigo-300 font-semibold py-2 px-3 rounded-xl text-xs transition cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>
-                    {isEs
-                      ? 'Acceso Demo Fundador (Super Admin)'
-                      : 'Instant Founder Demo Sign-In (Super Admin)'}
-                  </span>
-                </button>
-              </div>
             </div>
           )}
 

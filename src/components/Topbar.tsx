@@ -621,11 +621,11 @@ export default function Topbar({
                 <span>{language === 'es' ? 'Mi Perfil y Permisos' : 'My Profile & Role'}</span>
               </button>
 
-              {/* Quick Role Switcher for Demo / Founder Testing */}
-              {user && (
+              {/* Quick Role Switcher reserved exclusively for Founder account */}
+              {user?.email?.toLowerCase() === 'marcos@vectrasystems.com.ar' && (
                 <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
                   <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                    {language === 'es' ? 'Cambiar Rol Activo (Modo Demo/Prueba)' : 'Switch Active Role (Demo/Test)'}
+                    {language === 'es' ? 'Vista de Rol (Modo Fundador)' : 'Preview Role (Founder Mode)'}
                   </div>
                   <div className="grid grid-cols-2 gap-1">
                     {(['super_admin', 'admin', 'campaign_manager', 'viewer'] as UserRole[]).map((r) => (
