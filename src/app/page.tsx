@@ -202,7 +202,7 @@ function HomeContent() {
       />
 
       {/* Main Workspace Frame */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
         {/* Global Topbar: Workspace Switcher, Global Search, Credits, Language & Simple/Pro Toggle */}
         <Topbar
           currentWorkspace={currentWorkspace}

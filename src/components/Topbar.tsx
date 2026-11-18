@@ -243,26 +243,26 @@ export default function Topbar({
   ];
 
   return (
-    <header className="h-14 border-b border-slate-800 bg-[#090d16] px-5 flex items-center justify-between shrink-0 select-none z-30">
+    <header className="h-14 border-b border-slate-800 bg-[#090d16] px-3 2xl:px-5 flex items-center justify-between gap-2 shrink-0 select-none z-30 min-w-0">
       {/* Left Area: Workspace Selector */}
-      <div className="flex items-center gap-4">
-        <div className="relative">
+      <div className="flex items-center gap-2 2xl:gap-3 min-w-0 shrink-0">
+        <div className="relative shrink-0">
           <button
             onClick={() => setIsWorkspaceMenuOpen(!isWorkspaceMenuOpen)}
-            className="flex items-center gap-2.5 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-800 hover:border-slate-700 px-3 py-1.5 rounded-xl transition text-xs font-semibold shadow-sm"
+            className="flex items-center gap-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-800 hover:border-slate-700 px-2.5 py-1.5 rounded-xl transition text-xs font-semibold shadow-sm"
           >
-            <div className="w-5 h-5 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold">
+            <div className="w-5 h-5 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold shrink-0">
               <Building2 className="w-3.5 h-3.5" />
             </div>
             <div className="text-left">
-              <div className="text-white leading-tight font-medium max-w-[180px] truncate">
+              <div className="text-white leading-tight font-medium max-w-[120px] 2xl:max-w-[175px] truncate">
                 {currentWorkspace.name}
               </div>
-              <div className="text-[10px] text-slate-400 font-normal">
+              <div className="text-[10px] text-slate-400 font-normal max-w-[120px] 2xl:max-w-[175px] truncate">
                 {currentWorkspace.clientName}
               </div>
             </div>
-            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isWorkspaceMenuOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${isWorkspaceMenuOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {/* Dropdown Menu */}
@@ -333,28 +333,28 @@ export default function Topbar({
             setSearchQuery('');
             setSelectedIndex(0);
           }}
-          className="relative w-44 lg:w-56 xl:w-72 cursor-pointer"
+          className="relative w-28 2xl:w-56 cursor-pointer shrink-0"
         >
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             readOnly
-            placeholder={language === 'es' ? 'Buscar o comando (⌘K / Ctrl+K)...' : 'Search or command (⌘K / Ctrl+K)...'}
-            className="w-full bg-slate-900/60 border border-slate-800/80 hover:border-slate-700/80 rounded-xl pl-9 pr-16 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none transition cursor-pointer"
+            placeholder={language === 'es' ? 'Buscar' : 'Search'}
+            className="w-full bg-slate-900/60 border border-slate-800/80 hover:border-slate-700/80 rounded-xl pl-8 pr-9 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none transition cursor-pointer"
           />
-          <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700/60 font-mono">
+          <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 bg-slate-800/80 px-1 py-0.5 rounded border border-slate-700/60 font-mono">
             ⌘K
           </kbd>
         </div>
       </div>
 
       {/* Right Area: Experience Switcher (Simple / Pro), Credits, Language, Profile */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 2xl:gap-2.5 shrink-0">
         {/* Experience Mode Toggle Pill */}
-        <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-xl p-1 text-xs">
+        <div className="flex items-center gap-0.5 bg-slate-900 border border-slate-800 rounded-xl p-0.5 text-xs">
           <button
             onClick={() => setMode('simple')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition font-bold text-xs ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg transition font-bold text-xs ${
               mode === 'simple'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
@@ -362,12 +362,12 @@ export default function Topbar({
             title="Switch to Simple Mode (Beginner friendly)"
           >
             <span>🐣</span>
-            <span>{language === 'es' ? 'Simple' : 'Simple'}</span>
+            <span>Simple</span>
           </button>
 
           <button
             onClick={() => setMode('pro')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition font-bold text-xs ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg transition font-bold text-xs ${
               mode === 'pro'
                 ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
@@ -375,7 +375,7 @@ export default function Topbar({
             title="Switch to Pro Mode (Advanced tools)"
           >
             <span>⚡</span>
-            <span>{language === 'es' ? 'Pro' : 'Pro'}</span>
+            <span>Pro</span>
           </button>
         </div>
 
@@ -383,8 +383,8 @@ export default function Topbar({
         <button
           type="button"
           onClick={() => onNavigate?.('billing')}
-          title={language === 'es' ? 'Ver Facturación y Planes SaaS' : 'View SaaS Billing & Plans'}
-          className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+          title={`${planConfig.name} • ${subStatus === 'trialing' ? `Trial ${trialDaysLeft}d` : subStatus === 'active' ? (language === 'es' ? 'Activo' : 'Active') : subStatus}`}
+          className={`hidden md:flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-semibold border transition cursor-pointer shrink-0 ${
             subStatus === 'active'
               ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300 hover:bg-emerald-900/50'
               : subStatus === 'past_due'
@@ -394,7 +394,7 @@ export default function Topbar({
         >
           <Crown className="w-3.5 h-3.5 shrink-0" />
           <span>{planConfig.name}</span>
-          <span className="text-[10px] opacity-85 font-mono">
+          <span className="hidden 2xl:inline text-[10px] opacity-85 font-mono">
             {subStatus === 'trialing'
               ? `• Trial ${trialDaysLeft}d`
               : subStatus === 'active'
@@ -406,10 +406,13 @@ export default function Topbar({
         </button>
 
         {/* Verification Credits Badge */}
-        <div className="flex items-center gap-1.5 bg-indigo-950/40 border border-indigo-500/30 text-indigo-300 px-3 py-1 rounded-xl text-xs font-semibold shadow-sm">
-          <Zap className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400" />
+        <div
+          title={t('topbar.creditsAvailable')}
+          className="flex items-center gap-1 bg-indigo-950/40 border border-indigo-500/30 text-indigo-300 px-2 py-1 rounded-xl text-xs font-semibold shadow-sm shrink-0"
+        >
+          <Zap className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400 shrink-0" />
           <span>{currentWorkspace.credits.toLocaleString()}</span>
-          <span className="hidden lg:inline text-[10px] text-indigo-400/80 font-normal">{t('topbar.creditsAvailable')}</span>
+          <span className="hidden 2xl:inline text-[10px] text-indigo-400/80 font-normal">{t('topbar.creditsAvailable')}</span>
         </div>
 
         {/* Permanent Guided Tour Trigger */}
@@ -417,17 +420,20 @@ export default function Topbar({
           type="button"
           onClick={handleTriggerTour}
           title={language === 'es' ? 'Abrir Tour Guiado Interactivo (7 Estaciones)' : 'Open Interactive Guided Tour (7 Stations)'}
-          className="flex items-center gap-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 text-xs font-semibold px-3 py-1.5 rounded-xl shadow-sm transition cursor-pointer shrink-0"
+          className="flex items-center gap-1 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 text-xs font-semibold px-2.5 py-1.5 rounded-xl shadow-sm transition cursor-pointer shrink-0"
         >
-          <span>🎯 {language === 'es' ? 'Tour Guiado' : 'Guided Tour'}</span>
+          <span>🎯</span>
+          <span className="hidden 2xl:inline">{language === 'es' ? 'Tour Guiado' : 'Guided Tour'}</span>
+          <span className="2xl:hidden">Tour</span>
         </button>
 
         {/* MiSender Copilot Trigger */}
         <button
           onClick={openCopilot}
-          className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-md shadow-indigo-600/20 transition cursor-pointer shrink-0"
+          title="MiSender Copilot IA"
+          className="flex items-center gap-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-xl shadow-md shadow-indigo-600/20 transition cursor-pointer shrink-0"
         >
-          <Sparkles className="w-3.5 h-3.5" />
+          <Sparkles className="w-3.5 h-3.5 shrink-0" />
           <span>Copilot</span>
         </button>
 
@@ -439,15 +445,16 @@ export default function Topbar({
           <button
             type="button"
             onClick={() => openAuthModal('signin')}
-            className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer"
+            title={language === 'es' ? 'Iniciar Sesión / Registro' : 'Sign In / Sign Up'}
+            className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 px-2 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0"
           >
-            <LogIn className="w-3.5 h-3.5 text-blue-400" />
-            <span className="hidden sm:inline">{language === 'es' ? 'Acceder' : 'Sign In'}</span>
+            <LogIn className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <span className="hidden 2xl:inline">{language === 'es' ? 'Acceder' : 'Sign In'}</span>
           </button>
         )}
 
         {/* User Profile / Auth Avatar */}
-        <div className="relative flex items-center gap-2 pl-2 border-l border-slate-800">
+        <div className="relative flex items-center pl-1.5 border-l border-slate-800">
           <button
             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
             title={
