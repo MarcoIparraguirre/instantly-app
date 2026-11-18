@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft, Plus } from 'lucide-react';
 import Topbar from '@/components/Topbar';
 import Sidebar from '@/components/Sidebar';
@@ -18,7 +18,9 @@ import SimpleCampaignView from '@/components/simple/SimpleCampaignView';
 import SimpleAccountsView from '@/components/simple/SimpleAccountsView';
 import BillingView from '@/components/BillingView';
 import AuthModal from '@/components/AuthModal';
-import { Campaign, Lead } from '@/types';
+import GuidedTourModal from '@/components/GuidedTourModal';
+import OnboardingChecklist from '@/components/OnboardingChecklist';
+import { AppTab, Campaign, Lead, SenderAccount } from '@/types';
 import { useViewMode } from '@/context/ViewModeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
@@ -38,20 +40,25 @@ function HomeContent() {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [allCampaigns, setAllCampaigns] = useState<Campaign[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [accounts, setAccounts] = useState<SenderAccount[]>([]);
   const [uniboxUnreadCount, setUniboxUnreadCount] = useState<number>(0);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isCreateCampaignModalOpen, setIsCreateCampaignModalOpen] = useState(false);
+  const [isTourOpen, setIsTourOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const hasMountedTabSync = useRef(false);
 
   const fetchInitialData = useCallback(async () => {
     try {
-      const [campRes, leadsRes] = await Promise.all([
+      const [campRes, leadsRes, accRes] = await Promise.all([
         fetch('/api/campaigns'),
-        fetch('/api/leads')
+        fetch('/api/leads'),
+        fetch('/api/accounts')
       ]);
 
-      const campData = await campRes.json();
-      const leadsData = await leadsRes.json();
+      const campData = await campRes.json().catch(() => []);
+      const leadsData = await leadsRes.json().catch(() => []);
+      const accData = await accRes.json().catch(() => []);
 
       if (Array.isArray(campData) && campData.length > 0) {
         setAllCampaigns(campData);
@@ -60,6 +67,10 @@ function HomeContent() {
 
       if (Array.isArray(leadsData)) {
         setLeads(leadsData);
+      }
+
+      if (Array.isArray(accData)) {
+        setAccounts(accData);
       }
     } catch (err) {
       console.error('Error fetching initial data:', err);
@@ -87,6 +98,33 @@ function HomeContent() {
     }, 0);
     return () => clearTimeout(timer);
   }, [fetchInitialData]);
+
+  // Listen to global custom event to open the interactive Guided Tour
+  useEffect(() => {
+    const handleOpenTour = () => setIsTourOpen(true);
+    window.addEventListener('misender:open-tour', handleOpenTour);
+    return () => window.removeEventListener('misender:open-tour', handleOpenTour);
+  }, []);
+
+  // Refresh accounts lightly when switching tabs so OnboardingChecklist reflects live mailbox state
+  useEffect(() => {
+    if (!hasMountedTabSync.current) {
+      hasMountedTabSync.current = true;
+      return;
+    }
+    let active = true;
+    fetch('/api/accounts')
+      .then((res) => res.json())
+      .then((data) => {
+        if (active && Array.isArray(data)) {
+          setAccounts(data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [currentTab]);
 
   const handleCampaignUpdated = (updated: Campaign) => {
     setCampaign(updated);
@@ -136,10 +174,23 @@ function HomeContent() {
     return () => clearInterval(timer);
   }, [allCampaigns, leads, fetchInitialData]);
 
+  const handleNavigateTab = useCallback((tab: AppTab) => {
+    setCurrentTab(tab);
+  }, []);
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#0b0f17] text-slate-100 font-sans">
       {/* Onboarding Mode Selection Modal (First-time user or on-demand switch) */}
       <ModeSelectionModal />
+
+      {/* Interactive 7-Station Guided Tour Modal */}
+      {isTourOpen && (
+        <GuidedTourModal
+          isOpen={isTourOpen}
+          onClose={() => setIsTourOpen(false)}
+          onNavigateTab={handleNavigateTab}
+        />
+      )}
 
       {/* Sidebar with Dynamic Modules based on Simple vs Pro */}
       <Sidebar
@@ -159,6 +210,7 @@ function HomeContent() {
           onSelectWorkspace={switchWorkspace}
           onUpdateWorkspaces={updateWorkspaces}
           openCopilot={() => setIsCopilotOpen(true)}
+          onOpenTour={() => setIsTourOpen(true)}
           onNavigate={(tab, campId) => {
             setCurrentTab(tab);
             if (campId) {
@@ -180,6 +232,25 @@ function HomeContent() {
             </div>
           ) : (
             <>
+              {/* Live Onboarding Readiness Checklist */}
+              <OnboardingChecklist
+                accounts={accounts}
+                campaigns={allCampaigns}
+                leads={leads}
+                onNavigate={(tab) => {
+                  setCurrentTab(tab);
+                  if (tab === 'campaigns') {
+                    if (allCampaigns.length > 0 && campaign) {
+                      setCampaignViewMode('detail');
+                    } else {
+                      setCampaignViewMode('list');
+                    }
+                  }
+                }}
+                onOpenTour={() => setIsTourOpen(true)}
+              />
+
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden [&>*]:max-h-full">
               {/* CAMPAIGNS: List View vs Detail View (Simple / Pro) */}
               {currentTab === 'campaigns' && (
                 campaignViewMode === 'detail' && campaign ? (
@@ -341,6 +412,7 @@ function HomeContent() {
 
               {/* BILLING & SAAS PLANS */}
               {currentTab === 'billing' && <BillingView />}
+              </div>
             </>
           )}
 

@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
@@ -97,7 +98,8 @@ vi.mock('@/core/container', () => ({
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SupabaseCampaignRepository } from '@/core/storage/supabase/SupabaseCampaignRepository';
 import { GET as getWorkspaces, POST as postWorkspace, PUT as putWorkspace } from '@/app/api/workspaces/route';
-import { POST as postBillingCheckout } from '@/app/api/billing/checkout/route';
+import { GET as getBillingCheckout, POST as postBillingCheckout } from '@/app/api/billing/checkout/route';
+import { POST as postBillingWebhook } from '@/app/api/billing/webhook/route';
 import { GET as getCronDispatch, POST as postCronDispatch } from '@/app/api/cron/dispatch/route';
 import { GET as getCronWarmup, POST as postCronWarmup } from '@/app/api/cron/warmup/route';
 import { GET as getAccountsOAuth, POST as postAccountsOAuth } from '@/app/api/accounts/oauth/route';
@@ -111,9 +113,20 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
     mockState.workspaces = [];
     mockState.upsertedWorkspaces = [];
     (globalThis as unknown as { __misenderWorkspacesStore?: unknown }).__misenderWorkspacesStore = undefined;
+    (globalThis as unknown as { __misenderMepRateCache?: unknown }).__misenderMepRateCache = undefined;
 
     delete process.env.STRIPE_SECRET_KEY;
+    delete process.env.STRIPE_WEBHOOK_SECRET;
+    delete process.env.BILLING_WEBHOOK_SECRET;
     delete process.env.MERCADOPAGO_ACCESS_TOKEN;
+    delete process.env.MP_USD_TO_ARS_RATE;
+    delete process.env.LEMONSQUEEZY_API_KEY;
+    delete process.env.LEMONSQUEEZY_STORE_ID;
+    delete process.env.LEMONSQUEEZY_VARIANT_ID;
+    delete process.env.LEMONSQUEEZY_VARIANT_STARTER;
+    delete process.env.LEMONSQUEEZY_VARIANT_GROWTH;
+    delete process.env.LEMONSQUEEZY_VARIANT_AGENCY;
+    delete process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
     delete process.env.GOOGLE_CLIENT_ID;
     delete process.env.MICROSOFT_CLIENT_ID;
     delete process.env.CRON_SECRET;
@@ -122,6 +135,7 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     process.env = { ...originalEnv };
   });
 
@@ -326,12 +340,15 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
       expect(res.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.mode).toBe('sandbox');
-      // $149 * 0.8 = $119.20/mo => $1,430.40/year
+      // $149 * 0.8 = $119.20/mo => $1,430.40/year; default test rate = 1200 ARS/USD => 1,716,480 ARS
       expect(data.pricing).toEqual({
         planId: 'agency',
         billingCycle: 'annual',
         monthlyEquivalent: 119.2,
         totalUsd: 1430.4,
+        totalArs: Math.round(1430.4 * 1200),
+        usdToArsRate: 1200,
+        rateSource: 'fallback',
         discountPercent: 20,
         currency: 'USD',
       });
@@ -361,11 +378,244 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
         billingCycle: 'monthly',
         monthlyEquivalent: 79,
         totalUsd: 79,
+        totalArs: 79 * 1200,
+        usdToArsRate: 1200,
+        rateSource: 'fallback',
         discountPercent: 0,
         currency: 'USD',
       });
       expect(growthData.workspace.maxAccounts).toBe(10);
       expect(growthData.workspace.maxLeads).toBe(10000);
+    });
+
+    it('GET returns usdToArsRate, webhookUrl, and gateway configuration flags', async () => {
+      const unconfiguredReq = new NextRequest('http://localhost:3000/api/billing/checkout');
+      const unconfiguredRes = await getBillingCheckout(unconfiguredReq);
+      const unconfiguredData = await unconfiguredRes.json();
+
+      expect(unconfiguredRes.status).toBe(200);
+      expect(unconfiguredData).toEqual({
+        usdToArsRate: 1200,
+        rateSource: 'fallback',
+        mercadopagoConfigured: false,
+        lemonsqueezyConfigured: false,
+        stripeConfigured: false,
+        webhookUrl: 'http://localhost:3000/api/billing/webhook',
+      });
+
+      process.env.MP_USD_TO_ARS_RATE = '1340';
+      process.env.MERCADOPAGO_ACCESS_TOKEN = 'APP_USR-test-token';
+      process.env.LEMONSQUEEZY_API_KEY = 'ls-api-key';
+      process.env.LEMONSQUEEZY_STORE_ID = 'store-42';
+      process.env.STRIPE_SECRET_KEY = 'sk_test_51abc';
+
+      const configuredReq = new NextRequest('https://app.misender.io/api/billing/checkout');
+      const configuredRes = await getBillingCheckout(configuredReq);
+      const configuredData = await configuredRes.json();
+
+      expect(configuredRes.status).toBe(200);
+      expect(configuredData).toEqual({
+        usdToArsRate: 1340,
+        rateSource: 'env',
+        mercadopagoConfigured: true,
+        lemonsqueezyConfigured: true,
+        stripeConfigured: true,
+        webhookUrl: 'https://app.misender.io/api/billing/webhook',
+      });
+    });
+
+    it('POST handles provider mercadopago (Checkout Pro & recurring preapproval) with totalArs = Math.round(totalUsd * usdToArsRate)', async () => {
+      process.env.MP_USD_TO_ARS_RATE = '1275.5';
+      mockState.workspaces = [
+        {
+          id: 'ws-primary',
+          name: 'Espacio Principal',
+          client_name: 'Vectra Systems',
+          plan: 'starter',
+          subscription_status: 'trialing',
+          max_accounts: 3,
+          max_leads: 1000,
+          credits: 1000,
+        },
+      ];
+
+      // 1. Sandbox fallback still calculates exact totalArs
+      const sandboxReq = new NextRequest('http://localhost:3000/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws-primary',
+          planId: 'starter',
+          billingCycle: 'monthly',
+          provider: 'mercadopago',
+        }),
+      });
+      const sandboxRes = await postBillingCheckout(sandboxReq);
+      const sandboxData = await sandboxRes.json();
+
+      expect(sandboxRes.status).toBe(200);
+      expect(sandboxData.mode).toBe('sandbox');
+      expect(sandboxData.pricing.usdToArsRate).toBe(1275.5);
+      expect(sandboxData.pricing.rateSource).toBe('env');
+      expect(sandboxData.pricing.totalArs).toBe(Math.round(sandboxData.pricing.totalUsd * 1275.5));
+      expect(sandboxData.workspace.billingProvider).toBe('mercadopago');
+
+      // 2. Live MercadoPago Checkout Pro preference & recurring preapproval
+      process.env.MERCADOPAGO_ACCESS_TOKEN = 'APP_USR-live-mp';
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              id: 'pref-123',
+              init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-123',
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          )
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              id: 'pre-456',
+              init_point: 'https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_id=pre-456',
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          )
+        );
+
+      const mpPrefReq = new NextRequest('http://localhost:3000/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws-primary',
+          planId: 'growth',
+          billingCycle: 'monthly',
+          provider: 'mercadopago',
+          recurring: false,
+        }),
+      });
+      const mpPrefRes = await postBillingCheckout(mpPrefReq);
+      const mpPrefData = await mpPrefRes.json();
+
+      expect(mpPrefRes.status).toBe(200);
+      expect(mpPrefData.success).toBe(true);
+      expect(mpPrefData.mode).toBe('mercadopago');
+      expect(mpPrefData.recurring).toBe(false);
+      expect(mpPrefData.preferenceId).toBe('pref-123');
+      expect(mpPrefData.pricing.totalArs).toBe(Math.round(79 * 1275.5));
+
+      const prefCallBody = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+      expect(fetchSpy.mock.calls[0][0]).toBe('https://api.mercadopago.com/checkout/preferences');
+      expect(prefCallBody.items[0].currency_id).toBe('ARS');
+      expect(prefCallBody.items[0].unit_price).toBe(Math.round(79 * 1275.5));
+      expect(prefCallBody.external_reference).toBe('ws-primary:growth:monthly');
+
+      const mpRecReq = new NextRequest('http://localhost:3000/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws-primary',
+          planId: 'agency',
+          billingCycle: 'annual',
+          provider: 'mercadopago',
+          recurring: true,
+        }),
+      });
+      const mpRecRes = await postBillingCheckout(mpRecReq);
+      const mpRecData = await mpRecRes.json();
+
+      expect(mpRecRes.status).toBe(200);
+      expect(mpRecData.mode).toBe('mercadopago');
+      expect(mpRecData.recurring).toBe(true);
+      expect(mpRecData.preapprovalId).toBe('pre-456');
+      expect(mpRecData.pricing.totalArs).toBe(Math.round(1430.4 * 1275.5));
+
+      const recCallBody = JSON.parse(String(fetchSpy.mock.calls[1][1]?.body));
+      expect(fetchSpy.mock.calls[1][0]).toBe('https://api.mercadopago.com/preapproval');
+      expect(recCallBody.auto_recurring.frequency).toBe(12);
+      expect(recCallBody.auto_recurring.transaction_amount).toBe(Math.round(1430.4 * 1275.5));
+      expect(recCallBody.auto_recurring.currency_id).toBe('ARS');
+    });
+
+    it('POST handles provider lemonsqueezy in both sandbox fallback and live checkout API mode', async () => {
+      mockState.workspaces = [
+        {
+          id: 'ws-primary',
+          name: 'Espacio Principal',
+          client_name: 'Vectra Systems',
+          plan: 'starter',
+          subscription_status: 'trialing',
+          max_accounts: 3,
+          max_leads: 1000,
+          credits: 1000,
+        },
+      ];
+
+      // 1. Sandbox fallback when Lemon Squeezy credentials are missing
+      const lsSandboxReq = new NextRequest('http://localhost:3000/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws-primary',
+          planId: 'growth',
+          billingCycle: 'monthly',
+          provider: 'lemonsqueezy',
+        }),
+      });
+      const lsSandboxRes = await postBillingCheckout(lsSandboxReq);
+      const lsSandboxData = await lsSandboxRes.json();
+
+      expect(lsSandboxRes.status).toBe(200);
+      expect(lsSandboxData.success).toBe(true);
+      expect(lsSandboxData.mode).toBe('sandbox');
+      expect(lsSandboxData.workspace.plan).toBe('growth');
+      expect(lsSandboxData.workspace.billingProvider).toBe('lemonsqueezy');
+
+      // 2. Live Lemon Squeezy JSON:API checkout when credentials & variant are set
+      process.env.LEMONSQUEEZY_API_KEY = 'ls-secret-key';
+      process.env.LEMONSQUEEZY_STORE_ID = '998877';
+      process.env.LEMONSQUEEZY_VARIANT_GROWTH = 'var-growth-1';
+
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            data: {
+              id: 'chk-789',
+              attributes: { url: 'https://checkout.lemonsqueezy.com/buy/chk-789' },
+            },
+          }),
+          { status: 201, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+
+      const lsLiveReq = new NextRequest('http://localhost:3000/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws-primary',
+          planId: 'growth',
+          billingCycle: 'monthly',
+          provider: 'lemonsqueezy',
+        }),
+      });
+      const lsLiveRes = await postBillingCheckout(lsLiveReq);
+      const lsLiveData = await lsLiveRes.json();
+
+      expect(lsLiveRes.status).toBe(200);
+      expect(lsLiveData.success).toBe(true);
+      expect(lsLiveData.mode).toBe('lemonsqueezy');
+      expect(lsLiveData.checkoutId).toBe('chk-789');
+      expect(lsLiveData.url).toBe('https://checkout.lemonsqueezy.com/buy/chk-789');
+
+      const lsPayload = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+      expect(fetchSpy.mock.calls[0][0]).toBe('https://api.lemonsqueezy.com/v1/checkouts');
+      expect(lsPayload.data.attributes.checkout_data.custom).toEqual({
+        workspace_id: 'ws-primary',
+        plan_id: 'growth',
+        billing_cycle: 'monthly',
+      });
+      expect(lsPayload.data.relationships.store.data.id).toBe('998877');
+      expect(lsPayload.data.relationships.variant.data.id).toBe('var-growth-1');
     });
 
     it('rejects unknown planId with HTTP 400', async () => {
@@ -377,6 +627,138 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
 
       const res = await postBillingCheckout(req);
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe('/api/billing/webhook MercadoPago & Lemon Squeezy handlers', () => {
+    it('activates workspace on MercadoPago payment approved notification and ignores pending ones', async () => {
+      mockState.workspaces = [
+        {
+          id: 'ws-primary',
+          name: 'Espacio Principal',
+          client_name: 'Vectra Systems',
+          plan: 'starter',
+          subscription_status: 'trialing',
+          max_accounts: 3,
+          max_leads: 1000,
+          credits: 1000,
+        },
+      ];
+
+      const pendingReq = new NextRequest('http://localhost:3000/api/billing/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'payment',
+          external_reference: 'ws-primary:agency:monthly',
+          status: 'pending',
+        }),
+      });
+      const pendingRes = await postBillingWebhook(pendingReq);
+      const pendingData = await pendingRes.json();
+
+      expect(pendingRes.status).toBe(200);
+      expect(pendingData.received).toBe(true);
+      expect(pendingData.handled).toBe(false);
+
+      const approvedReq = new NextRequest('http://localhost:3000/api/billing/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'payment',
+          external_reference: 'ws-primary:agency:monthly',
+          status: 'approved',
+          data: { id: 'mp-pay-999' },
+        }),
+      });
+      const approvedRes = await postBillingWebhook(approvedReq);
+      const approvedData = await approvedRes.json();
+
+      expect(approvedRes.status).toBe(200);
+      expect(approvedData.received).toBe(true);
+      expect(approvedData.handled).toBe(true);
+      expect(approvedData.eventType).toBe('payment');
+      expect(approvedData.workspaceId).toBe('ws-primary');
+      expect(approvedData.workspace.plan).toBe('agency');
+      expect(approvedData.workspace.subscriptionStatus).toBe('active');
+      expect(approvedData.workspace.billingProvider).toBe('mercadopago');
+      expect(approvedData.workspace.billingSubscriptionId).toBe('mp-pay-999');
+      expect(approvedData.workspace.maxAccounts).toBe(SAAS_PLANS.agency.maxAccounts);
+      expect(approvedData.workspace.maxLeads).toBe(SAAS_PLANS.agency.maxLeads);
+      expect(approvedData.workspace.credits).toBe(SAAS_PLANS.agency.credits);
+    });
+
+    it('activates workspace on Lemon Squeezy subscription_created webhook and verifies HMAC when secret is set', async () => {
+      mockState.workspaces = [
+        {
+          id: 'ws-primary',
+          name: 'Espacio Principal',
+          client_name: 'Vectra Systems',
+          plan: 'starter',
+          subscription_status: 'trialing',
+          max_accounts: 3,
+          max_leads: 1000,
+          credits: 1000,
+        },
+      ];
+
+      const lsBody = JSON.stringify({
+        meta: {
+          event_name: 'subscription_created',
+          custom_data: {
+            workspace_id: 'ws-primary',
+            plan_id: 'growth',
+          },
+        },
+        data: {
+          id: 'ls-sub-555',
+          attributes: {
+            status: 'active',
+          },
+        },
+      });
+
+      process.env.LEMONSQUEEZY_WEBHOOK_SECRET = 'ls-webhook-secret';
+
+      const badSigReq = new NextRequest('http://localhost:3000/api/billing/webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-signature': 'deadbeef',
+        },
+        body: lsBody,
+      });
+      const badSigRes = await postBillingWebhook(badSigReq);
+      expect(badSigRes.status).toBe(401);
+
+      const validSig = crypto
+        .createHmac('sha256', 'ls-webhook-secret')
+        .update(lsBody)
+        .digest('hex');
+
+      const validReq = new NextRequest('http://localhost:3000/api/billing/webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-signature': validSig,
+        },
+        body: lsBody,
+      });
+      const validRes = await postBillingWebhook(validReq);
+      const validData = await validRes.json();
+
+      expect(validRes.status).toBe(200);
+      expect(validData.received).toBe(true);
+      expect(validData.handled).toBe(true);
+      expect(validData.eventType).toBe('subscription_created');
+      expect(validData.workspaceId).toBe('ws-primary');
+      expect(validData.workspace.plan).toBe('growth');
+      expect(validData.workspace.subscriptionStatus).toBe('active');
+      expect(validData.workspace.billingProvider).toBe('lemonsqueezy');
+      expect(validData.workspace.billingSubscriptionId).toBe('ls-sub-555');
+      expect(validData.workspace.maxAccounts).toBe(SAAS_PLANS.growth.maxAccounts);
+      expect(validData.workspace.maxLeads).toBe(SAAS_PLANS.growth.maxLeads);
+      expect(validData.workspace.credits).toBe(SAAS_PLANS.growth.credits);
     });
   });
 

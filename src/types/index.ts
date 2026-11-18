@@ -4,7 +4,7 @@ export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled'
 
 export type BillingCycle = 'monthly' | 'annual';
 
-export type BillingProvider = 'stripe' | 'mercadopago' | 'sandbox';
+export type BillingProvider = 'stripe' | 'mercadopago' | 'lemonsqueezy' | 'sandbox';
 
 export type AppTab =
   | 'finder'
@@ -234,7 +234,7 @@ export interface ActionApproval {
   id: string;
   toolName: string;
   description: string;
-  parameters: any;
+  parameters: Record<string, unknown>;
   status: 'pending' | 'approved' | 'rejected';
 }
 
@@ -246,7 +246,7 @@ export interface CopilotMessage {
   approval?: ActionApproval;
   toolResults?: {
     toolName: string;
-    result: any;
+    result: unknown;
   }[];
 }
 

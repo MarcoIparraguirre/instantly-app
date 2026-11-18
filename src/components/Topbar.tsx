@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Building2, Search, Zap, ChevronDown, Check, Sparkles, Settings,
   Mail, Users, Inbox, Server, Kanban, BarChart3, Flame,
-  CreditCard, LogIn, LogOut, Plus, Crown
+  CreditCard, LogIn, LogOut, Plus, Crown, Compass
 } from 'lucide-react';
 import { Workspace, Campaign, SAAS_PLANS, normalizePlan } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
@@ -21,6 +21,7 @@ interface TopbarProps {
   onSelectWorkspace: (ws: Workspace) => void;
   onUpdateWorkspaces?: (workspaces: Workspace[]) => void;
   openCopilot: () => void;
+  onOpenTour?: () => void;
   onNavigate?: (tab: string, campaignId?: string) => void;
   campaigns?: Campaign[];
 }
@@ -31,6 +32,7 @@ export default function Topbar({
   onSelectWorkspace,
   onUpdateWorkspaces,
   openCopilot,
+  onOpenTour,
   onNavigate,
   campaigns = []
 }: TopbarProps) {
@@ -152,7 +154,25 @@ export default function Topbar({
     !searchQuery.trim() || c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleTriggerTour = () => {
+    onOpenTour?.();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('misender:open-tour'));
+    }
+  };
+
   const actionItems = [
+    {
+      id: 'action-tour',
+      label: language === 'es' ? '🎯 Iniciar Tour Guiado Interactivo' : '🎯 Start Interactive Guided Tour',
+      desc: language === 'es' ? 'Recorrido paso a paso por las 7 estaciones de MiSender' : 'Step-by-step walkthrough across all 7 MiSender stations',
+      icon: Compass,
+      onSelect: () => {
+        handleTriggerTour();
+        setIsCommandPaletteOpen(false);
+        setSearchQuery('');
+      }
+    },
     {
       id: 'action-copilot',
       label: language === 'es' ? 'Abrir MiSender Copilot con IA' : 'Open MiSender Copilot AI',
@@ -313,7 +333,7 @@ export default function Topbar({
             setSearchQuery('');
             setSelectedIndex(0);
           }}
-          className="relative w-64 xl:w-72 cursor-pointer"
+          className="relative w-44 lg:w-56 xl:w-72 cursor-pointer"
         >
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -392,10 +412,20 @@ export default function Topbar({
           <span className="hidden lg:inline text-[10px] text-indigo-400/80 font-normal">{t('topbar.creditsAvailable')}</span>
         </div>
 
+        {/* Permanent Guided Tour Trigger */}
+        <button
+          type="button"
+          onClick={handleTriggerTour}
+          title={language === 'es' ? 'Abrir Tour Guiado Interactivo (7 Estaciones)' : 'Open Interactive Guided Tour (7 Stations)'}
+          className="flex items-center gap-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 text-xs font-semibold px-3 py-1.5 rounded-xl shadow-sm transition cursor-pointer shrink-0"
+        >
+          <span>🎯 {language === 'es' ? 'Tour Guiado' : 'Guided Tour'}</span>
+        </button>
+
         {/* MiSender Copilot Trigger */}
         <button
           onClick={openCopilot}
-          className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-md shadow-indigo-600/20 transition cursor-pointer"
+          className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-md shadow-indigo-600/20 transition cursor-pointer shrink-0"
         >
           <Sparkles className="w-3.5 h-3.5" />
           <span>Copilot</span>
