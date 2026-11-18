@@ -4,9 +4,18 @@ import React, { useState, useEffect } from 'react';
 import { 
   Building2, Search, Zap, ChevronDown, Check, Sparkles, Settings,
   Mail, Users, Inbox, Server, Kanban, BarChart3, Flame,
-  CreditCard, LogIn, LogOut, Plus, Crown, Compass
+  CreditCard, LogIn, LogOut, Plus, Crown, Compass, ShieldCheck
 } from 'lucide-react';
-import { Workspace, Campaign, SAAS_PLANS, normalizePlan } from '@/types';
+import {
+  Workspace,
+  Campaign,
+  SAAS_PLANS,
+  UserRole,
+  ROLE_PERMISSIONS,
+  normalizePlan,
+  normalizeRole,
+  canAccessTab,
+} from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { useViewMode } from '@/context/ViewModeContext';
 import { useAdminProfile } from '@/context/AdminProfileContext';
@@ -39,7 +48,7 @@ export default function Topbar({
   const { t, language } = useLanguage();
   const { mode, setMode } = useViewMode();
   const { profile, setIsProfileModalOpen } = useAdminProfile();
-  const { user, openAuthModal, signOut } = useAuth();
+  const { user, openAuthModal, signOut, switchRole } = useAuth();
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
   const [isWorkspaceManagerOpen, setIsWorkspaceManagerOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -47,6 +56,10 @@ export default function Topbar({
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [trialDaysLeft, setTrialDaysLeft] = useState<number>(7);
+
+  const userRole: UserRole = normalizeRole(user?.role);
+  const perms = ROLE_PERMISSIONS[userRole];
+  const roleLabel = language === 'es' ? perms.labelEs : perms.labelEn;
 
   const activePlan = normalizePlan(currentWorkspace.plan);
   const planConfig = SAAS_PLANS[activePlan];
@@ -135,6 +148,13 @@ export default function Topbar({
       icon: BarChart3, 
       desc: language === 'es' ? 'Métricas de aperturas, clics y entregabilidad' : 'Open rates, clicks & deliverability metrics' 
     },
+    {
+      id: 'team',
+      tab: 'team',
+      label: language === 'es' ? 'Mi Equipo' : 'My Team',
+      icon: Users,
+      desc: language === 'es' ? 'Usuarios de la agencia y roles (SDR / Cliente)' : 'Agency users & role permissions'
+    },
     { 
       id: 'billing', 
       tab: 'billing', 
@@ -142,12 +162,21 @@ export default function Topbar({
       icon: CreditCard, 
       desc: language === 'es' ? 'Plan SaaS activo, límites de casillas, Stripe y MercadoPago' : 'Active SaaS plan, usage limits, Stripe & MercadoPago' 
     },
+    {
+      id: 'backoffice',
+      tab: 'backoffice',
+      label: language === 'es' ? 'Backoffice SaaS' : 'Founder Backoffice',
+      icon: ShieldCheck,
+      desc: language === 'es' ? 'Panel Super Admin para dar de alta agencias y planes' : 'Super Admin backoffice to onboard agencies & plans'
+    },
   ];
 
   const filteredNavItems = navItems.filter(item => 
-    !searchQuery.trim() || 
-    item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.desc.toLowerCase().includes(searchQuery.toLowerCase())
+    canAccessTab(userRole, item.tab) && (
+      !searchQuery.trim() || 
+      item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.desc.toLowerCase().includes(searchQuery.toLowerCase())
+    )
   );
 
   const filteredCampaigns = (campaigns || []).filter(c =>
@@ -197,19 +226,23 @@ export default function Topbar({
         setSearchQuery('');
       }
     },
-    {
-      id: 'action-auth',
-      label: user
-        ? (language === 'es' ? 'Crear Nuevo Workspace (Agencia)' : 'Create New Workspace (Agency)')
-        : (language === 'es' ? 'Iniciar Sesión / Prueba 7 días gratis' : 'Sign In / 7-Day Free Trial'),
-      desc: language === 'es' ? 'Autenticación SaaS y aislamiento multi-cliente' : 'SaaS authentication & multi-client isolation',
-      icon: user ? Building2 : LogIn,
-      onSelect: () => {
-        openAuthModal(user ? 'workspace' : 'signin');
-        setIsCommandPaletteOpen(false);
-        setSearchQuery('');
-      }
-    }
+    ...(user && !perms.canManageWorkspaces
+      ? []
+      : [
+          {
+            id: 'action-auth',
+            label: user
+              ? (language === 'es' ? 'Crear Nuevo Workspace (Agencia)' : 'Create New Workspace (Agency)')
+              : (language === 'es' ? 'Iniciar Sesión / Prueba 7 días gratis' : 'Sign In / 7-Day Free Trial'),
+            desc: language === 'es' ? 'Autenticación SaaS y aislamiento multi-cliente' : 'SaaS authentication & multi-client isolation',
+            icon: user ? Building2 : LogIn,
+            onSelect: () => {
+              openAuthModal(user ? 'workspace' : 'signin');
+              setIsCommandPaletteOpen(false);
+              setSearchQuery('');
+            }
+          }
+        ])
   ];
 
   const filteredActions = actionItems.filter(a =>
@@ -300,28 +333,36 @@ export default function Topbar({
                 );
               })}
 
-              <div className="pt-1 border-t border-slate-800/80 space-y-1">
-                <button
-                  onClick={() => {
-                    setIsWorkspaceMenuOpen(false);
-                    openAuthModal('workspace');
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/30 rounded-xl transition cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>{language === 'es' ? 'Nuevo Workspace (Agencia)...' : 'New Workspace (Agency)...'}</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setIsWorkspaceMenuOpen(false);
-                    setIsWorkspaceManagerOpen(true);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-blue-400 hover:text-blue-300 hover:bg-blue-950/30 rounded-xl transition cursor-pointer"
-                >
-                  <Settings className="w-3.5 h-3.5" />
-                  <span>{language === 'es' ? 'Gestionar Espacios de Trabajo...' : 'Manage Workspaces...'}</span>
-                </button>
-              </div>
+              {perms.canManageWorkspaces ? (
+                <div className="pt-1 border-t border-slate-800/80 space-y-1">
+                  <button
+                    onClick={() => {
+                      setIsWorkspaceMenuOpen(false);
+                      openAuthModal('workspace');
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/30 rounded-xl transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>{language === 'es' ? 'Nuevo Workspace (Agencia)...' : 'New Workspace (Agency)...'}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsWorkspaceMenuOpen(false);
+                      setIsWorkspaceManagerOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-blue-400 hover:text-blue-300 hover:bg-blue-950/30 rounded-xl transition cursor-pointer"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                    <span>{language === 'es' ? 'Gestionar Espacios de Trabajo...' : 'Manage Workspaces...'}</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="pt-2 px-3 py-1.5 border-t border-slate-800/80 text-[10px] text-slate-400">
+                  {language === 'es'
+                    ? 'Solo el Admin de la Agencia crea Workspaces.'
+                    : 'Only Agency Admins manage workspaces.'}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -379,31 +420,33 @@ export default function Topbar({
           </button>
         </div>
 
-        {/* Clickable Plan / Trial Badge */}
-        <button
-          type="button"
-          onClick={() => onNavigate?.('billing')}
-          title={`${planConfig.name} • ${subStatus === 'trialing' ? `Trial ${trialDaysLeft}d` : subStatus === 'active' ? (language === 'es' ? 'Activo' : 'Active') : subStatus}`}
-          className={`hidden md:flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-semibold border transition cursor-pointer shrink-0 ${
-            subStatus === 'active'
-              ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300 hover:bg-emerald-900/50'
-              : subStatus === 'past_due'
-                ? 'bg-rose-950/40 border-rose-500/30 text-rose-300 hover:bg-rose-900/50'
-                : 'bg-amber-950/40 border-amber-500/30 text-amber-300 hover:bg-amber-900/50'
-          }`}
-        >
-          <Crown className="w-3.5 h-3.5 shrink-0" />
-          <span>{planConfig.name}</span>
-          <span className="hidden 2xl:inline text-[10px] opacity-85 font-mono">
-            {subStatus === 'trialing'
-              ? `• Trial ${trialDaysLeft}d`
-              : subStatus === 'active'
-                ? (language === 'es' ? '• Activo' : '• Active')
+        {/* Clickable Plan / Trial Badge (Visible only when role has billing access) */}
+        {perms.canManageBilling && (
+          <button
+            type="button"
+            onClick={() => onNavigate?.('billing')}
+            title={`${planConfig.name} • ${subStatus === 'trialing' ? `Trial ${trialDaysLeft}d` : subStatus === 'active' ? (language === 'es' ? 'Activo' : 'Active') : subStatus}`}
+            className={`hidden md:flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-semibold border transition cursor-pointer shrink-0 ${
+              subStatus === 'active'
+                ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300 hover:bg-emerald-900/50'
                 : subStatus === 'past_due'
-                  ? '• Past Due'
-                  : '• Canceled'}
-          </span>
-        </button>
+                  ? 'bg-rose-950/40 border-rose-500/30 text-rose-300 hover:bg-rose-900/50'
+                  : 'bg-amber-950/40 border-amber-500/30 text-amber-300 hover:bg-amber-900/50'
+            }`}
+          >
+            <Crown className="w-3.5 h-3.5 shrink-0" />
+            <span>{planConfig.name}</span>
+            <span className="hidden 2xl:inline text-[10px] opacity-85 font-mono">
+              {subStatus === 'trialing'
+                ? `• Trial ${trialDaysLeft}d`
+                : subStatus === 'active'
+                  ? (language === 'es' ? '• Activo' : '• Active')
+                  : subStatus === 'past_due'
+                    ? '• Past Due'
+                    : '• Canceled'}
+            </span>
+          </button>
+        )}
 
         {/* Verification Credits Badge */}
         <div
@@ -468,23 +511,31 @@ export default function Topbar({
           </button>
 
           {isProfileMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-64 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-3.5 z-50 space-y-2.5 animate-in fade-in">
+            <div className="absolute right-0 top-full mt-2 w-72 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-3.5 z-50 space-y-2.5 animate-in fade-in">
               <div className="border-b border-slate-800/80 pb-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="font-bold text-white text-xs truncate max-w-[140px]">
                     {user ? (user.fullName || user.email) : profile.name}
                   </div>
-                  <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase font-semibold shrink-0">
-                    {user ? (user.isDemo ? 'Demo SaaS' : 'SaaS Auth') : profile.role}
+                  <span
+                    className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-semibold shrink-0 border ${
+                      userRole === 'super_admin'
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                        : userRole === 'admin'
+                          ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                          : userRole === 'campaign_manager'
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                            : 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                    }`}
+                  >
+                    {roleLabel}
                   </span>
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
                   {user ? user.email : profile.email}
                 </div>
                 <div className="text-[10px] text-slate-400 mt-1">
-                  {language === 'es'
-                    ? `Workspace: ${currentWorkspace.name}`
-                    : `Workspace: ${currentWorkspace.name}`}
+                  {`Workspace: ${currentWorkspace.name}`}
                 </div>
               </div>
 
@@ -501,29 +552,63 @@ export default function Topbar({
                   <span>{language === 'es' ? 'Iniciar Sesión / Crear Cuenta' : 'Sign In / Create Account'}</span>
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsProfileMenuOpen(false);
-                    openAuthModal('workspace');
-                  }}
-                  className="w-full flex items-center justify-center gap-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
-                >
-                  <Building2 className="w-3.5 h-3.5" />
-                  <span>{language === 'es' ? 'Nuevo Workspace (Agencia)' : 'New Workspace (Agency)'}</span>
-                </button>
+                <>
+                  {perms.canAccessBackoffice && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        onNavigate?.('backoffice');
+                      }}
+                      className="w-full flex items-center justify-center gap-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>{language === 'es' ? 'Backoffice SaaS (Agencias)' : 'Founder Backoffice'}</span>
+                    </button>
+                  )}
+
+                  {perms.canManageTeam && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        onNavigate?.('team');
+                      }}
+                      className="w-full flex items-center justify-center gap-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      <span>{language === 'es' ? 'Mi Equipo y Usuarios' : 'Team & Users'}</span>
+                    </button>
+                  )}
+
+                  {perms.canManageWorkspaces && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        openAuthModal('workspace');
+                      }}
+                      className="w-full flex items-center justify-center gap-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
+                    >
+                      <Building2 className="w-3.5 h-3.5" />
+                      <span>{language === 'es' ? 'Nuevo Workspace (Agencia)' : 'New Workspace (Agency)'}</span>
+                    </button>
+                  )}
+                </>
               )}
 
-              <button
-                onClick={() => {
-                  setIsProfileMenuOpen(false);
-                  onNavigate?.('billing');
-                }}
-                className="w-full flex items-center justify-center gap-2 bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
-              >
-                <CreditCard className="w-3.5 h-3.5 text-blue-400" />
-                <span>{language === 'es' ? 'Facturación y Planes' : 'Billing & Plans'}</span>
-              </button>
+              {perms.canManageBilling && (
+                <button
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    onNavigate?.('billing');
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
+                >
+                  <CreditCard className="w-3.5 h-3.5 text-blue-400" />
+                  <span>{language === 'es' ? 'Facturación y Planes' : 'Billing & Plans'}</span>
+                </button>
+              )}
 
               <button
                 onClick={() => {
@@ -533,8 +618,33 @@ export default function Topbar({
                 className="w-full flex items-center justify-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
               >
                 <Settings className="w-3.5 h-3.5" />
-                <span>{language === 'es' ? 'Gestionar Mi Perfil Admin' : 'Manage Admin Profile'}</span>
+                <span>{language === 'es' ? 'Mi Perfil y Permisos' : 'My Profile & Role'}</span>
               </button>
+
+              {/* Quick Role Switcher for Demo / Founder Testing */}
+              {user && (
+                <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    {language === 'es' ? 'Cambiar Rol Activo (Modo Demo/Prueba)' : 'Switch Active Role (Demo/Test)'}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    {(['super_admin', 'admin', 'campaign_manager', 'viewer'] as UserRole[]).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => switchRole(r)}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-semibold border transition cursor-pointer truncate ${
+                          userRole === r
+                            ? 'bg-blue-600 text-white border-blue-500'
+                            : 'bg-slate-950/70 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        {language === 'es' ? ROLE_PERMISSIONS[r].labelEs : ROLE_PERMISSIONS[r].labelEn}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {user && (
                 <button

@@ -1,12 +1,26 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, Mail, Send, Inbox, Kanban, BarChart3, Bot, Zap, Flame,
-  PanelLeftClose, PanelLeftOpen, CreditCard
+import {
+  Search,
+  Mail,
+  Send,
+  Inbox,
+  Kanban,
+  BarChart3,
+  Bot,
+  Zap,
+  Flame,
+  PanelLeftClose,
+  PanelLeftOpen,
+  CreditCard,
+  Users,
+  ShieldCheck,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useViewMode } from '@/context/ViewModeContext';
+import { useAuth } from '@/context/AuthContext';
+import { AppTab, canAccessTab, normalizeRole } from '@/types';
 
 interface SidebarProps {
   currentTab: string;
@@ -16,16 +30,29 @@ interface SidebarProps {
   unreadCount?: number;
 }
 
+interface SidebarNavItem {
+  id: AppTab;
+  label: string;
+  icon: React.ElementType;
+  badge?: string;
+  flame?: boolean;
+  count?: number;
+  desc?: string;
+}
+
 export default function Sidebar({
   currentTab,
   setCurrentTab,
   openCopilot,
   isCopilotOpen,
-  unreadCount = 0
+  unreadCount = 0,
 }: SidebarProps) {
   const { t, language } = useLanguage();
   const { mode } = useViewMode();
+  const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const userRole = normalizeRole(user?.role);
 
   useEffect(() => {
     Promise.resolve().then(() => {
@@ -39,7 +66,7 @@ export default function Sidebar({
   }, []);
 
   const toggleCollapsed = () => {
-    setIsCollapsed(prev => {
+    setIsCollapsed((prev) => {
       const next = !prev;
       try {
         localStorage.setItem('misender_sidebar_collapsed', String(next));
@@ -48,64 +75,97 @@ export default function Sidebar({
     });
   };
 
-  // Navigation Items according to active mode
-  const proNavItems = [
+  // Navigation Items according to active mode, then filtered by RBAC permissions
+  const proNavItems: SidebarNavItem[] = [
     { id: 'finder', label: t('nav.finder'), icon: Search, badge: 'B2B' },
     { id: 'accounts', label: t('nav.accounts'), icon: Mail, flame: true },
     { id: 'campaigns', label: t('nav.campaigns'), icon: Send },
     { id: 'unibox', label: t('nav.unibox'), icon: Inbox, count: unreadCount },
     { id: 'crm', label: t('nav.crm'), icon: Kanban },
     { id: 'analytics', label: t('nav.analytics'), icon: BarChart3 },
-    { id: 'billing', label: language === 'es' ? 'Facturación y Planes' : 'Billing & Plans', icon: CreditCard },
+    {
+      id: 'team',
+      label: language === 'es' ? 'Mi Equipo' : 'My Team',
+      icon: Users,
+    },
+    {
+      id: 'billing',
+      label: language === 'es' ? 'Facturación y Planes' : 'Billing & Plans',
+      icon: CreditCard,
+    },
+    {
+      id: 'backoffice',
+      label: language === 'es' ? 'Backoffice SaaS' : 'SaaS Backoffice',
+      icon: ShieldCheck,
+      badge: 'ADMIN',
+    },
   ];
 
-  const simpleNavItems = [
+  const simpleNavItems: SidebarNavItem[] = [
     {
       id: 'campaigns',
       label: language === 'es' ? 'Mis Campañas' : 'My Campaigns',
       icon: Send,
-      desc: language === 'es' ? 'Crear y redactar correos' : 'Draft & send'
+      desc: language === 'es' ? 'Crear y redactar correos' : 'Draft & send',
     },
     {
       id: 'accounts',
       label: language === 'es' ? 'Cuentas & Entrega' : 'Email Accounts',
       icon: Mail,
       flame: true,
-      desc: language === 'es' ? 'Protección de casillas' : 'Inbox health'
+      desc: language === 'es' ? 'Protección de casillas' : 'Inbox health',
     },
     {
       id: 'unibox',
       label: language === 'es' ? 'Mis Respuestas' : 'My Replies',
       icon: Inbox,
       count: unreadCount,
-      desc: language === 'es' ? 'Leads interesados' : 'Engaged prospects'
+      desc: language === 'es' ? 'Leads interesados' : 'Engaged prospects',
     },
     {
       id: 'finder',
       label: language === 'es' ? 'Grupos de Leads' : 'Lead Groups',
       icon: Search,
       badge: 'LEADS',
-      desc: language === 'es' ? 'Ver y editar contactos' : 'View & edit leads'
+      desc: language === 'es' ? 'Ver y editar contactos' : 'View & edit leads',
+    },
+    {
+      id: 'team',
+      label: language === 'es' ? 'Mi Equipo' : 'My Team',
+      icon: Users,
+      desc: language === 'es' ? 'Usuarios y roles' : 'Team & roles',
     },
     {
       id: 'billing',
       label: language === 'es' ? 'Facturación y Planes' : 'Billing & Plans',
       icon: CreditCard,
-      desc: language === 'es' ? 'Tu plan y límites' : 'Plan & limits'
-    }
+      desc: language === 'es' ? 'Tu plan y límites' : 'Plan & limits',
+    },
+    {
+      id: 'backoffice',
+      label: language === 'es' ? 'Backoffice SaaS' : 'SaaS Backoffice',
+      icon: ShieldCheck,
+      badge: 'ADMIN',
+      desc: language === 'es' ? 'Gestión de agencias' : 'Agency management',
+    },
   ];
 
-  const currentNavItems = mode === 'simple' ? simpleNavItems : proNavItems;
+  const rawNavItems = mode === 'simple' ? simpleNavItems : proNavItems;
+  const currentNavItems = rawNavItems.filter((item) => canAccessTab(userRole, item.id));
 
   return (
-    <aside 
+    <aside
       className={`${
         isCollapsed ? 'w-16' : 'w-60'
       } bg-[#0c121e] border-r border-slate-800 flex flex-col justify-between shrink-0 h-screen sticky top-0 select-none transition-all duration-300 ease-in-out z-20`}
     >
       <div>
         {/* Brand Header */}
-        <div className={`h-14 flex items-center ${isCollapsed ? 'justify-center px-2' : 'justify-between px-4'} border-b border-slate-800/80`}>
+        <div
+          className={`h-14 flex items-center ${
+            isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
+          } border-b border-slate-800/80`}
+        >
           {!isCollapsed ? (
             <>
               <div className="flex items-center gap-2.5 min-w-0">
@@ -114,17 +174,24 @@ export default function Sidebar({
                 </div>
                 <div className="truncate">
                   <div className="font-bold text-white text-xs tracking-wide flex items-center gap-1.5">
-                    MiSender <span className="text-[9px] uppercase font-bold tracking-wider px-1 py-0.2 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">PRO</span>
+                    MiSender{' '}
+                    <span className="text-[9px] uppercase font-bold tracking-wider px-1 py-0.2 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                      PRO
+                    </span>
                   </div>
                   <div className="text-[10px] text-slate-400 font-medium truncate">
-                    {mode === 'simple' ? (language === 'es' ? 'Modo Simple' : 'Simple Mode') : 'Outbound Scale'}
+                    {mode === 'simple'
+                      ? language === 'es'
+                        ? 'Modo Simple'
+                        : 'Simple Mode'
+                      : 'Outbound Scale'}
                   </div>
                 </div>
               </div>
 
               <button
                 onClick={toggleCollapsed}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
                 title={language === 'es' ? 'Replegar menú' : 'Collapse sidebar'}
               >
                 <PanelLeftClose className="w-4 h-4" />
@@ -133,7 +200,7 @@ export default function Sidebar({
           ) : (
             <button
               onClick={toggleCollapsed}
-              className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-blue-400 flex items-center justify-center border border-slate-800 hover:border-slate-700 transition"
+              className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-blue-400 flex items-center justify-center border border-slate-800 hover:border-slate-700 transition cursor-pointer"
               title={language === 'es' ? 'Desplegar menú' : 'Expand sidebar'}
             >
               <PanelLeftOpen className="w-4 h-4" />
@@ -142,7 +209,7 @@ export default function Sidebar({
         </div>
 
         {/* Dynamic Navigation Items */}
-        <nav className={`p-2 space-y-1 mt-2`}>
+        <nav className="p-2 space-y-1 mt-2">
           {currentNavItems.map((item) => {
             const Icon = item.icon;
             const active = currentTab === item.id;
@@ -152,7 +219,7 @@ export default function Sidebar({
                 <div key={item.id} className="relative group flex justify-center">
                   <button
                     onClick={() => setCurrentTab(item.id)}
-                    className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all relative ${
+                    className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all relative cursor-pointer ${
                       active
                         ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -180,13 +247,17 @@ export default function Sidebar({
               <button
                 key={item.id}
                 onClick={() => setCurrentTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   active
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                 }`}
               >
-                <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-slate-400'}`} />
+                <Icon
+                  className={`w-4 h-4 shrink-0 ${
+                    active ? 'text-white' : item.id === 'backoffice' ? 'text-amber-400' : 'text-slate-400'
+                  }`}
+                />
                 <span className="truncate">{item.label}</span>
 
                 {item.flame && (
@@ -194,7 +265,13 @@ export default function Sidebar({
                 )}
 
                 {item.badge && (
-                  <span className="ml-auto text-[9px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded font-mono shrink-0">
+                  <span
+                    className={`ml-auto text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0 border ${
+                      item.id === 'backoffice'
+                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                        : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                    }`}
+                  >
                     {item.badge}
                   </span>
                 )}
@@ -217,7 +294,7 @@ export default function Sidebar({
             {/* Collapsed Copilot */}
             <button
               onClick={openCopilot}
-              className={`w-11 h-11 rounded-xl flex items-center justify-center border transition ${
+              className={`w-11 h-11 rounded-xl flex items-center justify-center border transition cursor-pointer ${
                 isCopilotOpen
                   ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 shadow-inner'
                   : 'bg-slate-900/60 hover:bg-indigo-950/40 text-slate-300 hover:text-indigo-300 border-slate-800 hover:border-indigo-500/40'
@@ -228,7 +305,7 @@ export default function Sidebar({
             </button>
 
             {/* Pulse dot for health */}
-            <div 
+            <div
               className="w-3 h-3 rounded-full bg-emerald-400/20 flex items-center justify-center"
               title={t('common.engineActive')}
             >
@@ -239,7 +316,7 @@ export default function Sidebar({
           <>
             <button
               onClick={openCopilot}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition border ${
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition border cursor-pointer ${
                 isCopilotOpen
                   ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 shadow-inner'
                   : 'bg-slate-900/60 hover:bg-indigo-950/40 text-slate-300 hover:text-indigo-300 border-slate-800 hover:border-indigo-500/40'
@@ -258,7 +335,9 @@ export default function Sidebar({
             <div className="bg-slate-900/90 rounded-xl p-2.5 border border-slate-800/90 text-left">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[11px] font-semibold text-slate-300">{t('common.engineActive')}</span>
+                <span className="text-[11px] font-semibold text-slate-300">
+                  {t('common.engineActive')}
+                </span>
               </div>
               <p className="text-[10px] text-slate-400 mt-0.5">{t('common.engineDesc')}</p>
             </div>

@@ -6,6 +6,8 @@ export type BillingCycle = 'monthly' | 'annual';
 
 export type BillingProvider = 'stripe' | 'mercadopago' | 'lemonsqueezy' | 'sandbox';
 
+export type UserRole = 'super_admin' | 'admin' | 'campaign_manager' | 'viewer';
+
 export type AppTab =
   | 'finder'
   | 'accounts'
@@ -13,7 +15,97 @@ export type AppTab =
   | 'unibox'
   | 'crm'
   | 'analytics'
-  | 'billing';
+  | 'team'
+  | 'billing'
+  | 'backoffice';
+
+export interface TeamMember {
+  id: string;
+  workspaceId: string;
+  fullName: string;
+  email: string;
+  company?: string;
+  roleId: UserRole;
+  roleName?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RolePermissionConfig {
+  labelEs: string;
+  labelEn: string;
+  descriptionEs: string;
+  descriptionEn: string;
+  allowedTabs: AppTab[];
+  canManageWorkspaces: boolean;
+  canManageTeam: boolean;
+  canManageBilling: boolean;
+  canAccessBackoffice: boolean;
+  isReadOnly: boolean;
+}
+
+export const ROLE_PERMISSIONS: Record<UserRole, RolePermissionConfig> = {
+  super_admin: {
+    labelEs: 'Super Admin',
+    labelEn: 'Super Admin',
+    descriptionEs: 'Dueño del SaaS: da de alta agencias, asigna planes y tiene control total.',
+    descriptionEn: 'SaaS Owner: onboards agencies, assigns plans, and has full control.',
+    allowedTabs: ['finder', 'accounts', 'campaigns', 'unibox', 'crm', 'analytics', 'team', 'billing', 'backoffice'],
+    canManageWorkspaces: true,
+    canManageTeam: true,
+    canManageBilling: true,
+    canAccessBackoffice: true,
+    isReadOnly: false,
+  },
+  admin: {
+    labelEs: 'Admin Agencia',
+    labelEn: 'Agency Admin',
+    descriptionEs: 'Cliente principal: administra sus Workspaces de clientes, equipo y facturación.',
+    descriptionEn: 'Agency Owner: manages client workspaces, team members, and billing.',
+    allowedTabs: ['finder', 'accounts', 'campaigns', 'unibox', 'crm', 'analytics', 'team', 'billing'],
+    canManageWorkspaces: true,
+    canManageTeam: true,
+    canManageBilling: true,
+    canAccessBackoffice: false,
+    isReadOnly: false,
+  },
+  campaign_manager: {
+    labelEs: 'Gestor de Campañas',
+    labelEn: 'Campaign Manager',
+    descriptionEs: 'Operador / SDR: opera campañas, leads, casillas y Unibox sin ver facturación ni equipo.',
+    descriptionEn: 'Operator / SDR: manages campaigns, leads, mailboxes & Unibox without billing or team access.',
+    allowedTabs: ['finder', 'accounts', 'campaigns', 'unibox', 'crm', 'analytics'],
+    canManageWorkspaces: false,
+    canManageTeam: false,
+    canManageBilling: false,
+    canAccessBackoffice: false,
+    isReadOnly: false,
+  },
+  viewer: {
+    labelEs: 'Solo Lectura',
+    labelEn: 'Read Only',
+    descriptionEs: 'Cliente final de la agencia: visualiza campañas, Unibox, CRM y analíticas sin editar.',
+    descriptionEn: 'Agency end-client: view-only access to campaigns, Unibox, CRM & analytics.',
+    allowedTabs: ['campaigns', 'unibox', 'crm', 'analytics'],
+    canManageWorkspaces: false,
+    canManageTeam: false,
+    canManageBilling: false,
+    canAccessBackoffice: false,
+    isReadOnly: true,
+  },
+};
+
+export function normalizeRole(role?: string | null): UserRole {
+  if (role === 'super_admin' || role === 'admin' || role === 'campaign_manager' || role === 'viewer') {
+    return role;
+  }
+  return 'admin';
+}
+
+export function canAccessTab(role: UserRole | undefined | null, tab: string): boolean {
+  const effectiveRole = normalizeRole(role);
+  return ROLE_PERMISSIONS[effectiveRole].allowedTabs.includes(tab as AppTab);
+}
 
 export interface PlanConfig {
   id: WorkspacePlan;

@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { WorkspacePlan, SAAS_PLANS } from '@/types';
+import { WorkspacePlan, SAAS_PLANS, ROLE_PERMISSIONS, normalizeRole } from '@/types';
 
 export default function AuthModal() {
   const {
@@ -46,7 +46,7 @@ export default function AuthModal() {
   const [signupPassword, setSignupPassword] = useState('');
   const [signupPlan, setSignupPlan] = useState<WorkspacePlan>('growth');
 
-  // New Workspace (Agency) form state
+  // New Workspace (Agency) form state — shown ONLY inside the app for authenticated admins
   const [wsName, setWsName] = useState('');
   const [wsClientName, setWsClientName] = useState('');
   const [wsPlan, setWsPlan] = useState<WorkspacePlan>('growth');
@@ -54,6 +54,10 @@ export default function AuthModal() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const isWorkspaceMode = authModalTab === 'workspace';
+  const effectiveRole = normalizeRole(user?.role);
+  const canCreateWorkspace = Boolean(user && ROLE_PERMISSIONS[effectiveRole].canManageWorkspaces);
 
   // Escape key listener for accessible dismissal
   useEffect(() => {
@@ -76,7 +80,7 @@ export default function AuthModal() {
     closeAuthModal();
   };
 
-  const handleSwitchTab = (tab: 'signin' | 'signup' | 'workspace') => {
+  const handleSwitchTab = (tab: 'signin' | 'signup') => {
     setErrorMsg(null);
     setSuccessMsg(null);
     setAuthModalTab(tab);
@@ -133,6 +137,15 @@ export default function AuthModal() {
 
   const handleCreateWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canCreateWorkspace) {
+      setErrorMsg(
+        isEs
+          ? 'Solo el Administrador de la Agencia o el Super Admin puede crear nuevos Workspaces.'
+          : 'Only Agency Admins or Super Admins can create new workspaces.'
+      );
+      return;
+    }
+
     setSubmitting(true);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -175,19 +188,41 @@ export default function AuthModal() {
         {/* Modal Header */}
         <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
-              <Zap className="w-5 h-5 fill-white" />
+            <div
+              className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg ${
+                isWorkspaceMode
+                  ? 'bg-gradient-to-tr from-emerald-600 to-teal-600 shadow-emerald-600/20'
+                  : 'bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-blue-600/20'
+              }`}
+            >
+              {isWorkspaceMode ? (
+                <Building2 className="w-5 h-5" />
+              ) : (
+                <Zap className="w-5 h-5 fill-white" />
+              )}
             </div>
             <div>
               <h2 id="auth-modal-title" className="text-base font-bold text-white leading-tight">
-                {isEs ? 'MiSender SaaS & Workspaces' : 'MiSender SaaS & Workspaces'}
+                {isWorkspaceMode
+                  ? isEs
+                    ? 'Nuevo Workspace para Cliente de tu Agencia'
+                    : 'New Workspace for Agency Client'
+                  : isEs
+                    ? 'Acceso a MiSender SaaS'
+                    : 'Sign in to MiSender SaaS'}
               </h2>
               <p className="text-xs text-slate-400">
-                {user
-                  ? (isEs ? `Sesión activa: ${user.email}` : `Signed in as ${user.email}`)
-                  : (isEs
-                      ? 'Accede a tu cuenta o inicia tu prueba gratis de 7 días'
-                      : 'Sign in or start your 7-day free SaaS trial')}
+                {isWorkspaceMode
+                  ? isEs
+                    ? 'Crea un entorno aislado para cada cliente sin mezclar casillas ni leads'
+                    : 'Isolate mailboxes, leads & campaigns for a specific client'
+                  : user
+                    ? isEs
+                      ? `Sesión activa: ${user.email}`
+                      : `Signed in as ${user.email}`
+                    : isEs
+                      ? 'Accede a tu cuenta o crea tu cuenta de agencia (7 días gratis)'
+                      : 'Sign in or create your agency account (7-day free trial)'}
               </p>
             </div>
           </div>
@@ -202,44 +237,35 @@ export default function AuthModal() {
           </button>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="px-6 pt-4">
-          <div className="grid grid-cols-3 gap-1.5 bg-slate-900/90 border border-slate-800 p-1 rounded-2xl">
-            <button
-              type="button"
-              onClick={() => handleSwitchTab('signin')}
-              className={`py-2 px-2 rounded-xl text-[11px] font-bold transition cursor-pointer ${
-                authModalTab === 'signin'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {isEs ? 'Iniciar Sesión' : 'Sign In'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSwitchTab('signup')}
-              className={`py-2 px-2 rounded-xl text-[11px] font-bold transition cursor-pointer ${
-                authModalTab === 'signup'
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {isEs ? 'Crear Cuenta (7d)' : 'Sign Up (7d Free)'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSwitchTab('workspace')}
-              className={`py-2 px-2 rounded-xl text-[11px] font-bold transition cursor-pointer ${
-                authModalTab === 'workspace'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {isEs ? 'Nuevo Workspace' : 'New Workspace'}
-            </button>
+        {/* Navigation Tabs: ONLY Sign In and Sign Up in auth mode; NO workspace tab in auth gate */}
+        {!isWorkspaceMode && (
+          <div className="px-6 pt-4">
+            <div className="grid grid-cols-2 gap-1.5 bg-slate-900/90 border border-slate-800 p-1 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => handleSwitchTab('signin')}
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  authModalTab === 'signin'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {isEs ? 'Iniciar Sesión' : 'Sign In'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSwitchTab('signup')}
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  authModalTab === 'signup'
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {isEs ? 'Crear Cuenta (7d)' : 'Create Account (7d)'}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Body */}
         <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
@@ -334,8 +360,12 @@ export default function AuthModal() {
                 >
                   <span>
                     {submitting
-                      ? (isEs ? 'Ingresando...' : 'Signing in...')
-                      : (isEs ? 'Iniciar Sesión' : 'Sign In')}
+                      ? isEs
+                        ? 'Ingresando...'
+                        : 'Signing in...'
+                      : isEs
+                        ? 'Iniciar Sesión'
+                        : 'Sign In'}
                   </span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
@@ -351,8 +381,8 @@ export default function AuthModal() {
                   <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                   <span>
                     {isEs
-                      ? 'Acceso Demo Rápido (Staging sin bloqueo SMTP)'
-                      : 'Instant Staging Demo Sign-In (No SMTP needed)'}
+                      ? 'Acceso Demo Fundador (Super Admin)'
+                      : 'Instant Founder Demo Sign-In (Super Admin)'}
                   </span>
                 </button>
               </div>
@@ -366,11 +396,13 @@ export default function AuthModal() {
                 <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
                 <div className="text-[11px] text-slate-300 leading-snug">
                   <span className="font-bold text-white">
-                    {isEs ? 'Crear Cuenta SaaS (7 días gratis):' : 'Create SaaS Account (7 days free):'}
+                    {isEs
+                      ? 'Crear Cuenta de Agencia (7 días gratis):'
+                      : 'Create Agency Account (7 days free):'}
                   </span>{' '}
                   {isEs
-                    ? 'Incluye workspace inicial, créditos de verificación y warmup P2P automático.'
-                    : 'Includes initial workspace, verification credits & automated P2P warmup.'}
+                    ? 'Tu primer Workspace principal se crea automáticamente al finalizar el registro.'
+                    : 'Your primary workspace is created automatically once you sign up.'}
                 </div>
               </div>
 
@@ -385,7 +417,7 @@ export default function AuthModal() {
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Alex Morgan"
+                    placeholder="Sofía Méndez"
                     className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
                   />
                 </div>
@@ -415,7 +447,7 @@ export default function AuthModal() {
                   required
                   value={signupEmail}
                   onChange={(e) => setSignupEmail(e.target.value)}
-                  placeholder="alex@growthagency.io"
+                  placeholder="sofia@growthagency.io"
                   className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
                 />
               </div>
@@ -459,26 +491,30 @@ export default function AuthModal() {
               >
                 <span>
                   {submitting
-                    ? (isEs ? 'Creando Cuenta...' : 'Creating Account...')
-                    : (isEs ? 'Comenzar Prueba Gratis (7 días)' : 'Start 7-Day Free Trial')}
+                    ? isEs
+                      ? 'Creando Cuenta...'
+                      : 'Creating Account...'
+                    : isEs
+                      ? 'Comenzar Prueba Gratis (7 días)'
+                      : 'Start 7-Day Free Trial'}
                 </span>
                 <Sparkles className="w-3.5 h-3.5" />
               </button>
             </form>
           )}
 
-          {/* TAB 3: NEW WORKSPACE (AGENCY) */}
-          {authModalTab === 'workspace' && (
+          {/* INTERNAL MODAL MODE: CREATE CLIENT WORKSPACE FOR AGENCY */}
+          {isWorkspaceMode && (
             <form onSubmit={handleCreateWorkspace} className="space-y-3.5">
               <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-2xl p-3 flex items-center gap-3">
                 <Briefcase className="w-5 h-5 text-emerald-400 shrink-0" />
                 <div className="text-[11px] text-slate-300 leading-snug">
                   <span className="font-bold text-white">
-                    {isEs ? 'Nuevo Workspace (Agencia):' : 'New Workspace (Agency):'}
+                    {isEs ? 'Sub-espacio para Cliente:' : 'Client Sub-Workspace:'}
                   </span>{' '}
                   {isEs
-                    ? 'Aísla casillas, campañas, CRM y límites de facturación por cliente.'
-                    : 'Isolate mailboxes, campaigns, CRM and billing limits per client.'}
+                    ? 'Aísla casillas SMTP, campañas, CRM y métricas para este cliente específico.'
+                    : 'Isolate SMTP mailboxes, campaigns, CRM & analytics for this client.'}
                 </div>
               </div>
 
@@ -529,9 +565,7 @@ export default function AuthModal() {
                         }`}
                       >
                         <div className="text-xs font-bold">{cfg.name}</div>
-                        <div className="text-[10px] text-slate-400">
-                          ${cfg.monthlyPriceUsd}/m
-                        </div>
+                        <div className="text-[10px] text-slate-400">${cfg.monthlyPriceUsd}/m</div>
                         <div className="text-[9px] text-emerald-400 mt-0.5">
                           {cfg.maxAccounts === 999 ? '∞' : cfg.maxAccounts}{' '}
                           {isEs ? 'casillas' : 'mailboxes'}
@@ -544,13 +578,17 @@ export default function AuthModal() {
 
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || !canCreateWorkspace}
                 className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-xs shadow-lg shadow-emerald-600/20 transition cursor-pointer disabled:opacity-50"
               >
                 <span>
                   {submitting
-                    ? (isEs ? 'Creando Workspace...' : 'Creating Workspace...')
-                    : (isEs ? 'Crear Workspace y Activar' : 'Create & Switch Workspace')}
+                    ? isEs
+                      ? 'Creando Workspace...'
+                      : 'Creating Workspace...'
+                    : isEs
+                      ? 'Crear Workspace y Activar'
+                      : 'Create & Switch Workspace'}
                 </span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>

@@ -20,7 +20,19 @@ import BillingView from '@/components/BillingView';
 import AuthModal from '@/components/AuthModal';
 import GuidedTourModal from '@/components/GuidedTourModal';
 import OnboardingChecklist from '@/components/OnboardingChecklist';
-import { AppTab, Campaign, Lead, SenderAccount } from '@/types';
+import LoginGateView from '@/components/LoginGateView';
+import TeamManagementView from '@/components/TeamManagementView';
+import FounderBackofficeView from '@/components/FounderBackofficeView';
+import {
+  AppTab,
+  Campaign,
+  Lead,
+  SenderAccount,
+  UserRole,
+  ROLE_PERMISSIONS,
+  canAccessTab,
+  normalizeRole,
+} from '@/types';
 import { useViewMode } from '@/context/ViewModeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
@@ -29,6 +41,8 @@ function HomeContent() {
   const { mode } = useViewMode();
   const { language } = useLanguage();
   const {
+    user,
+    loading: authLoading,
     workspaces,
     currentWorkspace,
     switchWorkspace,
@@ -36,6 +50,10 @@ function HomeContent() {
     refreshWorkspaces,
   } = useAuth();
   const [currentTab, setCurrentTab] = useState<string>('campaigns');
+
+  const userRole: UserRole = normalizeRole(user?.role);
+  const rolePerms = ROLE_PERMISSIONS[userRole];
+  const effectiveTab = canAccessTab(userRole, currentTab) ? currentTab : 'campaigns';
   const [campaignViewMode, setCampaignViewMode] = useState<'list' | 'detail'>('list');
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [allCampaigns, setAllCampaigns] = useState<Campaign[]>([]);
@@ -174,9 +192,38 @@ function HomeContent() {
     return () => clearInterval(timer);
   }, [allCampaigns, leads, fetchInitialData]);
 
-  const handleNavigateTab = useCallback((tab: AppTab) => {
-    setCurrentTab(tab);
-  }, []);
+  const handleNavigateTab = useCallback(
+    (tab: AppTab) => {
+      if (canAccessTab(userRole, tab)) {
+        setCurrentTab(tab);
+      } else {
+        setCurrentTab('campaigns');
+      }
+    },
+    [userRole]
+  );
+
+  // Automatically redirect to 'campaigns' if active role loses access to currentTab
+  useEffect(() => {
+    if (!canAccessTab(userRole, currentTab)) {
+      const timer = setTimeout(() => {
+        setCurrentTab('campaigns');
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [userRole, currentTab]);
+
+  if (authLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-[#0b0f17] text-slate-100">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginGateView />;
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#0b0f17] text-slate-100 font-sans">
@@ -192,10 +239,14 @@ function HomeContent() {
         />
       )}
 
-      {/* Sidebar with Dynamic Modules based on Simple vs Pro */}
+      {/* Sidebar with Dynamic Modules based on Simple vs Pro and RBAC */}
       <Sidebar
-        currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
+        currentTab={effectiveTab}
+        setCurrentTab={(tab) => {
+          if (canAccessTab(userRole, tab)) {
+            setCurrentTab(tab);
+          }
+        }}
         openCopilot={() => setIsCopilotOpen(true)}
         isCopilotOpen={isCopilotOpen}
         unreadCount={uniboxUnreadCount}
@@ -212,7 +263,11 @@ function HomeContent() {
           openCopilot={() => setIsCopilotOpen(true)}
           onOpenTour={() => setIsTourOpen(true)}
           onNavigate={(tab, campId) => {
-            setCurrentTab(tab);
+            if (canAccessTab(userRole, tab)) {
+              setCurrentTab(tab);
+            } else {
+              setCurrentTab('campaigns');
+            }
             if (campId) {
               const targetCamp = allCampaigns.find(c => c.id === campId);
               if (targetCamp) {
@@ -224,35 +279,50 @@ function HomeContent() {
           campaigns={allCampaigns}
         />
 
+        {/* Read-Only Client Banner for Viewer role */}
+        {rolePerms.isReadOnly && (
+          <div className="bg-purple-950/50 border-b border-purple-500/30 px-4 py-2 text-xs text-purple-200 flex items-center justify-center gap-2 shrink-0">
+            <span>
+              {language === 'es'
+                ? '👁️ Modo Solo Lectura (Vista Cliente) — Estás visualizando reportes, campañas y CRM. La edición y configuración están reservadas a tu agencia.'
+                : '👁️ Read-Only Mode (Client View) — You are viewing reports, campaigns, and CRM. Editing and settings are managed by your agency.'}
+            </span>
+          </div>
+        )}
+
         {/* View Switcher: Conditionally Renders Simple vs Pro Views */}
-        <main className="flex-1 flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden relative">
+        <main className="flex-1 min-h-0 flex flex-col overflow-hidden relative">
           {loading ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
             <>
-              {/* Live Onboarding Readiness Checklist */}
-              <OnboardingChecklist
-                accounts={accounts}
-                campaigns={allCampaigns}
-                leads={leads}
-                onNavigate={(tab) => {
-                  setCurrentTab(tab);
-                  if (tab === 'campaigns') {
-                    if (allCampaigns.length > 0 && campaign) {
-                      setCampaignViewMode('detail');
-                    } else {
-                      setCampaignViewMode('list');
+              {/* Live Onboarding Readiness Checklist (hidden in read-only client view) */}
+              {!rolePerms.isReadOnly && (
+                <OnboardingChecklist
+                  accounts={accounts}
+                  campaigns={allCampaigns}
+                  leads={leads}
+                  onNavigate={(tab) => {
+                    if (canAccessTab(userRole, tab)) {
+                      setCurrentTab(tab);
                     }
-                  }
-                }}
-                onOpenTour={() => setIsTourOpen(true)}
-              />
+                    if (tab === 'campaigns') {
+                      if (allCampaigns.length > 0 && campaign) {
+                        setCampaignViewMode('detail');
+                      } else {
+                        setCampaignViewMode('list');
+                      }
+                    }
+                  }}
+                  onOpenTour={() => setIsTourOpen(true)}
+                />
+              )}
 
               <div className="flex-1 min-h-0 flex flex-col overflow-hidden [&>*]:max-h-full">
               {/* CAMPAIGNS: List View vs Detail View (Simple / Pro) */}
-              {currentTab === 'campaigns' && (
+              {effectiveTab === 'campaigns' && (
                 campaignViewMode === 'detail' && campaign ? (
                   <div className="flex-1 flex flex-col h-full overflow-hidden">
                     {/* Top Campaign Switcher & Management Subbar */}
@@ -290,7 +360,9 @@ function HomeContent() {
                         </div>
 
                         <button
+                          disabled={rolePerms.isReadOnly}
                           onClick={async () => {
+                            if (rolePerms.isReadOnly) return;
                             const nextStatus: Campaign['status'] = campaign.status === 'active' ? 'paused' : 'active';
                             const updated: Campaign = { ...campaign, status: nextStatus };
                             handleCampaignUpdated(updated);
@@ -302,14 +374,20 @@ function HomeContent() {
                               });
                             } catch {}
                           }}
-                          className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-xl uppercase border transition cursor-pointer shadow-sm ${
+                          className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-xl uppercase border transition shadow-sm ${
+                            rolePerms.isReadOnly ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
+                          } ${
                             campaign.status === 'active'
                               ? 'bg-emerald-950/60 text-emerald-400 border-emerald-500/40 hover:bg-emerald-900/60'
                               : campaign.status === 'paused'
                               ? 'bg-amber-950/60 text-amber-400 border-amber-500/40 hover:bg-amber-900/60'
                               : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
                           }`}
-                          title={language === 'es' ? 'Haz clic para cambiar estado (Activa / Pausada)' : 'Click to toggle status'}
+                          title={
+                            rolePerms.isReadOnly
+                              ? (language === 'es' ? 'Solo lectura para clientes' : 'Read-only view')
+                              : (language === 'es' ? 'Haz clic para cambiar estado (Activa / Pausada)' : 'Click to toggle status')
+                          }
                         >
                           {campaign.status === 'active' ? (
                             <>
@@ -325,15 +403,17 @@ function HomeContent() {
                         </button>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setIsCreateCampaignModalOpen(true)}
-                          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-3 py-1 rounded-xl text-xs shadow-sm transition cursor-pointer"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>{language === 'es' ? 'Nueva Campaña' : 'New Campaign'}</span>
-                        </button>
-                      </div>
+                      {!rolePerms.isReadOnly && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setIsCreateCampaignModalOpen(true)}
+                            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-3 py-1 rounded-xl text-xs shadow-sm transition cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>{language === 'es' ? 'Nueva Campaña' : 'New Campaign'}</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Active Campaign View: Simple Mode vs Pro Mode */}
@@ -372,7 +452,7 @@ function HomeContent() {
               )}
 
               {/* ACCOUNTS: Simple Mode (Traffic light health) vs Pro Mode (High-density table + DNS drawer) */}
-              {currentTab === 'accounts' && (
+              {effectiveTab === 'accounts' && (
                 mode === 'simple' ? (
                   <SimpleAccountsView />
                 ) : (
@@ -381,7 +461,7 @@ function HomeContent() {
               )}
 
               {/* LEAD FINDER / GROUPS VIEWER: View, filter and edit lead groups */}
-              {currentTab === 'finder' && (
+              {effectiveTab === 'finder' && (
                 <LeadFinderView
                   campaigns={allCampaigns}
                   leads={leads}
@@ -390,7 +470,7 @@ function HomeContent() {
               )}
 
               {/* UNIBOX: Master-Detail 3-Panel with AI Sentiments & Real IMAP Sync */}
-              {currentTab === 'unibox' && (
+              {effectiveTab === 'unibox' && (
                 <UniboxView
                   onPromoteToCrm={() => setCurrentTab('crm')}
                   onUnreadCountChange={setUniboxUnreadCount}
@@ -399,10 +479,10 @@ function HomeContent() {
               )}
 
               {/* CRM: Kanban Dealflow Pipeline */}
-              {currentTab === 'crm' && <CrmView />}
+              {effectiveTab === 'crm' && <CrmView />}
 
               {/* ANALYTICS: Macro Funnel & Micro Mailbox Breakdown */}
-              {currentTab === 'analytics' && (
+              {effectiveTab === 'analytics' && (
                 <AnalyticsView
                   campaign={campaign}
                   leads={leads}
@@ -410,8 +490,18 @@ function HomeContent() {
                 />
               )}
 
-              {/* BILLING & SAAS PLANS */}
-              {currentTab === 'billing' && <BillingView />}
+              {/* TEAM & ROLE MANAGEMENT (Admin / Super Admin) */}
+              {effectiveTab === 'team' && <TeamManagementView />}
+
+              {/* BILLING & SAAS PLANS (Admin / Super Admin) */}
+              {effectiveTab === 'billing' && <BillingView />}
+
+              {/* FOUNDER BACKOFFICE (Super Admin only) */}
+              {effectiveTab === 'backoffice' && (
+                <FounderBackofficeView
+                  onOpenWorkspace={() => setCurrentTab('campaigns')}
+                />
+              )}
               </div>
             </>
           )}

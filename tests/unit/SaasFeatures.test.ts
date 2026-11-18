@@ -6,11 +6,42 @@ const { mockState, mockSupabase, mockContainer } = vi.hoisted(() => {
   const state = {
     workspaces: [] as Array<Record<string, unknown>>,
     upsertedWorkspaces: [] as Array<Record<string, unknown>>,
+    userProfiles: [] as Array<Record<string, unknown>>,
+    upsertedUserProfiles: [] as Array<Record<string, unknown>>,
     campaigns: [] as Array<Record<string, unknown>>,
     accounts: [] as Array<Record<string, unknown>>,
   };
 
   const fromMock = vi.fn((tableName: string) => {
+    if (tableName === 'user_profiles') {
+      return {
+        select: vi.fn(() => {
+          const result = { data: [...state.userProfiles], error: null };
+          const promise = Promise.resolve(result) as Promise<typeof result> & {
+            order: ReturnType<typeof vi.fn>;
+          };
+          promise.order = vi.fn().mockResolvedValue(result);
+          return promise;
+        }),
+        upsert: vi.fn(async (row: Record<string, unknown>) => {
+          state.upsertedUserProfiles.push(row);
+          const idx = state.userProfiles.findIndex((m) => m.id === row.id);
+          if (idx >= 0) {
+            state.userProfiles[idx] = { ...state.userProfiles[idx], ...row };
+          } else {
+            state.userProfiles.push(row);
+          }
+          return { error: null };
+        }),
+        delete: vi.fn(() => ({
+          eq: vi.fn(async (_col: string, val: string) => {
+            state.userProfiles = state.userProfiles.filter((m) => m.id !== val);
+            return { error: null };
+          }),
+        })),
+      };
+    }
+
     if (tableName !== 'workspaces') {
       return {};
     }
@@ -103,7 +134,8 @@ import { POST as postBillingWebhook } from '@/app/api/billing/webhook/route';
 import { GET as getCronDispatch, POST as postCronDispatch } from '@/app/api/cron/dispatch/route';
 import { GET as getCronWarmup, POST as postCronWarmup } from '@/app/api/cron/warmup/route';
 import { GET as getAccountsOAuth, POST as postAccountsOAuth } from '@/app/api/accounts/oauth/route';
-import { Campaign, SAAS_PLANS } from '@/types';
+import { GET as getTeam, POST as postTeam, PUT as putTeam, DELETE as deleteTeam } from '@/app/api/team/route';
+import { Campaign, SAAS_PLANS, ROLE_PERMISSIONS, normalizeRole, canAccessTab } from '@/types';
 
 describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
   const originalEnv = { ...process.env };
@@ -112,7 +144,10 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
     vi.clearAllMocks();
     mockState.workspaces = [];
     mockState.upsertedWorkspaces = [];
+    mockState.userProfiles = [];
+    mockState.upsertedUserProfiles = [];
     (globalThis as unknown as { __misenderWorkspacesStore?: unknown }).__misenderWorkspacesStore = undefined;
+    (globalThis as unknown as { __misenderTeamStore?: unknown }).__misenderTeamStore = undefined;
     (globalThis as unknown as { __misenderMepRateCache?: unknown }).__misenderMepRateCache = undefined;
 
     delete process.env.STRIPE_SECRET_KEY;
@@ -891,6 +926,150 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
           smtpHost: 'smtp.gmail.com',
         })
       );
+    });
+  });
+
+  describe('RBAC permissions (ROLE_PERMISSIONS, canAccessTab) & /api/team management', () => {
+    it('enforces exact tab and capability access across super_admin, admin, campaign_manager, and viewer', () => {
+      // 1. Super Admin
+      expect(ROLE_PERMISSIONS.super_admin.canAccessBackoffice).toBe(true);
+      expect(ROLE_PERMISSIONS.super_admin.canManageTeam).toBe(true);
+      expect(ROLE_PERMISSIONS.super_admin.canManageBilling).toBe(true);
+      expect(ROLE_PERMISSIONS.super_admin.canManageWorkspaces).toBe(true);
+      expect(ROLE_PERMISSIONS.super_admin.isReadOnly).toBe(false);
+      expect(canAccessTab('super_admin', 'backoffice')).toBe(true);
+      expect(canAccessTab('super_admin', 'team')).toBe(true);
+      expect(canAccessTab('super_admin', 'billing')).toBe(true);
+
+      // 2. Agency Admin
+      expect(ROLE_PERMISSIONS.admin.canAccessBackoffice).toBe(false);
+      expect(ROLE_PERMISSIONS.admin.canManageTeam).toBe(true);
+      expect(ROLE_PERMISSIONS.admin.canManageBilling).toBe(true);
+      expect(ROLE_PERMISSIONS.admin.canManageWorkspaces).toBe(true);
+      expect(ROLE_PERMISSIONS.admin.isReadOnly).toBe(false);
+      expect(canAccessTab('admin', 'backoffice')).toBe(false);
+      expect(canAccessTab('admin', 'team')).toBe(true);
+      expect(canAccessTab('admin', 'billing')).toBe(true);
+      expect(canAccessTab('admin', 'campaigns')).toBe(true);
+
+      // 3. Campaign Manager (SDR)
+      expect(ROLE_PERMISSIONS.campaign_manager.canAccessBackoffice).toBe(false);
+      expect(ROLE_PERMISSIONS.campaign_manager.canManageTeam).toBe(false);
+      expect(ROLE_PERMISSIONS.campaign_manager.canManageBilling).toBe(false);
+      expect(ROLE_PERMISSIONS.campaign_manager.canManageWorkspaces).toBe(false);
+      expect(ROLE_PERMISSIONS.campaign_manager.isReadOnly).toBe(false);
+      expect(canAccessTab('campaign_manager', 'campaigns')).toBe(true);
+      expect(canAccessTab('campaign_manager', 'finder')).toBe(true);
+      expect(canAccessTab('campaign_manager', 'accounts')).toBe(true);
+      expect(canAccessTab('campaign_manager', 'unibox')).toBe(true);
+      expect(canAccessTab('campaign_manager', 'billing')).toBe(false);
+      expect(canAccessTab('campaign_manager', 'team')).toBe(false);
+      expect(canAccessTab('campaign_manager', 'backoffice')).toBe(false);
+
+      // 4. Viewer (Client Read-Only)
+      expect(ROLE_PERMISSIONS.viewer.isReadOnly).toBe(true);
+      expect(ROLE_PERMISSIONS.viewer.canManageTeam).toBe(false);
+      expect(ROLE_PERMISSIONS.viewer.canManageBilling).toBe(false);
+      expect(canAccessTab('viewer', 'campaigns')).toBe(true);
+      expect(canAccessTab('viewer', 'unibox')).toBe(true);
+      expect(canAccessTab('viewer', 'crm')).toBe(true);
+      expect(canAccessTab('viewer', 'analytics')).toBe(true);
+      expect(canAccessTab('viewer', 'finder')).toBe(false);
+      expect(canAccessTab('viewer', 'accounts')).toBe(false);
+      expect(canAccessTab('viewer', 'billing')).toBe(false);
+      expect(canAccessTab('viewer', 'team')).toBe(false);
+      expect(canAccessTab('viewer', 'backoffice')).toBe(false);
+
+      expect(normalizeRole('unknown-role')).toBe('admin');
+    });
+
+    it('supports GET by workspaceId/email, POST creation, PUT role update, and DELETE protection on /api/team', async () => {
+      // Seed defaults on initial GET
+      const getAllReq = new NextRequest('http://localhost:3000/api/team?workspaceId=ws-primary');
+      const getAllRes = await getTeam(getAllReq);
+      const initialMembers = await getAllRes.json();
+
+      expect(getAllRes.status).toBe(200);
+      expect(Array.isArray(initialMembers)).toBe(true);
+      expect(initialMembers.length).toBeGreaterThanOrEqual(4);
+      expect(mockState.upsertedUserProfiles.length).toBeGreaterThanOrEqual(4);
+
+      // Lookup by email (case-insensitive)
+      const byEmailReq = new NextRequest('http://localhost:3000/api/team?email=SOFIA@agenciab2b.com');
+      const byEmailRes = await getTeam(byEmailReq);
+      const byEmailData = await byEmailRes.json();
+      expect(byEmailRes.status).toBe(200);
+      expect(byEmailData).toHaveLength(1);
+      expect(byEmailData[0].roleId).toBe('admin');
+
+      // POST creates campaign_manager in isolated agency workspace
+      const createSdrReq = new NextRequest('http://localhost:3000/api/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws-agency-99',
+          fullName: 'Valeria Soto',
+          email: 'valeria@agencia99.com',
+          company: 'Agencia 99',
+          roleId: 'campaign_manager',
+        }),
+      });
+      const createSdrRes = await postTeam(createSdrReq);
+      const sdrData = await createSdrRes.json();
+      expect(createSdrRes.status).toBe(201);
+      expect(sdrData.id).toMatch(/^usr-/);
+      expect(sdrData.workspaceId).toBe('ws-agency-99');
+      expect(sdrData.roleId).toBe('campaign_manager');
+
+      // POST creates viewer client
+      const createViewerReq = new NextRequest('http://localhost:3000/api/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws-agency-99',
+          fullName: 'Cliente Demo',
+          email: 'cliente@empresa.io',
+          roleId: 'viewer',
+        }),
+      });
+      const createViewerRes = await postTeam(createViewerReq);
+      expect(createViewerRes.status).toBe(201);
+
+      // GET filtered by workspaceId returns only ws-agency-99 members
+      const wsFilterReq = new NextRequest('http://localhost:3000/api/team?workspaceId=ws-agency-99');
+      const wsFilterRes = await getTeam(wsFilterReq);
+      const wsFilterData = await wsFilterRes.json();
+      expect(wsFilterData).toHaveLength(2);
+
+      // PUT updates Valeria's role to admin
+      const putReq = new NextRequest('http://localhost:3000/api/team', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: sdrData.id,
+          roleId: 'admin',
+        }),
+      });
+      const putRes = await putTeam(putReq);
+      const putData = await putRes.json();
+      expect(putRes.status).toBe(200);
+      expect(putData.roleId).toBe('admin');
+
+      // DELETE refuses to delete admin-default
+      const protectReq = new NextRequest('http://localhost:3000/api/team?id=admin-default', {
+        method: 'DELETE',
+      });
+      const protectRes = await deleteTeam(protectReq);
+      expect(protectRes.status).toBe(400);
+
+      // DELETE removes created member cleanly
+      const delReq = new NextRequest(`http://localhost:3000/api/team?id=${sdrData.id}`, {
+        method: 'DELETE',
+      });
+      const delRes = await deleteTeam(delReq);
+      const delData = await delRes.json();
+      expect(delRes.status).toBe(200);
+      expect(delData.success).toBe(true);
     });
   });
 });
