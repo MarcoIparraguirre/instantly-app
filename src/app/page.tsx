@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Plus } from 'lucide-react';
 import Topbar from '@/components/Topbar';
 import Sidebar from '@/components/Sidebar';
@@ -16,16 +16,23 @@ import CopilotDrawer from '@/components/CopilotDrawer';
 import ModeSelectionModal from '@/components/ModeSelectionModal';
 import SimpleCampaignView from '@/components/simple/SimpleCampaignView';
 import SimpleAccountsView from '@/components/simple/SimpleAccountsView';
-import { initialWorkspaces } from '@/core/storage/mockData';
-import { Campaign, Workspace, Lead } from '@/types';
+import BillingView from '@/components/BillingView';
+import AuthModal from '@/components/AuthModal';
+import { Campaign, Lead } from '@/types';
 import { useViewMode } from '@/context/ViewModeContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 
-export default function Home() {
+function HomeContent() {
   const { mode } = useViewMode();
   const { language } = useLanguage();
-  const [workspaces, setWorkspaces] = useState<Workspace[]>(initialWorkspaces);
-  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace>(initialWorkspaces[0]);
+  const {
+    workspaces,
+    currentWorkspace,
+    switchWorkspace,
+    updateWorkspaces,
+    refreshWorkspaces,
+  } = useAuth();
   const [currentTab, setCurrentTab] = useState<string>('campaigns');
   const [campaignViewMode, setCampaignViewMode] = useState<'list' | 'detail'>('list');
   const [campaign, setCampaign] = useState<Campaign | null>(null);
@@ -36,41 +43,7 @@ export default function Home() {
   const [isCreateCampaignModalOpen, setIsCreateCampaignModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Load workspaces from localStorage
-  useEffect(() => {
-    try {
-      const savedWs = localStorage.getItem('misender_workspaces');
-      if (savedWs) {
-        const parsed = JSON.parse(savedWs);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setWorkspaces(parsed);
-          const savedCurrentId = localStorage.getItem('misender_current_workspace_id');
-          const found = parsed.find((w: Workspace) => w.id === savedCurrentId);
-          setCurrentWorkspace(found || parsed[0]);
-        }
-      }
-    } catch (e) {}
-  }, []);
-
-  const handleUpdateWorkspaces = (updated: Workspace[]) => {
-    setWorkspaces(updated);
-    try {
-      localStorage.setItem('misender_workspaces', JSON.stringify(updated));
-    } catch (e) {}
-  };
-
-  const handleSelectWorkspace = (ws: Workspace) => {
-    setCurrentWorkspace(ws);
-    try {
-      localStorage.setItem('misender_current_workspace_id', ws.id);
-    } catch (e) {}
-  };
-
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
-  const fetchInitialData = async () => {
+  const fetchInitialData = useCallback(async () => {
     try {
       const [campRes, leadsRes] = await Promise.all([
         fetch('/api/campaigns'),
@@ -93,7 +66,27 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('billing') === 'success') {
+          setCurrentTab('billing');
+          void refreshWorkspaces();
+        }
+      } catch {}
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [refreshWorkspaces]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void fetchInitialData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchInitialData]);
 
   const handleCampaignUpdated = (updated: Campaign) => {
     setCampaign(updated);
@@ -107,7 +100,7 @@ export default function Home() {
       if (Array.isArray(data)) {
         setLeads(data);
       }
-    } catch (e) {}
+    } catch {}
   };
 
   // Background Auto-Scheduler: checks active campaigns every 25s and dispatches when inside scheduled window
@@ -141,7 +134,7 @@ export default function Home() {
     }, 25000);
 
     return () => clearInterval(timer);
-  }, [allCampaigns, leads]);
+  }, [allCampaigns, leads, fetchInitialData]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#0b0f17] text-slate-100 font-sans">
@@ -163,8 +156,8 @@ export default function Home() {
         <Topbar
           currentWorkspace={currentWorkspace}
           workspaces={workspaces}
-          onSelectWorkspace={handleSelectWorkspace}
-          onUpdateWorkspaces={handleUpdateWorkspaces}
+          onSelectWorkspace={switchWorkspace}
+          onUpdateWorkspaces={updateWorkspaces}
           openCopilot={() => setIsCopilotOpen(true)}
           onNavigate={(tab, campId) => {
             setCurrentTab(tab);
@@ -227,8 +220,8 @@ export default function Home() {
 
                         <button
                           onClick={async () => {
-                            const nextStatus = campaign.status === 'active' ? 'paused' : 'active';
-                            const updated = { ...campaign, status: nextStatus as any };
+                            const nextStatus: Campaign['status'] = campaign.status === 'active' ? 'paused' : 'active';
+                            const updated: Campaign = { ...campaign, status: nextStatus };
                             handleCampaignUpdated(updated);
                             try {
                               await fetch(`/api/campaigns/${campaign.id}`, {
@@ -236,7 +229,7 @@ export default function Home() {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify(updated)
                               });
-                            } catch (e) {}
+                            } catch {}
                           }}
                           className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-xl uppercase border transition cursor-pointer shadow-sm ${
                             campaign.status === 'active'
@@ -345,6 +338,9 @@ export default function Home() {
                   onRefreshData={fetchInitialData}
                 />
               )}
+
+              {/* BILLING & SAAS PLANS */}
+              {currentTab === 'billing' && <BillingView />}
             </>
           )}
 
@@ -369,5 +365,14 @@ export default function Home() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <AuthProvider>
+      <HomeContent />
+      <AuthModal />
+    </AuthProvider>
   );
 }

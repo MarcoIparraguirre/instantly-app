@@ -1,8 +1,83 @@
+export type WorkspacePlan = 'starter' | 'growth' | 'agency';
+
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled';
+
+export type BillingCycle = 'monthly' | 'annual';
+
+export type BillingProvider = 'stripe' | 'mercadopago' | 'sandbox';
+
+export type AppTab =
+  | 'finder'
+  | 'accounts'
+  | 'campaigns'
+  | 'unibox'
+  | 'crm'
+  | 'analytics'
+  | 'billing';
+
+export interface PlanConfig {
+  id: WorkspacePlan;
+  name: string;
+  monthlyPriceUsd: number;
+  maxAccounts: number;
+  maxLeads: number;
+  credits: number;
+}
+
+export const SAAS_PLANS: Record<WorkspacePlan, PlanConfig> = {
+  starter: {
+    id: 'starter',
+    name: 'Starter',
+    monthlyPriceUsd: 39,
+    maxAccounts: 3,
+    maxLeads: 1000,
+    credits: 1000,
+  },
+  growth: {
+    id: 'growth',
+    name: 'Growth',
+    monthlyPriceUsd: 79,
+    maxAccounts: 10,
+    maxLeads: 10000,
+    credits: 2500,
+  },
+  agency: {
+    id: 'agency',
+    name: 'Agency',
+    monthlyPriceUsd: 149,
+    maxAccounts: 999,
+    maxLeads: 50000,
+    credits: 15000,
+  },
+};
+
+export function normalizePlan(plan?: string | null): WorkspacePlan {
+  if (plan === 'starter' || plan === 'growth' || plan === 'agency') {
+    return plan;
+  }
+  return 'growth';
+}
+
+export function getPlanConfig(plan?: string | null): PlanConfig {
+  return SAAS_PLANS[normalizePlan(plan)];
+}
+
 export interface Workspace {
   id: string;
   name: string;
   clientName: string;
   credits: number;
+  ownerId?: string;
+  ownerEmail?: string;
+  plan?: WorkspacePlan;
+  subscriptionStatus?: SubscriptionStatus;
+  trialEndsAt?: string;
+  maxAccounts?: number;
+  maxLeads?: number;
+  billingProvider?: string;
+  billingSubscriptionId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface SequenceStep {

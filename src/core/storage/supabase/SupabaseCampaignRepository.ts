@@ -75,6 +75,10 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
   }
 
   private mapToDomain(row: any): Campaign {
+    const openTracking = row.open_tracking ?? row.options?.openTracking ?? true;
+    const clickTracking = row.click_tracking ?? row.options?.clickTracking ?? false;
+    const rawOptions = row.options && typeof row.options === 'object' ? row.options : {};
+
     return {
       id: row.id,
       name: row.name,
@@ -88,8 +92,15 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
         strategy: 'office-hours'
       },
       senderAccountIds: row.sender_account_ids || [],
-      openTracking: row.open_tracking ?? true,
-      clickTracking: row.click_tracking ?? false,
+      openTracking,
+      clickTracking,
+      options: {
+        stopOnReply: rawOptions.stopOnReply ?? true,
+        stopOnDomainReply: rawOptions.stopOnDomainReply ?? false,
+        plainTextMode: rawOptions.plainTextMode ?? false,
+        openTracking: rawOptions.openTracking ?? openTracking,
+        clickTracking: rawOptions.clickTracking ?? clickTracking,
+      },
       stats: row.stats || { sent: 0, opened: 0, replied: 0, bounced: 0, opportunities: 0 },
       createdAt: row.created_at || new Date().toISOString(),
       updatedAt: row.updated_at || new Date().toISOString()
@@ -97,6 +108,16 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
   }
 
   private mapToDb(campaign: Campaign): any {
+    const openTracking = campaign.openTracking ?? campaign.options?.openTracking ?? true;
+    const clickTracking = campaign.clickTracking ?? campaign.options?.clickTracking ?? false;
+    const options = {
+      stopOnReply: campaign.options?.stopOnReply ?? true,
+      stopOnDomainReply: campaign.options?.stopOnDomainReply ?? false,
+      plainTextMode: campaign.options?.plainTextMode ?? false,
+      openTracking: campaign.options?.openTracking ?? openTracking,
+      clickTracking: campaign.options?.clickTracking ?? clickTracking,
+    };
+
     return {
       id: campaign.id,
       name: campaign.name,
@@ -104,8 +125,9 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
       steps: campaign.steps,
       schedule: campaign.schedule,
       sender_account_ids: campaign.senderAccountIds,
-      open_tracking: campaign.openTracking,
-      click_tracking: campaign.clickTracking,
+      open_tracking: openTracking,
+      click_tracking: clickTracking,
+      options,
       stats: campaign.stats,
       updated_at: new Date().toISOString()
     };

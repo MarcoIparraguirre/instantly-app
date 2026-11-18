@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Search, Mail, Send, Inbox, Kanban, BarChart3, Bot, Zap, Flame, Sparkles,
-  PanelLeftClose, PanelLeftOpen, ChevronLeft, ChevronRight
+  Search, Mail, Send, Inbox, Kanban, BarChart3, Bot, Zap, Flame,
+  PanelLeftClose, PanelLeftOpen, CreditCard
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useViewMode } from '@/context/ViewModeContext';
@@ -24,16 +24,18 @@ export default function Sidebar({
   unreadCount = 0
 }: SidebarProps) {
   const { t, language } = useLanguage();
-  const { mode, setMode } = useViewMode();
+  const { mode } = useViewMode();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('misender_sidebar_collapsed');
-      if (saved === 'true') {
-        setIsCollapsed(true);
-      }
-    } catch (e) {}
+    Promise.resolve().then(() => {
+      try {
+        const saved = localStorage.getItem('misender_sidebar_collapsed');
+        if (saved === 'true') {
+          setIsCollapsed(true);
+        }
+      } catch {}
+    });
   }, []);
 
   const toggleCollapsed = () => {
@@ -41,7 +43,7 @@ export default function Sidebar({
       const next = !prev;
       try {
         localStorage.setItem('misender_sidebar_collapsed', String(next));
-      } catch (e) {}
+      } catch {}
       return next;
     });
   };
@@ -54,6 +56,7 @@ export default function Sidebar({
     { id: 'unibox', label: t('nav.unibox'), icon: Inbox, count: unreadCount },
     { id: 'crm', label: t('nav.crm'), icon: Kanban },
     { id: 'analytics', label: t('nav.analytics'), icon: BarChart3 },
+    { id: 'billing', label: language === 'es' ? 'Facturación y Planes' : 'Billing & Plans', icon: CreditCard },
   ];
 
   const simpleNavItems = [
@@ -83,6 +86,12 @@ export default function Sidebar({
       icon: Search,
       badge: 'LEADS',
       desc: language === 'es' ? 'Ver y editar contactos' : 'View & edit leads'
+    },
+    {
+      id: 'billing',
+      label: language === 'es' ? 'Facturación y Planes' : 'Billing & Plans',
+      icon: CreditCard,
+      desc: language === 'es' ? 'Tu plan y límites' : 'Plan & limits'
     }
   ];
 

@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 
 // Public endpoints that must remain accessible for email engagement
 const PUBLIC_API_PREFIXES = [
   '/api/track/'
 ];
+
+function safeSecretEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -20,6 +28,25 @@ export function proxy(req: NextRequest) {
   const existingWorkspace = reqHeaders.get('x-workspace-id');
   if (!existingWorkspace) {
     reqHeaders.set('x-workspace-id', 'ws-primary');
+  }
+
+  // 2b. Allow authorized /api/cron/ requests when CRON_SECRET matches (even if MISENDER_API_KEY is configured)
+  const cronSecret = process.env.CRON_SECRET;
+  if (pathname.startsWith('/api/cron/') && cronSecret) {
+    const authHeader = req.headers.get('authorization') || '';
+    const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+    const xCronSecret = req.headers.get('x-cron-secret');
+
+    if (
+      (bearerMatch && safeSecretEqual(bearerMatch[1].trim(), cronSecret)) ||
+      (xCronSecret && safeSecretEqual(xCronSecret.trim(), cronSecret))
+    ) {
+      return NextResponse.next({
+        request: {
+          headers: reqHeaders
+        }
+      });
+    }
   }
 
   // 3. API Authentication Enforcement
