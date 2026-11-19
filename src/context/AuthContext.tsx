@@ -76,6 +76,8 @@ interface AuthContextType {
   signInDemo: (email?: string, fullName?: string) => Promise<void>;
   signInAsRole: (role: UserRole, customUser?: Partial<AuthUser>) => Promise<void>;
   switchRole: (role: UserRole) => void;
+  isFounderSession: boolean;
+  restoreFounderSession: () => Promise<void>;
   signOut: () => Promise<void>;
   isAuthModalOpen: boolean;
   authModalTab: AuthModalTab;
@@ -101,6 +103,49 @@ const DEMO_USER_STORAGE_KEY = 'misender_demo_user';
 const ROLE_OVERRIDE_STORAGE_KEY = 'misender_role_override';
 const WORKSPACES_STORAGE_KEY = 'misender_workspaces';
 const CURRENT_WORKSPACE_STORAGE_KEY = 'misender_current_workspace_id';
+const FOUNDER_SESSION_STORAGE_KEY = 'misender_founder_session';
+
+const FOUNDER_EMAILS = ['marcos@vectrasystems.com.ar', 'iparraguirre.marcos@gmail.com'];
+
+export function isFounderEmail(email?: string | null): boolean {
+  const clean = (email || '').trim().toLowerCase();
+  return FOUNDER_EMAILS.includes(clean);
+}
+
+interface StoredFounderSession {
+  email: string;
+  fullName?: string;
+  company?: string;
+  id?: string;
+  isDemo?: boolean;
+}
+
+function readStoredFounderSession(): StoredFounderSession | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(FOUNDER_SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    if (raw === 'true') {
+      return {
+        email: FOUNDER_EMAILS[0],
+        fullName: 'Marco Iparraguirre',
+        company: 'Vectra Systems',
+        id: 'admin-default',
+      };
+    }
+    const parsed = JSON.parse(raw) as Partial<StoredFounderSession>;
+    if (parsed && typeof parsed.email === 'string' && isFounderEmail(parsed.email)) {
+      return {
+        email: parsed.email.trim().toLowerCase(),
+        fullName: parsed.fullName,
+        company: parsed.company,
+        id: parsed.id,
+        isDemo: parsed.isDemo,
+      };
+    }
+  } catch {}
+  return null;
+}
 
 const PRESET_ROLE_USERS: Record<
   UserRole,
@@ -165,8 +210,7 @@ function buildInitials(name?: string, email?: string): string {
 }
 
 function inferDefaultRoleFromEmail(email?: string): UserRole {
-  const clean = (email || '').trim().toLowerCase();
-  if (clean === 'marcos@vectrasystems.com.ar') {
+  if (isFounderEmail(email)) {
     return 'super_admin';
   }
   return 'admin';
@@ -212,7 +256,8 @@ function mapSupabaseUser(sbUser: SupabaseUser, teamMatch?: TeamMember | null): A
   const fullName = rawFullName || email.split('@')[0] || 'Usuario';
   const roleOverride = getSavedRoleOverride();
   const role = normalizeRole(
-    teamMatch?.roleId ||
+    (isFounderEmail(email) ? roleOverride || 'super_admin' : undefined) ||
+      teamMatch?.roleId ||
       roleOverride ||
       (typeof meta.role === 'string' ? meta.role : undefined) ||
       inferDefaultRoleFromEmail(email)
@@ -323,6 +368,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const workspacesRef = useRef<Workspace[]>([DEFAULT_PRIMARY_WORKSPACE]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalTab, setAuthModalTab] = useState<AuthModalTab>('signin');
+  const [isFounderSession, setIsFounderSession] = useState<boolean>(false);
+  const userRef = useRef<AuthUser | null>(null);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  const persistFounderSession = useCallback((info: StoredFounderSession) => {
+    const cleanEmail = (info.email || '').trim().toLowerCase();
+    if (!isFounderEmail(cleanEmail)) return;
+    const payload: StoredFounderSession = {
+      email: cleanEmail,
+      fullName: info.fullName,
+      company: info.company || 'Vectra Systems',
+      id: info.id,
+      isDemo: info.isDemo,
+    };
+    try {
+      sessionStorage.setItem(FOUNDER_SESSION_STORAGE_KEY, JSON.stringify(payload));
+    } catch {}
+    setIsFounderSession(true);
+  }, []);
+
+  const clearFounderSession = useCallback(() => {
+    try {
+      sessionStorage.removeItem(FOUNDER_SESSION_STORAGE_KEY);
+    } catch {}
+    setIsFounderSession(false);
+  }, []);
 
   useEffect(() => {
     currentWorkspaceIdRef.current = currentWorkspace.id;
@@ -438,6 +512,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let active = true;
 
     const init = async () => {
+      const storedFounder = readStoredFounderSession();
+      if (active && storedFounder) {
+        setIsFounderSession(true);
+      }
+
       // 1. Hydrate local workspaces cache quickly while API loads
       try {
         const cachedWs = localStorage.getItem(WORKSPACES_STORAGE_KEY);
@@ -467,6 +546,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (active) {
               setUser(mapped);
               resolvedWorkspaceId = mapped.workspaceId;
+              if (isFounderEmail(mapped.email)) {
+                persistFounderSession({
+                  email: mapped.email,
+                  fullName: mapped.fullName,
+                  company: mapped.company,
+                  id: mapped.id,
+                  isDemo: false,
+                });
+              }
             }
           } else {
             const demoRaw = localStorage.getItem(DEMO_USER_STORAGE_KEY);
@@ -474,6 +562,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const normalized = normalizeStoredAuthUser(JSON.parse(demoRaw));
               setUser(normalized);
               resolvedWorkspaceId = normalized.workspaceId;
+              if (isFounderEmail(normalized.email)) {
+                persistFounderSession({
+                  email: normalized.email,
+                  fullName: normalized.fullName,
+                  company: normalized.company,
+                  id: normalized.id,
+                  isDemo: normalized.isDemo,
+                });
+              }
             }
           }
         } catch {}
@@ -484,6 +581,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const normalized = normalizeStoredAuthUser(JSON.parse(demoRaw));
             setUser(normalized);
             resolvedWorkspaceId = normalized.workspaceId;
+            if (isFounderEmail(normalized.email)) {
+              persistFounderSession({
+                email: normalized.email,
+                fullName: normalized.fullName,
+                company: normalized.company,
+                id: normalized.id,
+                isDemo: normalized.isDemo,
+              });
+            }
           }
         } catch {}
       }
@@ -504,6 +610,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               : null;
             const mapped = mapSupabaseUser(session.user, teamMatch);
             setUser(mapped);
+            if (isFounderEmail(mapped.email)) {
+              persistFounderSession({
+                email: mapped.email,
+                fullName: mapped.fullName,
+                company: mapped.company,
+                id: mapped.id,
+                isDemo: false,
+              });
+            } else if (event === 'SIGNED_IN') {
+              clearFounderSession();
+            }
             try {
               localStorage.removeItem(DEMO_USER_STORAGE_KEY);
             } catch {}
@@ -512,9 +629,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
               const demoRaw = localStorage.getItem(DEMO_USER_STORAGE_KEY);
               if (!demoRaw) {
+                clearFounderSession();
                 setUser(null);
               }
             } catch {
+              clearFounderSession();
               setUser(null);
             }
           }
@@ -525,7 +644,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       active = false;
       subscription?.unsubscribe();
     };
-  }, [refreshWorkspaces]);
+  }, [refreshWorkspaces, persistFounderSession, clearFounderSession]);
 
   const switchWorkspace = useCallback(
     (workspaceOrId: Workspace | string) => {
@@ -686,6 +805,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInAsRole = useCallback(
     async (role: UserRole, customUser?: Partial<AuthUser>) => {
+      const activeUser = userRef.current;
+      if (activeUser && isFounderEmail(activeUser.email) && !readStoredFounderSession()) {
+        persistFounderSession({
+          email: activeUser.email,
+          fullName: activeUser.fullName,
+          company: activeUser.company,
+          id: activeUser.id,
+          isDemo: activeUser.isDemo,
+        });
+      }
+
       const normalized = normalizeRole(role);
       const preset = PRESET_ROLE_USERS[normalized];
       const targetEmail = customUser?.email || preset.email;
@@ -710,17 +840,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await refreshWorkspaces(targetWorkspaceId);
       setIsAuthModalOpen(false);
     },
-    [activateDemoUser, refreshWorkspaces]
+    [activateDemoUser, persistFounderSession, refreshWorkspaces]
   );
 
   const signInDemo = useCallback(
     async (email = 'marcos@vectrasystems.com.ar', fullName = 'Marco Iparraguirre') => {
       const role = inferDefaultRoleFromEmail(email);
-      activateDemoUser(email, fullName, 'Vectra Systems', 'admin-default', role);
+      const demo = activateDemoUser(email, fullName, 'Vectra Systems', 'admin-default', role);
+      if (isFounderEmail(demo.email)) {
+        persistFounderSession({
+          email: demo.email,
+          fullName: demo.fullName,
+          company: demo.company,
+          id: demo.id,
+          isDemo: true,
+        });
+      } else {
+        clearFounderSession();
+      }
       await refreshWorkspaces();
       setIsAuthModalOpen(false);
     },
-    [activateDemoUser, refreshWorkspaces]
+    [activateDemoUser, clearFounderSession, persistFounderSession, refreshWorkspaces]
   );
 
   const signIn = useCallback(
@@ -734,9 +875,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const teamMatch = await lookupTeamMemberByEmail(cleanEmail);
-      const resolvedRole = normalizeRole(
-        teamMatch?.roleId || inferDefaultRoleFromEmail(cleanEmail)
-      );
+      const isFounder = isFounderEmail(cleanEmail);
+      const resolvedRole: UserRole = isFounder
+        ? 'super_admin'
+        : normalizeRole(teamMatch?.roleId || inferDefaultRoleFromEmail(cleanEmail));
       const resolvedAllowedWorkspaceIds = teamMatch?.allowedWorkspaceIds;
       const resolvedWorkspaceId =
         teamMatch?.workspaceId || resolvedAllowedWorkspaceIds?.[0];
@@ -747,7 +889,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const sb = getBrowserSupabase();
       if (!sb) {
-        activateDemoUser(
+        const demo = activateDemoUser(
           cleanEmail,
           teamMatch?.fullName,
           teamMatch?.company,
@@ -756,6 +898,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           resolvedWorkspaceId,
           resolvedAllowedWorkspaceIds
         );
+        if (isFounder) {
+          persistFounderSession({
+            email: demo.email,
+            fullName: demo.fullName,
+            company: demo.company,
+            id: demo.id,
+            isDemo: true,
+          });
+        } else {
+          clearFounderSession();
+        }
         await refreshWorkspaces(resolvedWorkspaceId);
         setIsAuthModalOpen(false);
         return { isDemo: true };
@@ -768,7 +921,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         if (!error && data.user) {
-          setUser(mapSupabaseUser(data.user, teamMatch));
+          const mapped = mapSupabaseUser(data.user, teamMatch);
+          const resolvedUser: AuthUser = isFounder
+            ? { ...mapped, role: 'super_admin' }
+            : mapped;
+          setUser(resolvedUser);
+          if (isFounder) {
+            persistFounderSession({
+              email: resolvedUser.email,
+              fullName: resolvedUser.fullName,
+              company: resolvedUser.company,
+              id: resolvedUser.id,
+              isDemo: false,
+            });
+          } else {
+            clearFounderSession();
+          }
           try {
             localStorage.removeItem(DEMO_USER_STORAGE_KEY);
           } catch {}
@@ -780,7 +948,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const msg = error?.message || '';
         // Unblock staging tests & team/concierge-provisioned users when Auth record or SMTP confirmation is absent
         if (/email not confirmed/i.test(msg) || teamMatch) {
-          activateDemoUser(
+          const demo = activateDemoUser(
             cleanEmail,
             teamMatch?.fullName || cleanEmail.split('@')[0],
             teamMatch?.company,
@@ -789,6 +957,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             resolvedWorkspaceId,
             resolvedAllowedWorkspaceIds
           );
+          if (isFounder) {
+            persistFounderSession({
+              email: demo.email,
+              fullName: demo.fullName,
+              company: demo.company,
+              id: demo.id,
+              isDemo: true,
+            });
+          } else {
+            clearFounderSession();
+          }
           await refreshWorkspaces(resolvedWorkspaceId);
           setIsAuthModalOpen(false);
           return { isDemo: true };
@@ -799,7 +978,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: err instanceof Error ? err.message : 'Sign in failed' };
       }
     },
-    [activateDemoUser, refreshWorkspaces]
+    [activateDemoUser, clearFounderSession, persistFounderSession, refreshWorkspaces]
   );
 
   const signUp = useCallback(
@@ -817,7 +996,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const company = metadata?.company?.trim() || 'Mi Agencia';
       const workspaceName = metadata?.workspaceName?.trim() || company;
       const plan = metadata?.plan || 'growth';
-      const signupRole: UserRole = 'admin';
+      const isFounder = isFounderEmail(cleanEmail);
+      const signupRole: UserRole = isFounder ? 'super_admin' : 'admin';
 
       const sb = getBrowserSupabase();
       let createdUserId: string | undefined;
@@ -864,6 +1044,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         createdUserId = demo.id;
       }
 
+      if (isFounder) {
+        persistFounderSession({
+          email: cleanEmail,
+          fullName,
+          company,
+          id: createdUserId,
+        });
+      } else {
+        clearFounderSession();
+      }
+
       // Provision initial SaaS 7-day trial workspace for the new account
       const wsRes = await createWorkspace({
         name: workspaceName,
@@ -898,7 +1089,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error: createdUserId ? undefined : undefined,
       };
     },
-    [activateDemoUser, createWorkspace]
+    [activateDemoUser, clearFounderSession, createWorkspace, persistFounderSession]
   );
 
   const signInWithGoogle = useCallback(async (): Promise<{ error?: string }> => {
@@ -924,6 +1115,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [signInDemo]);
 
+  const restoreFounderSession = useCallback(async () => {
+    const stored = readStoredFounderSession();
+    const fallback = PRESET_ROLE_USERS.super_admin;
+    const activeUser = userRef.current;
+    const targetEmail =
+      stored?.email ||
+      (activeUser && isFounderEmail(activeUser.email) ? activeUser.email : fallback.email);
+    const targetName =
+      stored?.fullName ||
+      (activeUser && isFounderEmail(activeUser.email) ? activeUser.fullName : fallback.fullName);
+    const targetCompany = stored?.company || fallback.company;
+    const targetId = stored?.id || fallback.id;
+
+    try {
+      localStorage.removeItem(DEMO_USER_STORAGE_KEY);
+      localStorage.setItem(ROLE_OVERRIDE_STORAGE_KEY, 'super_admin');
+    } catch {}
+
+    const sb = getBrowserSupabase();
+    if (sb) {
+      try {
+        const { data } = await sb.auth.getSession();
+        if (data.session?.user?.email && isFounderEmail(data.session.user.email)) {
+          const teamMatch = await lookupTeamMemberByEmail(data.session.user.email);
+          const mapped: AuthUser = {
+            ...mapSupabaseUser(data.session.user, teamMatch),
+            role: 'super_admin',
+          };
+          setUser(mapped);
+          persistFounderSession({
+            email: mapped.email,
+            fullName: mapped.fullName,
+            company: mapped.company,
+            id: mapped.id,
+            isDemo: false,
+          });
+          await refreshWorkspaces(mapped.workspaceId);
+          return;
+        }
+      } catch {}
+    }
+
+    const restored = activateDemoUser(
+      targetEmail,
+      targetName,
+      targetCompany,
+      targetId,
+      'super_admin'
+    );
+    persistFounderSession({
+      email: restored.email,
+      fullName: restored.fullName,
+      company: restored.company,
+      id: restored.id,
+      isDemo: true,
+    });
+    await refreshWorkspaces();
+  }, [activateDemoUser, persistFounderSession, refreshWorkspaces]);
+
   const signOut = useCallback(async () => {
     const sb = getBrowserSupabase();
     if (sb) {
@@ -935,8 +1185,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(DEMO_USER_STORAGE_KEY);
       localStorage.removeItem(ROLE_OVERRIDE_STORAGE_KEY);
     } catch {}
+    clearFounderSession();
     setUser(null);
-  }, []);
+  }, [clearFounderSession]);
 
   const openAuthModal = useCallback((defaultTab: AuthModalTab = 'signin') => {
     setAuthModalTab(defaultTab);
@@ -964,6 +1215,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInDemo,
         signInAsRole,
         switchRole,
+        isFounderSession,
+        restoreFounderSession,
         signOut,
         isAuthModalOpen,
         authModalTab,

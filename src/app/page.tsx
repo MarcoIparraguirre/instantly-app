@@ -241,8 +241,8 @@ function HomeContent() {
 
   if (authLoading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#0A0C10] text-[#F3F5F8]">
-        <div className="w-8 h-8 border-4 border-[#E85D2A] border-t-transparent rounded-full animate-spin" />
+      <div className="flex h-screen w-screen items-center justify-center bg-[#F4F7F5] text-[#14213D]">
+        <div className="w-8 h-8 border-4 border-[#14213D] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -255,7 +255,7 @@ function HomeContent() {
   const isWorkspaceLoading = loading || isWorkspaceSwitching;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#0A0C10] text-[#F3F5F8] font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#F4F7F5] text-[#14213D] font-sans">
       {/* Onboarding Mode Selection Modal (First-time user or on-demand switch) */}
       <ModeSelectionModal />
 
@@ -310,10 +310,10 @@ function HomeContent() {
 
         {/* Read-Only Client Banner for Viewer role */}
         {rolePerms.isReadOnly && (
-          <div className="bg-[#171B26] border-b border-[#232938] px-4 py-2 text-xs text-[#949EB0] flex items-center justify-center gap-2 shrink-0">
-            <Eye className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <div className="bg-[#D5ECD4] border-b border-[#C3DAC3] px-4 py-2 text-xs text-[#14213D] flex items-center justify-center gap-2 shrink-0">
+            <Eye className="w-3.5 h-3.5 text-[#14213D] shrink-0" />
             <span>
-              <strong className="font-semibold text-[#F3F5F8]">
+              <strong className="font-semibold text-[#14213D]">
                 {language === 'es' ? 'Modo Solo Lectura (Vista Cliente)' : 'Read-Only Mode (Client View)'}
               </strong>
               {' — '}
@@ -328,7 +328,7 @@ function HomeContent() {
         <main className="flex-1 min-h-0 flex flex-col overflow-hidden relative">
           {isWorkspaceLoading ? (
             <div className="flex-1 flex items-center justify-center">
-              <div className="w-8 h-8 border-4 border-[#E85D2A] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-[#14213D] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
             <>
@@ -360,21 +360,21 @@ function HomeContent() {
                 campaignViewMode === 'detail' && campaign ? (
                   <div className="flex-1 flex flex-col h-full overflow-hidden">
                     {/* Top Campaign Switcher & Management Subbar */}
-                    <div className="h-11 px-5 border-b border-[#1D2330] bg-[#11141C] flex items-center justify-between shrink-0 select-none">
+                    <div className="h-11 px-5 border-b border-[#DCE3DF] bg-white text-[#14213D] flex items-center justify-between shrink-0 select-none">
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => setCampaignViewMode('list')}
-                          className="flex items-center gap-1.5 text-[#949EB0] hover:text-[#F3F5F8] px-2.5 py-1 rounded-lg text-xs font-semibold hover:bg-[#171B26] transition cursor-pointer"
+                          className="flex items-center gap-1.5 text-[#5C6F68] hover:text-[#14213D] px-2.5 py-1 rounded-lg text-xs font-semibold hover:bg-[#EEF3F0] transition cursor-pointer"
                         >
                           <ArrowLeft className="w-3.5 h-3.5" />
                           <span>{language === 'es' ? 'Todas las Campañas' : 'All Campaigns'}</span>
                         </button>
 
-                        <div className="h-4 w-px bg-[#1D2330]" />
+                        <div className="h-4 w-px bg-[#DCE3DF]" />
 
                         {/* Campaign Selector Dropdown */}
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-[#949EB0] font-medium">
+                          <span className="text-[11px] text-[#5C6F68] font-medium">
                             {language === 'es' ? 'Campaña:' : 'Campaign:'}
                           </span>
                           <select
@@ -383,7 +383,7 @@ function HomeContent() {
                               const found = allCampaigns.find(c => c.id === e.target.value);
                               if (found) setCampaign(found);
                             }}
-                            className="bg-[#171B26] border border-[#232938] hover:border-[#343D52] focus:border-[#E85D2A] rounded-lg px-2.5 py-1 text-xs text-[#F3F5F8] font-semibold focus:outline-none transition max-w-[240px] cursor-pointer"
+                            className="bg-[#F4F7F5] border border-[#DCE3DF] hover:border-[#A1B0AB] focus:border-[#14213D] rounded-lg px-2.5 py-1 text-xs text-[#14213D] font-semibold focus:outline-none transition max-w-[240px] cursor-pointer"
                           >
                             {allCampaigns.map(c => (
                               <option key={c.id} value={c.id}>
@@ -412,10 +412,10 @@ function HomeContent() {
                             rolePerms.isReadOnly ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
                           } ${
                             campaign.status === 'active'
-                              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/35 hover:bg-emerald-500/25'
+                              ? 'bg-[#D5ECD4] text-[#14213D] border-[#C3DAC3] hover:bg-[#C3DAC3]'
                               : campaign.status === 'paused'
-                              ? 'bg-amber-500/15 text-amber-400 border-amber-500/35 hover:bg-amber-500/25'
-                              : 'bg-[#171B26] text-[#949EB0] border-[#232938] hover:bg-[#1D2330] hover:text-[#F3F5F8]'
+                              ? 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                              : 'bg-[#EEF3F0] text-[#5C6F68] border-[#DCE3DF] hover:bg-[#DCE3DF] hover:text-[#14213D]'
                           }`}
                           title={
                             rolePerms.isReadOnly
@@ -425,7 +425,7 @@ function HomeContent() {
                         >
                           {campaign.status === 'active' ? (
                             <>
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
                               <span>{language === 'es' ? 'Activa' : 'Active'}</span>
                             </>
                           ) : (
@@ -441,7 +441,7 @@ function HomeContent() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => setIsCreateCampaignModalOpen(true)}
-                            className="flex items-center gap-1.5 bg-[#E85D2A] hover:bg-[#F26B3A] text-white font-semibold px-3 py-1.5 rounded-lg text-xs shadow-sm transition cursor-pointer"
+                            className="flex items-center gap-1.5 bg-[#14213D] hover:bg-[#1E3158] text-white font-semibold px-3 py-1.5 rounded-lg text-xs shadow-sm transition cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             <span>{language === 'es' ? 'Nueva Campaña' : 'New Campaign'}</span>
@@ -559,6 +559,24 @@ function HomeContent() {
             }}
           />
         </main>
+
+        {/* Persistent Slim Vectra Systems Footer */}
+        <footer className="h-8 px-5 border-t border-[#DCE3DF] bg-white flex items-center justify-between text-[11px] text-[#5C6F68] shrink-0 select-none">
+          <span>MiSender · Outbound OS</span>
+          <span>
+            {language === 'es'
+              ? 'Software creado por Vectra Systems · '
+              : 'Software created by Vectra Systems · '}
+            <a
+              href="https://www.vectrasystems.com.ar"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono font-semibold text-[#14213D] hover:underline"
+            >
+              www.vectrasystems.com.ar
+            </a>
+          </span>
+        </footer>
       </div>
     </div>
   );
