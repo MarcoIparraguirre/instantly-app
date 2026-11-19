@@ -161,20 +161,20 @@ export default function CreateCampaignModal({
       onClick={onClose}
     >
       <div
-        className="bg-[#11141C] border border-[#232938] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col"
+        className="bg-white border border-[#DCE3DF] text-[#14213D] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-6 py-5 border-b border-[#1D2330] flex items-center justify-between bg-[#171B26]/60">
+        <div className="px-6 py-5 border-b border-[#DCE3DF] flex items-center justify-between bg-[#F4F7F5]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#E85D2A] flex items-center justify-center text-white">
+            <div className="w-10 h-10 rounded-xl bg-[#14213D] flex items-center justify-center text-white">
               <Plus className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-[#F3F5F8] leading-tight">
+              <h3 className="text-base font-bold text-[#14213D] leading-tight">
                 {isEs ? 'Crear Nueva Campaña' : 'Create New Campaign'}
               </h3>
-              <p className="text-xs text-[#949EB0]">
+              <p className="text-xs text-[#5C6F68]">
                 {isEs ? 'Configura tu secuencia de correos en frío' : 'Set up your cold email sequence'}
               </p>
             </div>
@@ -182,7 +182,7 @@ export default function CreateCampaignModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26] rounded-lg transition cursor-pointer"
+            className="p-1.5 text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0] rounded-lg transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -191,14 +191,14 @@ export default function CreateCampaignModal({
         {/* Modal Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {error && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-lg text-xs">
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
               {error}
             </div>
           )}
 
           {/* Campaign Name */}
           <div>
-            <label className="block text-xs font-semibold text-[#F3F5F8] mb-1.5">
+            <label className="block text-xs font-semibold text-[#14213D] mb-1.5">
               {isEs ? 'Nombre de la Campaña' : 'Campaign Name'}
             </label>
             <input
@@ -208,13 +208,13 @@ export default function CreateCampaignModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={isEs ? 'ej: Prospección SaaS Q4' : 'e.g., Q4 SaaS Outbound'}
-              className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-4 py-2.5 text-sm text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg px-4 py-2.5 text-sm text-[#14213D] placeholder-[#5C6F68]/70 focus:outline-none transition"
             />
           </div>
 
           {/* Quick-Start Template Selector */}
           <div>
-            <label className="block text-xs font-semibold text-[#F3F5F8] mb-2">
+            <label className="block text-xs font-semibold text-[#14213D] mb-2">
               {isEs ? 'Plantilla Inicial Recomendada' : 'Initial Template'}
             </label>
             <div className="grid grid-cols-3 gap-2.5">
@@ -223,14 +223,14 @@ export default function CreateCampaignModal({
                 onClick={() => setTemplateType('b2b')}
                 className={`p-3 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer ${
                   templateType === 'b2b'
-                    ? 'bg-[#E85D2A]/10 border-[#E85D2A] text-[#F3F5F8]'
-                    : 'bg-[#171B26] border-[#232938] text-[#949EB0] hover:border-[#343D52] hover:text-[#F3F5F8]'
+                    ? 'bg-[#D5ECD4]/55 border-[#14213D] text-[#14213D]'
+                    : 'bg-[#F4F7F5] border-[#DCE3DF] text-[#5C6F68] hover:border-[#A1B0AB] hover:text-[#14213D]'
                 }`}
               >
-                <div className="text-xs font-bold text-[#F3F5F8] mb-1">
+                <div className="text-xs font-bold text-[#14213D] mb-1">
                   {isEs ? 'Pitch Directo' : 'Direct Pitch'}
                 </div>
-                <div className="text-[10px] text-[#949EB0]">
+                <div className="text-[10px] text-[#5C6F68]">
                   {isEs ? 'Eficaz para founders y ejecutivos' : 'High reply rate for founders'}
                 </div>
               </button>
@@ -240,14 +240,14 @@ export default function CreateCampaignModal({
                 onClick={() => setTemplateType('short')}
                 className={`p-3 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer ${
                   templateType === 'short'
-                    ? 'bg-[#E85D2A]/10 border-[#E85D2A] text-[#F3F5F8]'
-                    : 'bg-[#171B26] border-[#232938] text-[#949EB0] hover:border-[#343D52] hover:text-[#F3F5F8]'
+                    ? 'bg-[#D5ECD4]/55 border-[#14213D] text-[#14213D]'
+                    : 'bg-[#F4F7F5] border-[#DCE3DF] text-[#5C6F68] hover:border-[#A1B0AB] hover:text-[#14213D]'
                 }`}
               >
-                <div className="text-xs font-bold text-[#F3F5F8] mb-1">
+                <div className="text-xs font-bold text-[#14213D] mb-1">
                   {isEs ? 'Consulta Corta' : 'Quick Question'}
                 </div>
-                <div className="text-[10px] text-[#949EB0]">
+                <div className="text-[10px] text-[#5C6F68]">
                   {isEs ? 'Solo 3 líneas, alta apertura' : '3 lines, max open rate'}
                 </div>
               </button>
@@ -257,14 +257,14 @@ export default function CreateCampaignModal({
                 onClick={() => setTemplateType('blank')}
                 className={`p-3 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer ${
                   templateType === 'blank'
-                    ? 'bg-[#E85D2A]/10 border-[#E85D2A] text-[#F3F5F8]'
-                    : 'bg-[#171B26] border-[#232938] text-[#949EB0] hover:border-[#343D52] hover:text-[#F3F5F8]'
+                    ? 'bg-[#D5ECD4]/55 border-[#14213D] text-[#14213D]'
+                    : 'bg-[#F4F7F5] border-[#DCE3DF] text-[#5C6F68] hover:border-[#A1B0AB] hover:text-[#14213D]'
                 }`}
               >
-                <div className="text-xs font-bold text-[#F3F5F8] mb-1">
+                <div className="text-xs font-bold text-[#14213D] mb-1">
                   {isEs ? 'En Blanco' : 'Blank'}
                 </div>
-                <div className="text-[10px] text-[#949EB0]">
+                <div className="text-[10px] text-[#5C6F68]">
                   {isEs ? 'Redacta desde cero' : 'Start from scratch'}
                 </div>
               </button>
@@ -274,8 +274,8 @@ export default function CreateCampaignModal({
           {/* Sender Account Selection */}
           {accounts.length > 0 && (
             <div>
-              <label className="text-xs font-semibold text-[#F3F5F8] mb-1.5 flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-[#E85D2A]" />
+              <label className="text-xs font-semibold text-[#14213D] mb-1.5 flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-[#14213D]" />
                 <span>{isEs ? 'Casilla de Correo Remitente' : 'Sender Email Account'}</span>
               </label>
               <div className="space-y-1.5 max-h-40 overflow-y-auto pr-0.5">
@@ -293,25 +293,31 @@ export default function CreateCampaignModal({
                       }}
                       className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition ${
                         isSelected
-                          ? 'bg-[#E85D2A]/10 border-[#E85D2A]/60 text-[#F3F5F8]'
-                          : 'bg-[#171B26] border-[#232938] text-[#949EB0] hover:border-[#343D52]'
+                          ? 'bg-[#D5ECD4]/45 border-[#14213D] text-[#14213D]'
+                          : 'bg-[#F4F7F5] border-[#DCE3DF] text-[#5C6F68] hover:border-[#A1B0AB]'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
-                        <div className="w-6 h-6 rounded-lg bg-[#0A0C10] border border-[#232938] text-[#E85D2A] flex items-center justify-center font-bold text-[10px] font-mono">
+                        <div
+                          className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-[10px] font-mono ${
+                            isSelected
+                              ? 'bg-[#14213D] text-white'
+                              : 'bg-white border border-[#DCE3DF] text-[#5C6F68]'
+                          }`}
+                        >
                           {acc.provider === 'google' ? 'G' : acc.provider === 'microsoft' ? 'M' : 'S'}
                         </div>
                         <div>
-                          <span className="font-semibold text-[#F3F5F8]">{acc.name || acc.email}</span>
-                          <span className="text-[11px] text-[#949EB0] ml-2 font-mono">
+                          <span className="font-semibold text-[#14213D]">{acc.name || acc.email}</span>
+                          <span className="text-[11px] text-[#5C6F68] ml-2 font-mono">
                             ({acc.email})
                           </span>
                         </div>
                       </div>
                       {isSelected ? (
-                        <CheckCircle2 className="w-4 h-4 text-[#E85D2A]" />
+                        <CheckCircle2 className="w-4 h-4 text-[#14213D]" />
                       ) : (
-                        <div className="w-4 h-4 rounded-full border border-[#232938]" />
+                        <div className="w-4 h-4 rounded-full border border-[#A1B0AB]" />
                       )}
                     </div>
                   );
@@ -323,10 +329,10 @@ export default function CreateCampaignModal({
           {/* Daily Sending Limit */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-[#F3F5F8]">
+              <label className="text-xs font-semibold text-[#14213D]">
                 {isEs ? 'Límite Diario de Envíos' : 'Daily Sending Limit'}
               </label>
-              <span className="text-xs font-bold text-[#E85D2A] font-mono tabular-nums">
+              <span className="text-xs font-bold text-[#14213D] font-mono tabular-nums">
                 {dailyLimit} {isEs ? 'correos/día' : 'emails/day'}
               </span>
             </div>
@@ -337,10 +343,10 @@ export default function CreateCampaignModal({
               step="10"
               value={dailyLimit}
               onChange={(e) => setDailyLimit(Number(e.target.value))}
-              className="w-full accent-[#E85D2A] bg-[#171B26] rounded-lg cursor-pointer h-2"
+              className="w-full accent-[#14213D] bg-[#EEF3F0] rounded-lg cursor-pointer h-2"
             />
-            <div className="text-[10px] text-[#949EB0] mt-1.5 flex items-center gap-1.5">
-              <Lightbulb className="w-3 h-3 text-amber-400 shrink-0" />
+            <div className="text-[10px] text-[#5C6F68] mt-1.5 flex items-center gap-1.5">
+              <Lightbulb className="w-3 h-3 text-amber-600 shrink-0" />
               <span>
                 {isEs
                   ? 'Recomendación: 50/día para proteger la reputación de tu dominio.'
@@ -350,18 +356,18 @@ export default function CreateCampaignModal({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1D2330]">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#DCE3DF]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-[#949EB0] hover:text-[#F3F5F8] bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] rounded-lg transition cursor-pointer"
+              className="px-4 py-2 text-xs font-semibold text-[#14213D] bg-[#EEF3F0] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-lg transition cursor-pointer"
             >
               {isEs ? 'Cancelar' : 'Cancel'}
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !name.trim()}
-              className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white font-semibold px-5 py-2 rounded-lg text-xs transition disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] text-white font-semibold px-5 py-2 rounded-lg text-xs transition disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

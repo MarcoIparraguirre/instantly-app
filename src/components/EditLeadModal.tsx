@@ -153,26 +153,26 @@ function EditLeadForm({ lead, onClose, onSaved }: EditLeadFormProps) {
 
   return (
     <div
-      className="bg-[#11141C] border border-[#232938] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+      className="bg-white border border-[#DCE3DF] text-[#14213D] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="px-6 py-4 border-b border-[#1D2330] flex items-center justify-between bg-[#171B26]/60 shrink-0">
+      <div className="px-6 py-4 border-b border-[#DCE3DF] flex items-center justify-between bg-[#F4F7F5] shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#E85D2A]/15 border border-[#E85D2A]/30 text-[#E85D2A] flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-[#D5ECD4] border border-[#C3DAC3] text-[#14213D] flex items-center justify-center">
             <UserCheck className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-[#F3F5F8]">
+            <h2 className="text-sm font-bold text-[#14213D]">
               {isEs ? 'Editar Datos del Contacto (Lead)' : 'Edit Contact Data'}
             </h2>
-            <p className="text-[11px] text-[#949EB0] font-mono">{lead.email}</p>
+            <p className="text-[11px] text-[#5C6F68] font-mono">{lead.email}</p>
           </div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="text-[#949EB0] hover:text-[#F3F5F8] p-1.5 rounded-lg hover:bg-[#171B26] transition cursor-pointer"
+          className="text-[#5C6F68] hover:text-[#14213D] p-1.5 rounded-lg hover:bg-[#EEF3F0] transition cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
@@ -182,24 +182,24 @@ function EditLeadForm({ lead, onClose, onSaved }: EditLeadFormProps) {
         {/* Basic Fields & Status */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-[#F3F5F8] font-semibold">Email *</label>
+            <label className="text-[#14213D] font-semibold">Email *</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-[#F3F5F8] font-mono focus:outline-none transition"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg px-3.5 py-2 text-[#14213D] font-mono focus:outline-none transition"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-[#F3F5F8] font-semibold">
+            <label className="text-[#14213D] font-semibold">
               {isEs ? 'Estado del Contacto' : 'Contact Status'}
             </label>
             <select
               value={status}
               onChange={(e) => handleStatusChange(e.target.value as LeadStatus)}
-              className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-[#F3F5F8] font-semibold focus:outline-none transition"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg px-3.5 py-2 text-[#14213D] font-semibold focus:outline-none transition"
             >
               <option value="pending">
                 {isEs ? 'Pendiente (Por enviar)' : 'Pending (To send)'}
@@ -218,39 +218,39 @@ function EditLeadForm({ lead, onClose, onSaved }: EditLeadFormProps) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-[#F3F5F8] font-semibold">
+            <label className="text-[#14213D] font-semibold">
               {isEs ? 'Nombre' : 'First Name'}
             </label>
             <input
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-[#F3F5F8] focus:outline-none transition"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg px-3.5 py-2 text-[#14213D] focus:outline-none transition"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-[#F3F5F8] font-semibold">
+            <label className="text-[#14213D] font-semibold">
               {isEs ? 'Empresa / Sitio Web' : 'Company / Website'}
             </label>
             <input
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-[#F3F5F8] focus:outline-none transition"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg px-3.5 py-2 text-[#14213D] focus:outline-none transition"
             />
           </div>
         </div>
 
         {/* Custom Variables from Sheet / CSV */}
-        <div className="space-y-3 pt-3 border-t border-[#1D2330]">
+        <div className="space-y-3 pt-3 border-t border-[#DCE3DF]">
           <div className="flex items-center justify-between">
-            <span className="font-bold text-[#F3F5F8]">
+            <span className="font-bold text-[#14213D]">
               {isEs
                 ? 'Variables Personalizadas de la Hoja / CSV:'
                 : 'Custom Sheet / CSV Variables:'}
             </span>
-            <span className="text-[11px] text-[#949EB0] font-mono tabular-nums">
+            <span className="text-[11px] text-[#5C6F68] font-mono tabular-nums">
               {customVars.length} {isEs ? 'columnas' : 'columns'}
             </span>
           </div>
@@ -261,16 +261,16 @@ function EditLeadForm({ lead, onClose, onSaved }: EditLeadFormProps) {
               return (
                 <div
                   key={idx}
-                  className="bg-[#171B26] border border-[#232938] rounded-xl p-3 space-y-1.5"
+                  className="bg-[#F4F7F5] border border-[#DCE3DF] rounded-xl p-3 space-y-1.5"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[11px] font-bold text-[#E85D2A]">
+                    <span className="font-mono text-[11px] font-bold text-[#14213D] bg-[#D5ECD4] border border-[#C3DAC3] px-2 py-0.5 rounded-md">
                       {`{{${item.key}}}`}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleDeleteVar(idx)}
-                      className="text-[#949EB0] hover:text-rose-400 p-1 rounded-lg transition cursor-pointer"
+                      className="text-[#5C6F68] hover:text-rose-700 hover:bg-rose-50 p-1 rounded-lg transition cursor-pointer"
                       title={isEs ? 'Eliminar variable' : 'Remove variable'}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -281,14 +281,14 @@ function EditLeadForm({ lead, onClose, onSaved }: EditLeadFormProps) {
                       rows={4}
                       value={item.value}
                       onChange={(e) => handleUpdateVarValue(idx, e.target.value)}
-                      className="w-full bg-[#0A0C10] border border-[#232938] focus:border-[#E85D2A] rounded-lg p-2.5 text-xs text-[#F3F5F8] focus:outline-none leading-relaxed transition"
+                      className="w-full bg-white border border-[#DCE3DF] focus:border-[#14213D] rounded-lg p-2.5 text-xs text-[#14213D] focus:outline-none leading-relaxed transition"
                     />
                   ) : (
                     <input
                       type="text"
                       value={item.value}
                       onChange={(e) => handleUpdateVarValue(idx, e.target.value)}
-                      className="w-full bg-[#0A0C10] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-1.5 text-xs text-[#F3F5F8] focus:outline-none transition"
+                      className="w-full bg-white border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3 py-1.5 text-xs text-[#14213D] focus:outline-none transition"
                     />
                   )}
                 </div>
@@ -303,20 +303,20 @@ function EditLeadForm({ lead, onClose, onSaved }: EditLeadFormProps) {
               placeholder={isEs ? 'Nueva columna (ej: CARGO)' : 'New column key'}
               value={newVarKey}
               onChange={(e) => setNewVarKey(e.target.value)}
-              className="w-40 bg-[#171B26] border border-[#232938] rounded-lg px-3 py-2 text-xs font-mono text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none focus:border-[#E85D2A] transition"
+              className="w-40 bg-[#F4F7F5] border border-[#DCE3DF] rounded-lg px-3 py-2 text-xs font-mono text-[#14213D] placeholder-[#5C6F68]/70 focus:outline-none focus:border-[#14213D] focus:bg-white transition"
             />
             <input
               type="text"
               placeholder={isEs ? 'Valor...' : 'Value...'}
               value={newVarVal}
               onChange={(e) => setNewVarVal(e.target.value)}
-              className="flex-1 bg-[#171B26] border border-[#232938] rounded-lg px-3 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none focus:border-[#E85D2A] transition"
+              className="flex-1 bg-[#F4F7F5] border border-[#DCE3DF] rounded-lg px-3 py-2 text-xs text-[#14213D] placeholder-[#5C6F68]/70 focus:outline-none focus:border-[#14213D] focus:bg-white transition"
             />
             <button
               type="button"
               onClick={handleAddCustomVar}
               disabled={!newVarKey.trim()}
-              className="bg-[#171B26] hover:bg-[#1D2330] disabled:opacity-40 text-[#E85D2A] font-semibold px-3 py-2 rounded-lg border border-[#232938] transition cursor-pointer flex items-center gap-1"
+              className="bg-[#D5ECD4] hover:bg-[#C3DAC3] disabled:opacity-40 text-[#14213D] font-semibold px-3 py-2 rounded-lg border border-[#A1B0AB]/50 transition cursor-pointer flex items-center gap-1"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isEs ? 'Agregar' : 'Add'}</span>
@@ -325,23 +325,23 @@ function EditLeadForm({ lead, onClose, onSaved }: EditLeadFormProps) {
         </div>
 
         {errorMsg && (
-          <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-lg text-xs">
+          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
             {errorMsg}
           </div>
         )}
 
-        <div className="flex justify-end gap-2.5 pt-3 border-t border-[#1D2330]">
+        <div className="flex justify-end gap-2.5 pt-3 border-t border-[#DCE3DF]">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] text-[#949EB0] hover:text-[#F3F5F8] font-semibold transition cursor-pointer"
+            className="px-4 py-2 rounded-lg bg-[#EEF3F0] hover:bg-[#DCE3DF] border border-[#DCE3DF] text-[#14213D] font-semibold transition cursor-pointer"
           >
             {isEs ? 'Cancelar' : 'Cancel'}
           </button>
           <button
             type="submit"
             disabled={isSaving}
-            className="px-5 py-2 rounded-lg bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-50 text-white font-bold flex items-center gap-1.5 transition cursor-pointer"
+            className="px-5 py-2 rounded-lg bg-[#14213D] hover:bg-[#1E3158] disabled:opacity-50 text-white font-bold flex items-center gap-1.5 transition cursor-pointer"
           >
             {isSaving ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />

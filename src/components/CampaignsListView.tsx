@@ -177,15 +177,15 @@ export default function CampaignsListView({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#0A0C10] text-[#F3F5F8] overflow-y-auto p-6 space-y-6">
+    <div className="flex-1 flex flex-col h-full bg-[#F4F7F5] text-[#14213D] overflow-y-auto p-6 space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#F3F5F8] tracking-tight flex items-center gap-2.5">
-            <Send className="w-6 h-6 text-[#E85D2A]" />
+          <h1 className="text-2xl font-bold text-[#14213D] tracking-tight flex items-center gap-2.5">
+            <Send className="w-6 h-6 text-[#14213D]" />
             <span>{isEs ? 'Campañas de Correo' : 'Email Campaigns'}</span>
           </h1>
-          <p className="text-xs text-[#949EB0] mt-1">
+          <p className="text-xs text-[#5C6F68] mt-1">
             {isEs
               ? 'Gestiona, carga y monitorea tus secuencias de prospección automatizada en frío.'
               : 'Manage, load, and monitor your automated cold outreach sequences.'}
@@ -193,15 +193,15 @@ export default function CampaignsListView({
         </div>
 
         {isReadOnly ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#11141C] border border-[#232938] text-xs font-semibold text-[#949EB0] shrink-0">
-            <Eye className="w-3.5 h-3.5 text-[#E85D2A]" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#DCE3DF] shadow-sm text-xs font-semibold text-[#5C6F68] shrink-0">
+            <Eye className="w-3.5 h-3.5 text-[#14213D]" />
             <span>{isEs ? 'Modo Solo Lectura' : 'Read-Only Mode'}</span>
           </span>
         ) : (
           <button
             type="button"
             onClick={onCreateCampaign}
-            className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white font-semibold px-4 py-2.5 rounded-lg text-xs transition cursor-pointer shrink-0"
+            className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] text-white font-semibold px-4 py-2.5 rounded-lg text-xs transition cursor-pointer shrink-0 shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>{isEs ? 'Nueva Campaña' : 'New Campaign'}</span>
@@ -209,75 +209,75 @@ export default function CampaignsListView({
         )}
       </div>
 
-      {/* Metric Cards Summary */}
+      {/* Metric Cards Summary (Signature 4-Tone KPI Row) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-[#D5ECD4] border border-[#C3DAC3] text-[#14213D] rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div>
-            <div className="text-[11px] font-semibold text-[#949EB0] uppercase tracking-wider">
+            <div className="text-[11px] font-semibold text-[#5C6F68] uppercase tracking-wider">
               {isEs ? 'Total Campañas' : 'Total Campaigns'}
             </div>
-            <div className="text-2xl font-bold text-[#F3F5F8] mt-1 font-mono tabular-nums">
+            <div className="text-2xl font-bold text-[#14213D] mt-1 font-mono tabular-nums">
               {campaigns.length}
             </div>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-[#171B26] border border-[#232938] text-[#E85D2A] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-white/75 border border-[#C3DAC3] text-[#14213D] flex items-center justify-center">
             <Mail className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-[#C3DAC3] border border-[#A1B0AB]/50 text-[#14213D] rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div>
-            <div className="text-[11px] font-semibold text-[#949EB0] uppercase tracking-wider">
+            <div className="text-[11px] font-semibold text-[#14213D]/75 uppercase tracking-wider">
               {isEs ? 'Correos Enviados' : 'Emails Sent'}
             </div>
-            <div className="text-2xl font-bold text-[#F3F5F8] mt-1 font-mono tabular-nums">
+            <div className="text-2xl font-bold text-[#14213D] mt-1 font-mono tabular-nums">
               {totalSent.toLocaleString()}
             </div>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-[#171B26] border border-[#232938] text-[#F3F5F8] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-white/70 border border-[#A1B0AB]/40 text-[#14213D] flex items-center justify-center">
             <Send className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-[#A1B0AB] border border-[#5C6F68]/30 text-[#14213D] rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div>
-            <div className="text-[11px] font-semibold text-[#949EB0] uppercase tracking-wider">
+            <div className="text-[11px] font-semibold text-[#14213D]/80 uppercase tracking-wider">
               {isEs ? 'Tasa de Apertura' : 'Open Rate'}
             </div>
-            <div className="text-2xl font-bold text-emerald-400 mt-1 font-mono tabular-nums">
+            <div className="text-2xl font-bold text-[#14213D] mt-1 font-mono tabular-nums">
               {openRate}%
             </div>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-[#171B26] border border-[#232938] text-emerald-400 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-white/60 border border-[#5C6F68]/25 text-[#14213D] flex items-center justify-center">
             <BarChart3 className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-[#5C6F68] border border-[#5C6F68] text-white rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div>
-            <div className="text-[11px] font-semibold text-[#949EB0] uppercase tracking-wider">
+            <div className="text-[11px] font-semibold text-white/80 uppercase tracking-wider">
               {isEs ? 'Tasa de Respuesta' : 'Reply Rate'}
             </div>
-            <div className="text-2xl font-bold text-[#E85D2A] mt-1 font-mono tabular-nums">
+            <div className="text-2xl font-bold text-white mt-1 font-mono tabular-nums">
               {replyRate}%
             </div>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-[#171B26] border border-[#232938] text-amber-400 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-white/15 border border-white/25 text-white flex items-center justify-center">
             <Users className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#11141C] border border-[#1D2330] p-3 rounded-xl">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white border border-[#DCE3DF] shadow-sm p-3 rounded-xl">
         <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 text-[#949EB0] absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#5C6F68] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={isEs ? 'Buscar campañas...' : 'Search campaigns...'}
-            className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg pl-9 pr-3 py-1.5 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
+            className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg pl-9 pr-3 py-1.5 text-xs text-[#14213D] placeholder-[#5C6F68]/70 focus:outline-none transition"
           />
         </div>
 
@@ -287,8 +287,8 @@ export default function CampaignsListView({
             onClick={() => setStatusFilter('all')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
               statusFilter === 'all'
-                ? 'bg-[#E85D2A] text-white'
-                : 'text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26]'
+                ? 'bg-[#14213D] text-white'
+                : 'text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0]'
             }`}
           >
             {isEs ? 'Todas' : 'All'} (
@@ -299,8 +299,8 @@ export default function CampaignsListView({
             onClick={() => setStatusFilter('active')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
               statusFilter === 'active'
-                ? 'bg-emerald-600 text-white'
-                : 'text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26]'
+                ? 'bg-[#D5ECD4] text-[#14213D] border border-[#C3DAC3]'
+                : 'text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0]'
             }`}
           >
             {isEs ? 'Activas' : 'Active'} (
@@ -314,8 +314,8 @@ export default function CampaignsListView({
             onClick={() => setStatusFilter('paused')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
               statusFilter === 'paused'
-                ? 'bg-amber-600 text-white'
-                : 'text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26]'
+                ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                : 'text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0]'
             }`}
           >
             {isEs ? 'Pausadas' : 'Paused'} (
@@ -329,8 +329,8 @@ export default function CampaignsListView({
             onClick={() => setStatusFilter('draft')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
               statusFilter === 'draft'
-                ? 'bg-[#232938] text-[#F3F5F8]'
-                : 'text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26]'
+                ? 'bg-[#14213D] text-white'
+                : 'text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0]'
             }`}
           >
             {isEs ? 'Borradores' : 'Drafts'} (
@@ -344,14 +344,14 @@ export default function CampaignsListView({
 
       {/* Campaigns Cards List or Empty State */}
       {filteredCampaigns.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-12 bg-[#11141C] border border-dashed border-[#232938] rounded-xl text-center">
-          <div className="w-16 h-16 rounded-xl bg-[#171B26] border border-[#232938] text-[#E85D2A] flex items-center justify-center mb-4">
+        <div className="flex-1 flex flex-col items-center justify-center p-12 bg-white border border-dashed border-[#A1B0AB] shadow-sm rounded-xl text-center">
+          <div className="w-16 h-16 rounded-xl bg-[#D5ECD4] border border-[#C3DAC3] text-[#14213D] flex items-center justify-center mb-4">
             <Mail className="w-8 h-8" />
           </div>
-          <h3 className="text-base font-bold text-[#F3F5F8]">
+          <h3 className="text-base font-bold text-[#14213D]">
             {isEs ? 'No se encontraron campañas' : 'No campaigns found'}
           </h3>
-          <p className="text-xs text-[#949EB0] max-w-sm mt-1 mb-5">
+          <p className="text-xs text-[#5C6F68] max-w-sm mt-1 mb-5">
             {isReadOnly
               ? isEs
                 ? 'No hay campañas disponibles en este espacio de trabajo todavía.'
@@ -364,7 +364,7 @@ export default function CampaignsListView({
             <button
               type="button"
               onClick={onCreateCampaign}
-              className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white font-semibold px-4 py-2 rounded-lg text-xs transition cursor-pointer"
+              className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] text-white font-semibold px-4 py-2 rounded-lg text-xs transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>{isEs ? 'Crear Primera Campaña' : 'Create First Campaign'}</span>
@@ -386,7 +386,7 @@ export default function CampaignsListView({
               <div
                 key={camp.id}
                 onClick={() => onSelectCampaign(camp)}
-                className="group bg-[#11141C] hover:bg-[#171B26]/80 border border-[#1D2330] hover:border-[#232938] rounded-xl p-4 transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                className="group bg-white hover:bg-[#F4F7F5] border border-[#DCE3DF] hover:border-[#A1B0AB] shadow-sm rounded-xl p-4 transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 {/* Left: Name and Status */}
                 <div className="flex items-start gap-3.5">
@@ -409,12 +409,12 @@ export default function CampaignsListView({
                     }
                     className={`mt-1 w-7 h-7 rounded-lg flex items-center justify-center transition shrink-0 ${
                       isReadOnly
-                        ? 'opacity-50 cursor-not-allowed bg-[#171B26] text-[#949EB0] border border-[#232938]'
+                        ? 'opacity-50 cursor-not-allowed bg-[#EEF3F0] text-[#5C6F68] border border-[#DCE3DF]'
                         : camp.status === 'active'
-                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 cursor-pointer'
+                          ? 'bg-[#D5ECD4] text-[#14213D] border border-[#C3DAC3] hover:bg-[#C3DAC3] cursor-pointer'
                           : camp.status === 'paused'
-                            ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 cursor-pointer'
-                            : 'bg-[#171B26] text-[#949EB0] border border-[#232938] hover:bg-[#1D2330] cursor-pointer'
+                            ? 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 cursor-pointer'
+                            : 'bg-[#EEF3F0] text-[#5C6F68] border border-[#DCE3DF] hover:bg-[#DCE3DF] cursor-pointer'
                     }`}
                   >
                     {camp.status === 'active' ? (
@@ -426,38 +426,42 @@ export default function CampaignsListView({
 
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-[#F3F5F8] group-hover:text-[#E85D2A] transition">
+                      <span className="text-sm font-bold text-[#14213D] group-hover:text-[#1E3158] transition">
                         {camp.name}
                       </span>
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase border ${
                           camp.status === 'active'
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                            ? 'bg-[#D5ECD4] text-[#14213D] border-[#C3DAC3]'
                             : camp.status === 'paused'
-                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                              : 'bg-[#171B26] text-[#949EB0] border-[#232938]'
+                              ? 'bg-amber-50 text-amber-800 border-amber-200'
+                              : 'bg-[#EEF3F0] text-[#5C6F68] border-[#DCE3DF]'
                         }`}
                       >
                         {camp.status}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-[#949EB0] mt-1 flex-wrap">
+                    <div className="flex items-center gap-3 text-xs text-[#5C6F68] mt-1 flex-wrap">
                       <span className="flex items-center gap-1">
-                        <Mail className="w-3.5 h-3.5 text-[#949EB0]/70" />
-                        <span className="font-mono tabular-nums">{stepsCount}</span>
+                        <Mail className="w-3.5 h-3.5 text-[#5C6F68]/80" />
+                        <span className="font-mono tabular-nums text-[#14213D] font-medium">
+                          {stepsCount}
+                        </span>
                         <span>{isEs ? 'Pasos' : 'Steps'}</span>
                       </span>
-                      <span className="text-[#232938]">•</span>
+                      <span className="text-[#A1B0AB]">•</span>
                       <span className="flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5 text-[#949EB0]/70" />
-                        <span className="font-mono tabular-nums">{campLeads.length}</span>
+                        <Users className="w-3.5 h-3.5 text-[#5C6F68]/80" />
+                        <span className="font-mono tabular-nums text-[#14213D] font-medium">
+                          {campLeads.length}
+                        </span>
                         <span>Leads</span>
                       </span>
-                      <span className="text-[#232938]">•</span>
-                      <span className="text-[11px] text-[#949EB0]">
+                      <span className="text-[#A1B0AB]">•</span>
+                      <span className="text-[11px] text-[#5C6F68]">
                         {isEs ? 'Límite diario:' : 'Daily limit:'}{' '}
-                        <span className="font-mono tabular-nums text-[#F3F5F8]">
+                        <span className="font-mono tabular-nums text-[#14213D] font-medium">
                           {camp.schedule?.dailyLimit || 50}
                         </span>
                         /día
@@ -467,24 +471,24 @@ export default function CampaignsListView({
                 </div>
 
                 {/* Center: Quick Stats */}
-                <div className="flex items-center gap-6 sm:px-4 py-2 sm:py-0 border-y sm:border-y-0 sm:border-x border-[#1D2330] text-center">
+                <div className="flex items-center gap-6 sm:px-4 py-2 sm:py-0 border-y sm:border-y-0 sm:border-x border-[#DCE3DF] text-center">
                   <div>
-                    <div className="text-xs font-bold text-[#F3F5F8] font-mono tabular-nums">
+                    <div className="text-xs font-bold text-[#14213D] font-mono tabular-nums">
                       {sent.toLocaleString()}
                     </div>
-                    <div className="text-[10px] text-[#949EB0]">{isEs ? 'Enviados' : 'Sent'}</div>
+                    <div className="text-[10px] text-[#5C6F68]">{isEs ? 'Enviados' : 'Sent'}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-emerald-400 font-mono tabular-nums">
+                    <div className="text-xs font-bold text-[#14213D] font-mono tabular-nums">
                       {campOpenRate}%
                     </div>
-                    <div className="text-[10px] text-[#949EB0]">{isEs ? 'Aperturas' : 'Opens'}</div>
+                    <div className="text-[10px] text-[#5C6F68]">{isEs ? 'Aperturas' : 'Opens'}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-[#E85D2A] font-mono tabular-nums">
+                    <div className="text-xs font-bold text-[#5C6F68] font-mono tabular-nums">
                       {campReplyRate}%
                     </div>
-                    <div className="text-[10px] text-[#949EB0]">{isEs ? 'Respuestas' : 'Replies'}</div>
+                    <div className="text-[10px] text-[#5C6F68]">{isEs ? 'Respuestas' : 'Replies'}</div>
                   </div>
                 </div>
 
@@ -496,7 +500,7 @@ export default function CampaignsListView({
                       e.stopPropagation();
                       onSelectCampaign(camp);
                     }}
-                    className="flex items-center gap-1.5 bg-[#171B26] hover:bg-[#E85D2A] text-[#F3F5F8] border border-[#232938] hover:border-[#E85D2A] px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer"
+                    className="flex items-center gap-1.5 bg-[#D5ECD4] hover:bg-[#14213D] text-[#14213D] hover:text-white border border-[#C3DAC3] hover:border-[#14213D] px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer"
                   >
                     {isReadOnly ? <Eye className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
                     <span>
@@ -517,7 +521,7 @@ export default function CampaignsListView({
                         onClick={(e) => handleDuplicate(camp, e)}
                         disabled={actionLoadingId === camp.id}
                         title={isEs ? 'Duplicar campaña' : 'Duplicate'}
-                        className="p-1.5 text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26] border border-transparent hover:border-[#232938] rounded-lg transition cursor-pointer disabled:opacity-50"
+                        className="p-1.5 text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0] border border-transparent hover:border-[#DCE3DF] rounded-lg transition cursor-pointer disabled:opacity-50"
                       >
                         <Copy className="w-3.5 h-3.5" />
                       </button>
@@ -527,7 +531,7 @@ export default function CampaignsListView({
                         onClick={(e) => handleDelete(camp, e)}
                         disabled={actionLoadingId === camp.id}
                         title={isEs ? 'Eliminar campaña' : 'Delete'}
-                        className="p-1.5 text-[#949EB0] hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 rounded-lg transition cursor-pointer disabled:opacity-50"
+                        className="p-1.5 text-[#5C6F68] hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-lg transition cursor-pointer disabled:opacity-50"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

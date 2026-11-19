@@ -586,9 +586,9 @@ export default function CampaignEditor({
   void openCopilot;
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#0A0C10] text-[#F3F5F8]">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#F4F7F5] text-[#14213D]">
       {/* Top Header with Campaign Name, Status and Controls */}
-      <div className="h-16 px-8 border-b border-[#1D2330] flex items-center justify-between bg-[#11141C] shrink-0 gap-4">
+      <div className="h-16 px-8 border-b border-[#DCE3DF] flex items-center justify-between bg-white shrink-0 gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <input
             type="text"
@@ -600,48 +600,52 @@ export default function CampaignEditor({
               onUpdateCampaign(updated);
               saveToServer(updated);
             }}
-            className="text-base font-bold text-[#F3F5F8] bg-transparent border-b border-transparent hover:border-[#232938] focus:border-[#E85D2A] focus:outline-none px-1 py-0.5 transition disabled:cursor-not-allowed min-w-0"
+            className="text-base font-bold text-[#14213D] bg-transparent border-b border-transparent hover:border-[#DCE3DF] focus:border-[#14213D] focus:outline-none px-1 py-0.5 transition disabled:cursor-not-allowed min-w-0"
           />
 
           <span
-            className={`text-[10px] px-2.5 py-0.5 rounded-lg font-semibold uppercase tracking-wider flex items-center gap-1.5 shrink-0 ${
+            className={`text-[10px] px-2.5 py-0.5 rounded-lg font-semibold uppercase tracking-wider flex items-center gap-1.5 shrink-0 border ${
               campaign.status === 'active'
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                ? 'bg-[#D5ECD4] text-[#14213D] border-[#C3DAC3]'
                 : campaign.status === 'paused'
-                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                  : 'bg-[#171B26] text-[#949EB0] border border-[#232938]'
+                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                  : 'bg-[#EEF3F0] text-[#5C6F68] border-[#DCE3DF]'
             }`}
           >
             <span
               className={`w-1.5 h-1.5 rounded-full ${
-                campaign.status === 'active' ? 'bg-emerald-400 animate-pulse' : 'bg-[#949EB0]'
+                campaign.status === 'active'
+                  ? 'bg-emerald-600 animate-pulse'
+                  : campaign.status === 'paused'
+                    ? 'bg-amber-600'
+                    : 'bg-[#5C6F68]'
               }`}
             />
             {campaign.status}
           </span>
 
           {isReadOnly ? (
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[#171B26] border border-[#232938] text-[#949EB0] shrink-0">
-              <Eye className="w-3.5 h-3.5 text-[#E85D2A]" />
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[#EEF3F0] border border-[#DCE3DF] text-[#5C6F68] shrink-0">
+              <Eye className="w-3.5 h-3.5 text-[#14213D]" />
               <span>{isEs ? 'Modo Solo Lectura' : 'Read-Only Mode'}</span>
             </span>
           ) : (
             <div className="flex items-center gap-1.5 text-[11px] font-medium transition shrink-0">
               {saveStatus === 'saved' && (
-                <span className="text-emerald-400/90 flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="text-[#14213D] flex items-center gap-1 bg-[#D5ECD4]/70 px-2 py-0.5 rounded-lg border border-[#C3DAC3]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                   {isEs ? 'Guardado en Supabase' : 'Saved to Supabase'}
                 </span>
               )}
               {saveStatus === 'saving' && (
-                <span className="text-amber-400 flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+                <span className="text-amber-800 flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
                   <RefreshCw className="w-3 h-3 animate-spin" />
                   {isEs ? 'Guardando...' : 'Saving...'}
                 </span>
               )}
               {saveStatus === 'error' && (
-                <span className="text-rose-400 flex items-center gap-1 bg-rose-500/10 px-2 py-0.5 rounded-lg border border-rose-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                <span className="text-rose-700 flex items-center gap-1 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
                   {isEs ? 'Error al guardar' : 'Save Error'}
                 </span>
               )}
@@ -671,10 +675,10 @@ export default function CampaignEditor({
             }
             className={`px-3.5 py-2 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition ${
               isReadOnly
-                ? 'opacity-45 cursor-not-allowed bg-[#171B26] border-[#232938] text-[#949EB0]'
+                ? 'opacity-50 cursor-not-allowed bg-[#EEF3F0] border-[#DCE3DF] text-[#5C6F68]'
                 : campaign.status === 'active'
-                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 cursor-pointer'
-                  : 'bg-emerald-600 hover:bg-emerald-500 border-emerald-500 text-white cursor-pointer'
+                  ? 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100 cursor-pointer'
+                  : 'bg-[#D5ECD4] hover:bg-[#C3DAC3] border-[#C3DAC3] text-[#14213D] cursor-pointer'
             }`}
           >
             {campaign.status === 'active' ? (
@@ -700,7 +704,7 @@ export default function CampaignEditor({
               type="button"
               onClick={() => handleRunCampaign(false, false)}
               disabled={isReadOnly || isSending}
-              className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-45 disabled:cursor-not-allowed text-white text-xs font-semibold px-3.5 py-2 rounded-l-lg transition cursor-pointer border-r border-black/20"
+              className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] disabled:opacity-45 disabled:cursor-not-allowed text-white text-xs font-semibold px-3.5 py-2 rounded-l-lg transition cursor-pointer border-r border-white/20"
               title={
                 isReadOnly
                   ? isEs
@@ -726,7 +730,7 @@ export default function CampaignEditor({
               type="button"
               disabled={isReadOnly || isSending}
               onClick={() => !isReadOnly && setIsActionDropdownOpen(!isActionDropdownOpen)}
-              className="bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-45 disabled:cursor-not-allowed text-white px-2 py-2 rounded-r-lg transition cursor-pointer flex items-center justify-center"
+              className="bg-[#14213D] hover:bg-[#1E3158] disabled:opacity-45 disabled:cursor-not-allowed text-white px-2 py-2 rounded-r-lg transition cursor-pointer flex items-center justify-center"
               title={isEs ? 'Más opciones de envío' : 'More sending options'}
             >
               <ChevronDown className="w-3.5 h-3.5" />
@@ -738,16 +742,16 @@ export default function CampaignEditor({
                   className="fixed inset-0 z-20"
                   onClick={() => setIsActionDropdownOpen(false)}
                 />
-                <div className="absolute right-0 top-full mt-1.5 w-60 bg-[#11141C] border border-[#232938] rounded-xl shadow-2xl p-1.5 z-30 space-y-1">
+                <div className="absolute right-0 top-full mt-1.5 w-60 bg-white border border-[#DCE3DF] rounded-xl shadow-xl p-1.5 z-30 space-y-1">
                   <button
                     type="button"
                     onClick={() => {
                       setIsActionDropdownOpen(false);
                       if (!isReadOnly) setIsTestEmailModalOpen(true);
                     }}
-                    className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26] rounded-lg transition cursor-pointer"
+                    className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0] rounded-lg transition cursor-pointer"
                   >
-                    <Mail className="w-3.5 h-3.5 text-[#E85D2A]" />
+                    <Mail className="w-3.5 h-3.5 text-[#14213D]" />
                     <span>{isEs ? 'Prueba Real a mi casilla' : 'Test Email to My Mailbox'}</span>
                   </button>
                   <button
@@ -756,9 +760,9 @@ export default function CampaignEditor({
                       setIsActionDropdownOpen(false);
                       handleRunCampaign(true);
                     }}
-                    className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26] rounded-lg transition cursor-pointer"
+                    className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0] rounded-lg transition cursor-pointer"
                   >
-                    <RefreshCw className="w-3.5 h-3.5 text-[#949EB0]" />
+                    <RefreshCw className="w-3.5 h-3.5 text-[#5C6F68]" />
                     <span>{t('campaignWizard.runColdRun')}</span>
                   </button>
                 </div>
@@ -769,7 +773,7 @@ export default function CampaignEditor({
       </div>
 
       {/* 4-Phase Wizard Navigation Bar */}
-      <div className="bg-[#11141C] border-b border-[#1D2330] px-8 flex items-center justify-center gap-2 py-2 shrink-0">
+      <div className="bg-white border-b border-[#DCE3DF] px-8 flex items-center justify-center gap-2 py-2 shrink-0">
         {(
           [
             { id: 'leads', label: t('campaignWizard.wizardPhase1'), icon: Users },
@@ -782,17 +786,17 @@ export default function CampaignEditor({
           const active = activePhase === phase.id;
           return (
             <React.Fragment key={phase.id}>
-              {idx > 0 && <div className="w-6 h-px bg-[#232938]" />}
+              {idx > 0 && <div className="w-6 h-px bg-[#DCE3DF]" />}
               <button
                 type="button"
                 onClick={() => setActivePhase(phase.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
                   active
-                    ? 'bg-[#E85D2A] text-white'
-                    : 'text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26]'
+                    ? 'bg-[#14213D] text-white'
+                    : 'text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0]'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-[#949EB0]'}`} />
+                <Icon className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-[#5C6F68]'}`} />
                 <span>{phase.label}</span>
               </button>
             </React.Fragment>
@@ -805,13 +809,13 @@ export default function CampaignEditor({
         {/* PHASE 1: LEADS */}
         {activePhase === 'leads' && (
           <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1D2330] pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#DCE3DF] pb-4">
               <div>
-                <h3 className="text-sm font-bold text-[#F3F5F8] flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#E85D2A]" />
+                <h3 className="text-sm font-bold text-[#14213D] flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#14213D]" />
                   {t('campaignWizard.wizardPhase1')}
                 </h3>
-                <p className="text-xs text-[#949EB0] mt-0.5">{t('campaignWizard.leadsPhaseDesc')}</p>
+                <p className="text-xs text-[#5C6F68] mt-0.5">{t('campaignWizard.leadsPhaseDesc')}</p>
               </div>
 
               <div className="flex items-center gap-3 flex-wrap">
@@ -819,7 +823,7 @@ export default function CampaignEditor({
                   type="button"
                   disabled={isReadOnly}
                   onClick={() => !isReadOnly && setIsImportModalOpen(true)}
-                  className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition cursor-pointer"
+                  className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition cursor-pointer"
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5" />
                   <span>{isEs ? 'Importar (Google Sheets / CSV)' : 'Import (Google Sheets / CSV)'}</span>
@@ -831,7 +835,7 @@ export default function CampaignEditor({
                       type="button"
                       onClick={handleResetLeads}
                       disabled={isReadOnly || isResettingLeads}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#171B26] hover:bg-[#1D2330] text-[#F3F5F8] border border-[#232938] transition text-xs font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-[#EEF3F0] text-[#14213D] border border-[#DCE3DF] shadow-sm transition text-xs font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       title={
                         isEs
                           ? 'Reiniciar estado de leads a pendiente para reenviar o probar'
@@ -846,7 +850,7 @@ export default function CampaignEditor({
                       type="button"
                       disabled={isReadOnly}
                       onClick={handleClearLeads}
-                      className="p-1.5 rounded-lg bg-[#171B26] hover:bg-rose-500/10 text-[#949EB0] hover:text-rose-400 border border-[#232938] hover:border-rose-500/30 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="p-1.5 rounded-lg bg-white hover:bg-rose-50 text-[#5C6F68] hover:text-rose-700 border border-[#DCE3DF] hover:border-rose-200 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       title={isEs ? 'Vaciar leads' : 'Clear leads'}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -854,7 +858,7 @@ export default function CampaignEditor({
                   </>
                 )}
 
-                <div className="text-xs text-[#949EB0] font-mono tabular-nums pl-2 border-l border-[#232938]">
+                <div className="text-xs text-[#5C6F68] font-mono tabular-nums pl-2 border-l border-[#DCE3DF]">
                   {campaignLeads.length} leads
                 </div>
               </div>
@@ -862,19 +866,19 @@ export default function CampaignEditor({
 
             {/* Campaign Leads Status Banner */}
             {campaignLeads.length > 0 && (
-              <div className="flex items-center justify-between p-3.5 bg-[#11141C] border border-[#1D2330] rounded-xl text-xs">
+              <div className="flex items-center justify-between p-3.5 bg-white border border-[#DCE3DF] shadow-sm rounded-xl text-xs">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <span className="text-[#949EB0]">{isEs ? 'Enviados:' : 'Sent:'}</span>
-                    <span className="font-bold text-[#F3F5F8] font-mono tabular-nums">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                    <span className="text-[#5C6F68]">{isEs ? 'Enviados:' : 'Sent:'}</span>
+                    <span className="font-bold text-[#14213D] font-mono tabular-nums">
                       {campaignLeads.filter((l) => l.status === 'sent').length}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-400" />
-                    <span className="text-[#949EB0]">{isEs ? 'Pendientes:' : 'Pending:'}</span>
-                    <span className="font-bold text-[#F3F5F8] font-mono tabular-nums">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="text-[#5C6F68]">{isEs ? 'Pendientes:' : 'Pending:'}</span>
+                    <span className="font-bold text-[#14213D] font-mono tabular-nums">
                       {campaignLeads.filter((l) => l.status === 'pending').length}
                     </span>
                   </div>
@@ -882,8 +886,8 @@ export default function CampaignEditor({
 
                 {campaignLeads.filter((l) => l.status === 'pending').length === 0 &&
                   campaignLeads.length > 0 && (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-lg">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span className="inline-flex items-center gap-1.5 text-[11px] text-[#14213D] font-medium bg-[#D5ECD4] border border-[#C3DAC3] px-3 py-1 rounded-lg">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#14213D]" />
                       <span>
                         {isEs
                           ? 'Todos los correos fueron despachados'
@@ -894,13 +898,13 @@ export default function CampaignEditor({
               </div>
             )}
 
-            <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-3 text-xs text-[#949EB0] flex items-center justify-between gap-2">
+            <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-3 text-xs text-[#5C6F68] flex items-center justify-between gap-2">
               <span className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <ShieldCheck className="w-4 h-4 text-[#14213D] shrink-0" />
                 <span>{t('campaignWizard.deduplicationNotice')}</span>
               </span>
               {detectedVariables.length > 0 && (
-                <span className="text-[11px] text-[#E85D2A] font-medium bg-[#E85D2A]/10 px-2.5 py-0.5 rounded-lg border border-[#E85D2A]/25 shrink-0 font-mono tabular-nums">
+                <span className="text-[11px] text-[#14213D] font-medium bg-[#D5ECD4] px-2.5 py-0.5 rounded-lg border border-[#C3DAC3] shrink-0 font-mono tabular-nums">
                   {detectedVariables.length}{' '}
                   {isEs ? 'columnas detectadas' : 'sheet columns detected'}
                 </span>
@@ -908,39 +912,39 @@ export default function CampaignEditor({
             </div>
 
             {/* Leads Table Preview with Full Horizontal Scroll and Dynamic Sheet Columns */}
-            <div className="bg-[#11141C] border border-[#1D2330] rounded-xl overflow-hidden">
+            <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl overflow-hidden">
               <div className="overflow-x-auto w-full max-w-full">
                 <table className="w-full text-left text-xs whitespace-nowrap min-w-max">
-                  <thead className="bg-[#171B26] text-[#949EB0] uppercase tracking-wider text-[10px] border-b border-[#232938]">
+                  <thead className="bg-[#EEF3F0] text-[#5C6F68] uppercase tracking-wider text-[10px] border-b border-[#DCE3DF]">
                     <tr>
-                      <th className="py-3 px-4 font-bold text-[#F3F5F8] w-12 sticky left-0 z-20 bg-[#171B26]">
+                      <th className="py-3 px-4 font-bold text-[#14213D] w-12 sticky left-0 z-20 bg-[#EEF3F0]">
                         #
                       </th>
-                      <th className="py-3 px-4 font-bold text-[#F3F5F8] w-36 min-w-[144px] sticky left-12 z-20 bg-[#171B26]">
+                      <th className="py-3 px-4 font-bold text-[#14213D] w-36 min-w-[144px] sticky left-12 z-20 bg-[#EEF3F0]">
                         {isEs ? 'Nombre' : 'Name'}
                       </th>
-                      <th className="py-3 px-4 font-bold text-[#F3F5F8] min-w-[200px] sticky left-[192px] z-20 bg-[#171B26] border-r border-[#232938] shadow-[2px_0_6px_rgba(0,0,0,0.4)]">
+                      <th className="py-3 px-4 font-bold text-[#14213D] min-w-[200px] sticky left-[192px] z-20 bg-[#EEF3F0] border-r border-[#DCE3DF] shadow-[2px_0_6px_rgba(20,33,61,0.06)]">
                         Email
                       </th>
-                      <th className="py-3 px-4 font-bold text-[#F3F5F8]">Estado / Status</th>
-                      <th className="py-3 px-4 font-bold text-[#F3F5F8]">Acción</th>
-                      <th className="py-3 px-4 font-bold text-[#F3F5F8]">Empresa / Company</th>
+                      <th className="py-3 px-4 font-bold text-[#14213D]">Estado / Status</th>
+                      <th className="py-3 px-4 font-bold text-[#14213D]">Acción</th>
+                      <th className="py-3 px-4 font-bold text-[#14213D]">Empresa / Company</th>
                       {detectedVariables.map((col) => (
                         <th
                           key={col}
-                          className="py-3 px-4 text-[#E85D2A] bg-[#11141C] border-l border-[#232938] font-mono font-bold"
+                          className="py-3 px-4 text-[#14213D] bg-[#D5ECD4]/45 border-l border-[#DCE3DF] font-mono font-bold"
                         >
                           &#123;&#123;{col}&#125;&#125;
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1D2330] text-[#F3F5F8]">
+                  <tbody className="divide-y divide-[#DCE3DF] text-[#14213D]">
                     {campaignLeads.length === 0 ? (
                       <tr>
                         <td
                           colSpan={6 + detectedVariables.length}
-                          className="py-8 text-center text-[#949EB0]"
+                          className="py-8 text-center text-[#5C6F68]"
                         >
                           {isEs
                             ? 'No hay destinatarios cargados en esta campaña.'
@@ -959,37 +963,37 @@ export default function CampaignEditor({
                         > = {
                           pending: {
                             text: isEs ? 'Pendiente' : 'Pending',
-                            cls: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+                            cls: 'bg-amber-50 text-amber-800 border-amber-200',
                             Icon: Clock,
                           },
                           sent: {
                             text: isEs ? 'Enviado' : 'Sent',
-                            cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+                            cls: 'bg-[#D5ECD4] text-[#14213D] border-[#C3DAC3]',
                             Icon: CheckCircle2,
                           },
                           opened: {
                             text: isEs ? 'Abierto' : 'Opened',
-                            cls: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
+                            cls: 'bg-sky-50 text-sky-800 border-sky-200',
                             Icon: Eye,
                           },
                           replied: {
                             text: isEs ? 'Respondido' : 'Replied',
-                            cls: 'bg-[#E85D2A]/15 text-[#E85D2A] border-[#E85D2A]/30',
+                            cls: 'bg-[#14213D] text-white border-[#14213D]',
                             Icon: MessageSquare,
                           },
                           bounced: {
                             text: isEs ? 'Rebotado' : 'Bounced',
-                            cls: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+                            cls: 'bg-rose-50 text-rose-700 border-rose-200',
                             Icon: AlertTriangle,
                           },
                           unsubscribed: {
                             text: isEs ? 'Baja' : 'Unsubscribed',
-                            cls: 'bg-[#171B26] text-[#949EB0] border-[#232938]',
+                            cls: 'bg-[#EEF3F0] text-[#5C6F68] border-[#DCE3DF]',
                             Icon: Ban,
                           },
                           completed: {
                             text: isEs ? 'Completo' : 'Completed',
-                            cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25',
+                            cls: 'bg-[#14213D] text-white border-[#14213D]',
                             Icon: Flag,
                           },
                         };
@@ -997,14 +1001,14 @@ export default function CampaignEditor({
                         const StatusIcon = st.Icon;
 
                         return (
-                          <tr key={l.id} className="group hover:bg-[#171B26]/60 transition">
-                            <td className="py-2.5 px-4 text-[#949EB0] font-mono tabular-nums text-[10px] w-12 sticky left-0 z-10 bg-[#11141C] group-hover:bg-[#171B26] transition">
+                          <tr key={l.id} className="group hover:bg-[#EEF3F0] transition">
+                            <td className="py-2.5 px-4 text-[#5C6F68] font-mono tabular-nums text-[10px] w-12 sticky left-0 z-10 bg-white group-hover:bg-[#EEF3F0] transition">
                               {i + 1}
                             </td>
-                            <td className="py-2.5 px-4 text-[#F3F5F8] w-36 min-w-[144px] max-w-[144px] truncate sticky left-12 z-10 bg-[#11141C] group-hover:bg-[#171B26] transition">
+                            <td className="py-2.5 px-4 text-[#14213D] w-36 min-w-[144px] max-w-[144px] truncate sticky left-12 z-10 bg-white group-hover:bg-[#EEF3F0] transition">
                               {[l.firstName, l.lastName].filter(Boolean).join(' ') || '-'}
                             </td>
-                            <td className="py-2.5 px-4 font-mono text-[#F3F5F8] font-medium min-w-[200px] sticky left-[192px] z-10 bg-[#11141C] group-hover:bg-[#171B26] border-r border-[#232938] shadow-[2px_0_6px_rgba(0,0,0,0.4)] transition">
+                            <td className="py-2.5 px-4 font-mono text-[#14213D] font-medium min-w-[200px] sticky left-[192px] z-10 bg-white group-hover:bg-[#EEF3F0] border-r border-[#DCE3DF] shadow-[2px_0_6px_rgba(20,33,61,0.06)] transition">
                               {l.email}
                             </td>
                             <td className="py-2.5 px-4">
@@ -1020,17 +1024,17 @@ export default function CampaignEditor({
                                 type="button"
                                 disabled={isReadOnly}
                                 onClick={() => !isReadOnly && setEditingLead(l)}
-                                className="flex items-center gap-1 bg-[#171B26] hover:bg-[#E85D2A] text-[#F3F5F8] hover:text-white px-2.5 py-1 rounded-lg border border-[#232938] hover:border-[#E85D2A] text-[10px] font-semibold transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="flex items-center gap-1 bg-[#EEF3F0] hover:bg-[#14213D] text-[#14213D] hover:text-white px-2.5 py-1 rounded-lg border border-[#DCE3DF] hover:border-[#14213D] text-[10px] font-semibold transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                               >
                                 <Edit3 className="w-3 h-3" />
                                 <span>{isEs ? 'Editar' : 'Edit'}</span>
                               </button>
                             </td>
-                            <td className="py-2.5 px-4 text-[#949EB0]">{l.companyName || '-'}</td>
+                            <td className="py-2.5 px-4 text-[#5C6F68]">{l.companyName || '-'}</td>
                             {detectedVariables.map((col) => (
                               <td
                                 key={col}
-                                className="py-2.5 px-4 font-mono text-[#949EB0] border-l border-[#1D2330] bg-[#0A0C10]/30 max-w-xs truncate"
+                                className="py-2.5 px-4 font-mono text-[#5C6F68] border-l border-[#DCE3DF] bg-[#F4F7F5]/60 max-w-xs truncate"
                                 title={String(l.customVariables?.[col] ?? '')}
                               >
                                 {l.customVariables?.[col] !== undefined
@@ -1053,7 +1057,7 @@ export default function CampaignEditor({
         {activePhase === 'sequences' && (
           <div className="space-y-6">
             {/* Step Tabs */}
-            <div className="flex items-center gap-2 border-b border-[#1D2330] pb-3 overflow-x-auto">
+            <div className="flex items-center gap-2 border-b border-[#DCE3DF] pb-3 overflow-x-auto">
               {campaign.steps.map((step, idx) => (
                 <button
                   key={step.id}
@@ -1064,8 +1068,8 @@ export default function CampaignEditor({
                   }}
                   className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                     activeStepIndex === idx
-                      ? 'bg-[#E85D2A] text-white'
-                      : 'bg-[#11141C] text-[#949EB0] hover:text-[#F3F5F8] border border-[#232938]'
+                      ? 'bg-[#14213D] text-white'
+                      : 'bg-white text-[#5C6F68] hover:text-[#14213D] border border-[#DCE3DF]'
                   }`}
                 >
                   <span>
@@ -1079,7 +1083,7 @@ export default function CampaignEditor({
                         e.stopPropagation();
                         handleDeleteStep(idx);
                       }}
-                      className="hover:text-rose-400 p-0.5 cursor-pointer"
+                      className="hover:text-rose-600 p-0.5 cursor-pointer"
                     >
                       <Trash2 className="w-3 h-3" />
                     </span>
@@ -1091,7 +1095,7 @@ export default function CampaignEditor({
                 type="button"
                 disabled={isReadOnly}
                 onClick={handleAddStep}
-                className="flex items-center gap-1.5 text-xs font-medium text-[#E85D2A] hover:text-[#F26B3A] bg-[#E85D2A]/10 hover:bg-[#E85D2A]/15 border border-[#E85D2A]/30 px-3 py-1.5 rounded-lg transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 text-xs font-medium text-[#14213D] bg-[#D5ECD4] hover:bg-[#C3DAC3] border border-[#A1B0AB]/50 px-3 py-1.5 rounded-lg transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Plus className="w-3.5 h-3.5" />
                 {t('campaignWizard.addStep')}
@@ -1100,9 +1104,9 @@ export default function CampaignEditor({
 
             {/* Delay Settings if Follow-up */}
             {activeStepIndex > 0 && activeStep && (
-              <div className="flex items-center gap-3 bg-[#11141C] border border-[#1D2330] px-4 py-2.5 rounded-xl text-xs">
-                <Clock className="w-4 h-4 text-[#949EB0]" />
-                <span className="text-[#949EB0]">{t('campaignWizard.wait')}</span>
+              <div className="flex items-center gap-3 bg-white border border-[#DCE3DF] shadow-sm px-4 py-2.5 rounded-xl text-xs">
+                <Clock className="w-4 h-4 text-[#5C6F68]" />
+                <span className="text-[#5C6F68]">{t('campaignWizard.wait')}</span>
                 <input
                   type="number"
                   min="1"
@@ -1110,16 +1114,16 @@ export default function CampaignEditor({
                   disabled={isReadOnly}
                   value={activeStep.waitDays}
                   onChange={(e) => handleUpdateWaitDays(parseInt(e.target.value, 10) || 1)}
-                  className="w-14 bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] text-[#F3F5F8] font-mono tabular-nums text-xs px-2 py-1 rounded-lg text-center focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-14 bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white text-[#14213D] font-mono tabular-nums text-xs px-2 py-1 rounded-lg text-center focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                 />
-                <span className="text-[#949EB0]">{t('campaignWizard.daysIfNoReply')}</span>
+                <span className="text-[#5C6F68]">{t('campaignWizard.daysIfNoReply')}</span>
               </div>
             )}
 
             {/* A/Z Testing Variant Tabs */}
             {activeStep && (
               <div className="flex items-center gap-2 pt-1 flex-wrap">
-                <span className="text-xs font-semibold text-[#949EB0] uppercase tracking-wider mr-2">
+                <span className="text-xs font-semibold text-[#5C6F68] uppercase tracking-wider mr-2">
                   A/Z Testing:
                 </span>
                 {activeStep.variants.map((v, vIdx) => (
@@ -1127,8 +1131,8 @@ export default function CampaignEditor({
                     key={v.id}
                     className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition ${
                       activeVariantIndex === vIdx
-                        ? 'bg-[#E85D2A] text-white'
-                        : 'bg-[#11141C] border border-[#232938] text-[#949EB0] hover:text-[#F3F5F8]'
+                        ? 'bg-[#14213D] text-white'
+                        : 'bg-white border border-[#DCE3DF] text-[#5C6F68] hover:text-[#14213D]'
                     }`}
                   >
                     <button
@@ -1145,7 +1149,11 @@ export default function CampaignEditor({
                           e.stopPropagation();
                           handleDeleteVariant(vIdx);
                         }}
-                        className="ml-1 text-[#949EB0] hover:text-rose-300 hover:bg-rose-500/20 p-0.5 rounded transition cursor-pointer"
+                        className={`ml-1 p-0.5 rounded transition cursor-pointer ${
+                          activeVariantIndex === vIdx
+                            ? 'text-white/75 hover:text-rose-200 hover:bg-white/10'
+                            : 'text-[#5C6F68] hover:text-rose-700 hover:bg-rose-50'
+                        }`}
                         title={isEs ? 'Eliminar variante' : 'Delete variant'}
                       >
                         <Trash2 className="w-3 h-3" />
@@ -1159,7 +1167,7 @@ export default function CampaignEditor({
                     type="button"
                     disabled={isReadOnly}
                     onClick={handleAddVariantToStep}
-                    className="text-xs text-[#E85D2A] hover:text-[#F26B3A] bg-[#E85D2A]/10 border border-[#E85D2A]/25 px-2.5 py-1 rounded-lg flex items-center gap-1 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="text-xs font-medium text-[#14213D] bg-[#D5ECD4] hover:bg-[#C3DAC3] border border-[#A1B0AB]/50 px-2.5 py-1 rounded-lg flex items-center gap-1 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-3 h-3" />
                     {t('campaignWizard.addVariant')}
@@ -1169,15 +1177,15 @@ export default function CampaignEditor({
             )}
 
             {/* View Mode Toggle: Editor vs Live Preview */}
-            <div className="flex items-center justify-between border-b border-[#1D2330] pb-3 flex-wrap gap-3">
-              <div className="flex items-center bg-[#11141C] border border-[#232938] p-1 rounded-xl">
+            <div className="flex items-center justify-between border-b border-[#DCE3DF] pb-3 flex-wrap gap-3">
+              <div className="flex items-center bg-white border border-[#DCE3DF] shadow-sm p-1 rounded-xl">
                 <button
                   type="button"
                   onClick={() => setSequenceMode('editor')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                     sequenceMode === 'editor'
-                      ? 'bg-[#E85D2A] text-white'
-                      : 'text-[#949EB0] hover:text-[#F3F5F8]'
+                      ? 'bg-[#14213D] text-white'
+                      : 'text-[#5C6F68] hover:text-[#14213D]'
                   }`}
                 >
                   <Edit3 className="w-3.5 h-3.5" />
@@ -1188,8 +1196,8 @@ export default function CampaignEditor({
                   onClick={() => setSequenceMode('preview')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                     sequenceMode === 'preview'
-                      ? 'bg-[#E85D2A] text-white'
-                      : 'text-[#949EB0] hover:text-[#F3F5F8]'
+                      ? 'bg-[#14213D] text-white'
+                      : 'text-[#5C6F68] hover:text-[#14213D]'
                   }`}
                 >
                   <Eye className="w-3.5 h-3.5" />
@@ -1202,11 +1210,11 @@ export default function CampaignEditor({
                   {/* Lead Selector for Preview */}
                   {availableLeads.length > 0 && (
                     <div className="flex items-center gap-1.5 text-xs">
-                      <span className="text-[#949EB0]">{isEs ? 'Ver como:' : 'Preview as:'}</span>
+                      <span className="text-[#5C6F68]">{isEs ? 'Ver como:' : 'Preview as:'}</span>
                       <select
                         value={previewLeadIndex}
                         onChange={(e) => setPreviewLeadIndex(Number(e.target.value))}
-                        className="bg-[#171B26] border border-[#232938] text-[#F3F5F8] rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-[#E85D2A] cursor-pointer"
+                        className="bg-white border border-[#DCE3DF] text-[#14213D] rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-[#14213D] cursor-pointer"
                       >
                         {availableLeads.map((l, i) => {
                           const fullName = [l.firstName, l.lastName].filter(Boolean).join(' ');
@@ -1221,14 +1229,14 @@ export default function CampaignEditor({
                   )}
 
                   {/* Device Switcher */}
-                  <div className="flex items-center bg-[#11141C] border border-[#232938] p-0.5 rounded-lg">
+                  <div className="flex items-center bg-white border border-[#DCE3DF] p-0.5 rounded-lg">
                     <button
                       type="button"
                       onClick={() => setPreviewDevice('desktop')}
                       className={`p-1.5 rounded-md transition cursor-pointer ${
                         previewDevice === 'desktop'
-                          ? 'bg-[#E85D2A] text-white'
-                          : 'text-[#949EB0] hover:text-[#F3F5F8]'
+                          ? 'bg-[#14213D] text-white'
+                          : 'text-[#5C6F68] hover:text-[#14213D]'
                       }`}
                       title={isEs ? 'Vista Escritorio (640px)' : 'Desktop View (640px)'}
                     >
@@ -1239,8 +1247,8 @@ export default function CampaignEditor({
                       onClick={() => setPreviewDevice('mobile')}
                       className={`p-1.5 rounded-md transition cursor-pointer ${
                         previewDevice === 'mobile'
-                          ? 'bg-[#E85D2A] text-white'
-                          : 'text-[#949EB0] hover:text-[#F3F5F8]'
+                          ? 'bg-[#14213D] text-white'
+                          : 'text-[#5C6F68] hover:text-[#14213D]'
                       }`}
                       title={isEs ? 'Vista Móvil (375px)' : 'Mobile View (375px)'}
                     >
@@ -1252,14 +1260,14 @@ export default function CampaignEditor({
                   <button
                     type="button"
                     onClick={() => setPreviewRandomSeed((prev) => prev + 1)}
-                    className="flex items-center gap-1.5 bg-[#171B26] hover:bg-[#1D2330] text-[#F3F5F8] text-xs px-2.5 py-1 rounded-lg border border-[#232938] transition cursor-pointer"
+                    className="flex items-center gap-1.5 bg-white hover:bg-[#EEF3F0] text-[#14213D] text-xs font-medium px-2.5 py-1 rounded-lg border border-[#DCE3DF] transition cursor-pointer"
                     title={
                       isEs
                         ? 'Generar otra variante spintax aleatoria'
                         : 'Re-roll spintax variation'
                     }
                   >
-                    <Dice5 className="w-3.5 h-3.5 text-[#E85D2A]" />
+                    <Dice5 className="w-3.5 h-3.5 text-[#14213D]" />
                     <span>{isEs ? 'Variar Spintax' : 'Re-roll Spintax'}</span>
                   </button>
                 </div>
@@ -1270,20 +1278,20 @@ export default function CampaignEditor({
               <>
                 {/* Spam Detection Banner */}
                 {totalSpamWords.length > 0 ? (
-                  <div className="bg-rose-500/10 border border-rose-500/35 rounded-xl p-4 flex items-center justify-between gap-3">
+                  <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+                      <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
                       <div>
-                        <div className="text-xs font-semibold text-rose-300">
+                        <div className="text-xs font-semibold text-rose-800">
                           {t('campaignWizard.spamWarningTitle')}{' '}
                           <span className="font-mono tabular-nums">{totalSpamWords.length}</span>{' '}
                           {t('campaignWizard.spamWarningDetected')}
                         </div>
-                        <div className="text-[11px] text-rose-200/80 mt-0.5 flex flex-wrap gap-1">
+                        <div className="text-[11px] text-rose-700 mt-0.5 flex flex-wrap gap-1">
                           {totalSpamWords.map((w, i) => (
                             <span
                               key={i}
-                              className="font-mono bg-rose-500/20 px-1.5 py-0.5 rounded text-rose-200"
+                              className="font-mono bg-rose-100 border border-rose-200 px-1.5 py-0.5 rounded text-rose-800"
                             >
                               {w.word}
                             </span>
@@ -1295,27 +1303,27 @@ export default function CampaignEditor({
                       type="button"
                       disabled={isReadOnly}
                       onClick={handleQuickCleanSpam}
-                      className="bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+                      className="bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 shrink-0 cursor-pointer"
                     >
                       <ShieldCheck className="w-3.5 h-3.5" />
                       {t('campaignWizard.cleanSpamAi')}
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-2.5 flex items-center gap-2.5 text-xs text-emerald-400">
-                    <CheckCircle2 className="w-4 h-4" />
+                  <div className="bg-[#D5ECD4]/70 border border-[#C3DAC3] rounded-xl px-4 py-2.5 flex items-center gap-2.5 text-xs text-[#14213D] font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-[#14213D]" />
                     <span>{t('campaignWizard.spamSafeBadge')}</span>
                   </div>
                 )}
 
                 {/* Subject Line Input */}
-                <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-5 space-y-3">
+                <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-5 space-y-3">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <label className="text-xs font-semibold text-[#F3F5F8] uppercase tracking-wider">
+                    <label className="text-xs font-semibold text-[#14213D] uppercase tracking-wider">
                       {t('campaignWizard.subjectLine')}
                     </label>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[11px] text-[#949EB0] mr-1">
+                      <span className="text-[11px] text-[#5C6F68] mr-1">
                         {t('campaignWizard.insertTag')}
                       </span>
                       {availableTags.map((tag) => {
@@ -1328,8 +1336,8 @@ export default function CampaignEditor({
                             onClick={() => insertVariable(tag, 'subject')}
                             className={`text-[10px] px-2 py-0.5 rounded-lg transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                               isCustomSheet
-                                ? 'bg-[#E85D2A]/10 hover:bg-[#E85D2A]/20 text-[#E85D2A] border border-[#E85D2A]/30 font-mono font-medium'
-                                : 'bg-[#171B26] hover:bg-[#1D2330] text-[#F3F5F8] border border-[#232938]'
+                                ? 'bg-[#D5ECD4] hover:bg-[#C3DAC3] text-[#14213D] border border-[#A1B0AB]/50 font-mono font-medium'
+                                : 'bg-[#EEF3F0] hover:bg-[#DCE3DF] text-[#14213D] border border-[#DCE3DF]'
                             }`}
                             title={
                               isCustomSheet
@@ -1351,14 +1359,14 @@ export default function CampaignEditor({
                     disabled={isReadOnly}
                     value={activeVariant?.subject || ''}
                     onChange={(e) => handleUpdateActiveVariant({ subject: e.target.value })}
-                    className="w-full bg-[#171B26] border border-[#232938] rounded-lg px-4 py-2.5 text-sm text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none focus:border-[#E85D2A] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:bg-white rounded-lg px-4 py-2.5 text-sm text-[#14213D] placeholder-[#5C6F68]/70 focus:outline-none focus:border-[#14213D] transition disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
 
                 {/* Email Body Input */}
-                <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-5 space-y-3">
+                <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-5 space-y-3">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <label className="text-xs font-semibold text-[#F3F5F8] uppercase tracking-wider">
+                    <label className="text-xs font-semibold text-[#14213D] uppercase tracking-wider">
                       {t('campaignWizard.emailBody')}
                     </label>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -1366,24 +1374,24 @@ export default function CampaignEditor({
                         type="button"
                         disabled={isReadOnly}
                         onClick={handleAddSpintaxToBody}
-                        className="text-[11px] bg-[#E85D2A]/10 hover:bg-[#E85D2A]/20 text-[#E85D2A] border border-[#E85D2A]/30 px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="text-[11px] bg-[#D5ECD4] hover:bg-[#C3DAC3] text-[#14213D] border border-[#A1B0AB]/50 font-medium px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         title={isEs ? 'Aplicar Spintax automático' : 'Apply Auto Spintax'}
                       >
-                        <Sparkles className="w-3 h-3 text-[#E85D2A]" />
+                        <Sparkles className="w-3 h-3 text-[#14213D]" />
                         {t('campaignWizard.autoSpintax')}
                       </button>
 
                       <button
                         type="button"
                         onClick={handlePreviewSpintax}
-                        className="text-[11px] bg-[#171B26] hover:bg-[#1D2330] text-[#F3F5F8] border border-[#232938] px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                        className="text-[11px] bg-[#EEF3F0] hover:bg-[#DCE3DF] text-[#14213D] border border-[#DCE3DF] px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
                         title={isEs ? 'Previsualizar variaciones' : 'Preview variations'}
                       >
-                        <Eye className="w-3 h-3 text-[#949EB0]" />
+                        <Eye className="w-3 h-3 text-[#5C6F68]" />
                         {t('campaignWizard.previewSpintax')}
                       </button>
 
-                      <div className="h-4 w-px bg-[#232938] hidden sm:block" />
+                      <div className="h-4 w-px bg-[#DCE3DF] hidden sm:block" />
 
                       <div className="flex items-center gap-1 flex-wrap">
                         {availableTags.map((tag) => {
@@ -1396,8 +1404,8 @@ export default function CampaignEditor({
                               onClick={() => insertVariable(tag, 'body')}
                               className={`text-[10px] px-2 py-0.5 rounded-lg transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                                 isCustomSheet
-                                  ? 'bg-[#E85D2A]/10 hover:bg-[#E85D2A]/20 text-[#E85D2A] border border-[#E85D2A]/30 font-mono font-medium'
-                                  : 'bg-[#171B26] hover:bg-[#1D2330] text-[#F3F5F8] border border-[#232938]'
+                                  ? 'bg-[#D5ECD4] hover:bg-[#C3DAC3] text-[#14213D] border border-[#A1B0AB]/50 font-mono font-medium'
+                                  : 'bg-[#EEF3F0] hover:bg-[#DCE3DF] text-[#14213D] border border-[#DCE3DF]'
                               }`}
                               title={
                                 isCustomSheet
@@ -1421,12 +1429,12 @@ export default function CampaignEditor({
                     value={activeVariant?.body || ''}
                     onChange={(e) => handleUpdateActiveVariant({ body: e.target.value })}
                     placeholder={t('campaignWizard.bodyPlaceholder')}
-                    className="w-full bg-[#171B26] border border-[#232938] rounded-lg p-4 text-sm text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none focus:border-[#E85D2A] transition leading-relaxed font-sans disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:bg-white rounded-lg p-4 text-sm text-[#14213D] placeholder-[#5C6F68]/70 focus:outline-none focus:border-[#14213D] transition leading-relaxed font-sans disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
               </>
             ) : (
-              /* Live Email Preview Container */
+              /* Live Email Preview Container (Crisp Light Email Client) */
               <div className="flex flex-col items-center py-4 px-2 w-full">
                 {(() => {
                   const safeLeadIndex = Math.min(
@@ -1501,18 +1509,18 @@ export default function CampaignEditor({
                   return (
                     <div
                       key={previewRandomSeed}
-                      className={`w-full bg-[#11141C] border border-[#232938] rounded-xl shadow-2xl overflow-hidden transition-all duration-200 ${
+                      className={`w-full bg-white border border-[#DCE3DF] text-[#14213D] rounded-xl shadow-md overflow-hidden transition-all duration-200 ${
                         previewDevice === 'mobile' ? 'max-w-[375px]' : 'max-w-[640px]'
                       }`}
                     >
                       {/* Window Header */}
-                      <div className="bg-[#171B26] px-4 py-3 border-b border-[#232938] flex items-center justify-between">
+                      <div className="bg-[#EEF3F0] px-4 py-3 border-b border-[#DCE3DF] flex items-center justify-between">
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
-                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                         </div>
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#949EB0] truncate text-center px-2">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#5C6F68] truncate text-center px-2">
                           {previewDevice === 'mobile' ? (
                             <>
                               <Smartphone className="w-3.5 h-3.5" />
@@ -1529,48 +1537,48 @@ export default function CampaignEditor({
                       </div>
 
                       {/* Email Envelope Meta */}
-                      <div className="p-4 bg-[#171B26]/60 border-b border-[#1D2330] text-xs space-y-2">
+                      <div className="p-4 bg-[#F4F7F5] border-b border-[#DCE3DF] text-xs space-y-2">
                         <div className="flex items-start sm:items-center gap-2">
-                          <span className="text-[#949EB0] font-medium w-12 text-right shrink-0">
+                          <span className="text-[#5C6F68] font-medium w-12 text-right shrink-0">
                             De:
                           </span>
                           <div className="flex flex-wrap items-baseline gap-1.5 min-w-0">
-                            <span className="text-[#F3F5F8] font-medium truncate">
+                            <span className="text-[#14213D] font-medium truncate">
                               {senderAcct.name}
                             </span>
-                            <span className="text-[#949EB0] font-mono text-[11px] truncate">
+                            <span className="text-[#5C6F68] font-mono text-[11px] truncate">
                               &lt;{senderAcct.email}&gt;
                             </span>
                           </div>
                         </div>
                         <div className="flex items-start sm:items-center gap-2">
-                          <span className="text-[#949EB0] font-medium w-12 text-right shrink-0">
+                          <span className="text-[#5C6F68] font-medium w-12 text-right shrink-0">
                             Para:
                           </span>
                           <div className="flex flex-wrap items-baseline gap-1.5 min-w-0">
-                            <span className="text-[#F3F5F8] font-medium truncate">
+                            <span className="text-[#14213D] font-medium truncate">
                               {targetLead.firstName} {targetLead.lastName}
                             </span>
-                            <span className="text-[#949EB0] font-mono text-[11px] truncate">
+                            <span className="text-[#5C6F68] font-mono text-[11px] truncate">
                               &lt;{targetLead.email}&gt;
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-start sm:items-center gap-2 pt-1 border-t border-[#1D2330]">
-                          <span className="text-[#949EB0] font-medium w-12 text-right shrink-0">
+                        <div className="flex items-start sm:items-center gap-2 pt-1 border-t border-[#DCE3DF]">
+                          <span className="text-[#5C6F68] font-medium w-12 text-right shrink-0">
                             Asunto:
                           </span>
-                          <span className="text-[#F3F5F8] font-bold break-words min-w-0">
+                          <span className="text-[#14213D] font-bold break-words min-w-0">
                             {previewSubject || '(Sin asunto)'}
                           </span>
                         </div>
                       </div>
 
                       {/* Email Body Content */}
-                      <div className="p-5 sm:p-6 bg-[#0A0C10] min-h-[220px]">
-                        <div className="whitespace-pre-wrap font-sans text-sm text-[#F3F5F8] leading-relaxed break-words">
+                      <div className="p-5 sm:p-6 bg-white min-h-[220px]">
+                        <div className="whitespace-pre-wrap font-sans text-sm text-[#14213D] leading-relaxed break-words">
                           {previewBody || (
-                            <span className="text-[#949EB0] italic">
+                            <span className="text-[#5C6F68] italic">
                               {isEs
                                 ? 'El cuerpo del correo está vacío.'
                                 : 'Email body is empty.'}
@@ -1579,12 +1587,12 @@ export default function CampaignEditor({
                         </div>
 
                         {/* Unsubscribe Simulation */}
-                        <div className="mt-8 pt-4 border-t border-[#1D2330] text-[10px] text-[#949EB0] font-sans leading-normal">
+                        <div className="mt-8 pt-4 border-t border-[#DCE3DF] text-[10px] text-[#5C6F68] font-sans leading-normal">
                           <p>
                             {isEs
                               ? 'Si no deseas recibir más comunicaciones sobre esta propuesta, responde "dar de baja" o '
                               : 'If you would prefer not to receive further emails, reply "unsubscribe" or '}
-                            <span className="text-[#E85D2A] underline cursor-pointer">
+                            <span className="text-[#14213D] font-medium underline cursor-pointer">
                               {isEs ? 'haz clic aquí' : 'click here'}
                             </span>
                             .
@@ -1602,19 +1610,19 @@ export default function CampaignEditor({
         {/* PHASE 3: SCHEDULE */}
         {activePhase === 'schedule' && (
           <div className="space-y-6">
-            <div className="border-b border-[#1D2330] pb-3">
-              <h3 className="text-sm font-bold text-[#F3F5F8] flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#E85D2A]" />
+            <div className="border-b border-[#DCE3DF] pb-3">
+              <h3 className="text-sm font-bold text-[#14213D] flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#14213D]" />
                 {t('campaignWizard.wizardPhase3')}
               </h3>
-              <p className="text-xs text-[#949EB0] mt-0.5">
+              <p className="text-xs text-[#5C6F68] mt-0.5">
                 {t('campaignWizard.schedulePhaseDesc')}
               </p>
             </div>
 
-            <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-6 space-y-4 text-xs">
+            <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-6 space-y-4 text-xs">
               <div>
-                <label className="text-[#F3F5F8] font-semibold block mb-1">
+                <label className="text-[#14213D] font-semibold block mb-1">
                   {t('campaignWizard.timezoneLabel')}
                 </label>
                 <select
@@ -1629,7 +1637,7 @@ export default function CampaignEditor({
                     onUpdateCampaign(updated);
                     saveToServer(updated);
                   }}
-                  className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-[#F3F5F8] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg px-3 py-2 text-[#14213D] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <option value="America/New_York">America/New_York (EST / EDT)</option>
                   <option value="Europe/Madrid">Europe/Madrid (CET / CEST)</option>
@@ -1641,7 +1649,7 @@ export default function CampaignEditor({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[#F3F5F8] font-semibold block mb-1">
+                  <label className="text-[#14213D] font-semibold block mb-1">
                     {t('campaignWizard.windowFrom')}
                   </label>
                   <input
@@ -1660,11 +1668,11 @@ export default function CampaignEditor({
                       onUpdateCampaign(updated);
                       saveToServer(updated);
                     }}
-                    className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-[#F3F5F8] font-mono tabular-nums focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg px-3 py-2 text-[#14213D] font-mono tabular-nums focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
-                  <label className="text-[#F3F5F8] font-semibold block mb-1">
+                  <label className="text-[#14213D] font-semibold block mb-1">
                     {t('campaignWizard.windowTo')}
                   </label>
                   <input
@@ -1683,7 +1691,7 @@ export default function CampaignEditor({
                       onUpdateCampaign(updated);
                       saveToServer(updated);
                     }}
-                    className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-[#F3F5F8] font-mono tabular-nums focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg px-3 py-2 text-[#14213D] font-mono tabular-nums focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -1694,30 +1702,30 @@ export default function CampaignEditor({
         {/* PHASE 4: OPTIONS */}
         {activePhase === 'options' && (
           <div className="space-y-6">
-            <div className="border-b border-[#1D2330] pb-3">
-              <h3 className="text-sm font-bold text-[#F3F5F8] flex items-center gap-2">
-                <Settings className="w-4 h-4 text-[#E85D2A]" />
+            <div className="border-b border-[#DCE3DF] pb-3">
+              <h3 className="text-sm font-bold text-[#14213D] flex items-center gap-2">
+                <Settings className="w-4 h-4 text-[#14213D]" />
                 {t('campaignWizard.wizardPhase4')}
               </h3>
-              <p className="text-xs text-[#949EB0] mt-0.5">
+              <p className="text-xs text-[#5C6F68] mt-0.5">
                 {t('campaignWizard.optionsPhaseDesc')}
               </p>
             </div>
 
             <div className="space-y-4">
               {/* Sender Accounts / Inbox Selection */}
-              <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-5 space-y-4 text-xs">
+              <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-5 space-y-4 text-xs">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-bold text-[#F3F5F8] text-sm flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-[#E85D2A]" />
+                    <h4 className="font-bold text-[#14213D] text-sm flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-[#14213D]" />
                       <span>
                         {isEs
                           ? 'Casillas de Correo Remitentes (Sender Accounts)'
                           : t('campaignWizard.inboxRotationTitle')}
                       </span>
                     </h4>
-                    <p className="text-[#949EB0] mt-0.5">
+                    <p className="text-[#5C6F68] mt-0.5">
                       {isEs
                         ? 'Selecciona las cuentas de correo desde las cuales se enviarán los mensajes de esta campaña.'
                         : t('campaignWizard.inboxRotationDesc')}
@@ -1726,7 +1734,7 @@ export default function CampaignEditor({
                 </div>
 
                 {accounts.length === 0 ? (
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs">
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs">
                     {isEs
                       ? 'No tienes casillas de correo conectadas.'
                       : 'No sender accounts connected.'}
@@ -1744,16 +1752,16 @@ export default function CampaignEditor({
                             isReadOnly ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
                           } ${
                             isSelected
-                              ? 'bg-[#E85D2A]/10 border-[#E85D2A]/60'
-                              : 'bg-[#171B26] border-[#232938] hover:border-[#343D52] text-[#949EB0]'
+                              ? 'bg-[#D5ECD4]/45 border-[#14213D] text-[#14213D]'
+                              : 'bg-[#F4F7F5] border-[#DCE3DF] hover:border-[#A1B0AB] text-[#5C6F68]'
                           }`}
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <div
                               className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold font-mono uppercase shrink-0 ${
                                 isSelected
-                                  ? 'bg-[#E85D2A] text-white'
-                                  : 'bg-[#0A0C10] border border-[#232938] text-[#949EB0]'
+                                  ? 'bg-[#14213D] text-white'
+                                  : 'bg-white border border-[#DCE3DF] text-[#5C6F68]'
                               }`}
                             >
                               {acc.provider === 'google'
@@ -1763,22 +1771,22 @@ export default function CampaignEditor({
                                   : 'SMTP'}
                             </div>
                             <div className="min-w-0">
-                              <div className="font-bold text-[#F3F5F8] truncate text-xs flex items-center gap-2">
+                              <div className="font-bold text-[#14213D] truncate text-xs flex items-center gap-2">
                                 <span>{acc.name || acc.email}</span>
                                 {isSelected && (
-                                  <span className="text-[9px] bg-[#E85D2A]/15 text-[#E85D2A] border border-[#E85D2A]/30 px-1.5 py-0.5 rounded-lg font-semibold uppercase">
+                                  <span className="text-[9px] bg-[#14213D] text-white px-1.5 py-0.5 rounded-lg font-semibold uppercase">
                                     {isEs ? 'Activa' : 'Active'}
                                   </span>
                                 )}
                               </div>
-                              <div className="text-[11px] text-[#949EB0] font-mono truncate">
+                              <div className="text-[11px] text-[#5C6F68] font-mono truncate">
                                 {acc.email}
                               </div>
-                              <div className="text-[10px] text-emerald-400 font-medium flex items-center gap-1 mt-0.5">
-                                <CheckCircle2 className="w-3 h-3 shrink-0" />
+                              <div className="text-[10px] text-[#5C6F68] font-medium flex items-center gap-1 mt-0.5">
+                                <CheckCircle2 className="w-3 h-3 shrink-0 text-emerald-700" />
                                 <span>
                                   {isEs ? 'Conectada' : 'Connected'} •{' '}
-                                  <span className="font-mono tabular-nums">
+                                  <span className="font-mono tabular-nums text-[#14213D] font-semibold">
                                     {acc.dailyLimit || 50}
                                   </span>
                                   /día
@@ -1789,9 +1797,9 @@ export default function CampaignEditor({
 
                           <div className="shrink-0">
                             {isSelected ? (
-                              <CheckCircle2 className="w-5 h-5 text-[#E85D2A]" />
+                              <CheckCircle2 className="w-5 h-5 text-[#14213D]" />
                             ) : (
-                              <div className="w-5 h-5 rounded-full border border-[#232938]" />
+                              <div className="w-5 h-5 rounded-full border border-[#A1B0AB]" />
                             )}
                           </div>
                         </div>
@@ -1802,7 +1810,7 @@ export default function CampaignEditor({
               </div>
 
               {/* Toggles */}
-              <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-5 space-y-4 text-xs">
+              <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-5 space-y-4 text-xs">
                 <label
                   className={`flex items-start gap-3 ${
                     isReadOnly ? 'opacity-65 cursor-not-allowed' : 'cursor-pointer'
@@ -1829,13 +1837,13 @@ export default function CampaignEditor({
                       onUpdateCampaign(updated);
                       saveToServer(updated);
                     }}
-                    className="mt-0.5 rounded bg-[#171B26] border-[#232938] accent-[#E85D2A] focus:ring-0 disabled:cursor-not-allowed"
+                    className="mt-0.5 rounded bg-[#F4F7F5] border-[#DCE3DF] accent-[#14213D] focus:ring-0 disabled:cursor-not-allowed"
                   />
                   <div>
-                    <div className="font-semibold text-[#F3F5F8]">
+                    <div className="font-semibold text-[#14213D]">
                       {t('campaignWizard.stopOnReply')}
                     </div>
-                    <div className="text-[11px] text-[#949EB0]">
+                    <div className="text-[11px] text-[#5C6F68]">
                       {t('campaignWizard.stopOnReplyDesc')}
                     </div>
                   </div>
@@ -1867,13 +1875,13 @@ export default function CampaignEditor({
                       onUpdateCampaign(updated);
                       saveToServer(updated);
                     }}
-                    className="mt-0.5 rounded bg-[#171B26] border-[#232938] accent-[#E85D2A] focus:ring-0 disabled:cursor-not-allowed"
+                    className="mt-0.5 rounded bg-[#F4F7F5] border-[#DCE3DF] accent-[#14213D] focus:ring-0 disabled:cursor-not-allowed"
                   />
                   <div>
-                    <div className="font-semibold text-[#F3F5F8]">
+                    <div className="font-semibold text-[#14213D]">
                       {t('campaignWizard.stopOnDomainReply')}
                     </div>
-                    <div className="text-[11px] text-[#949EB0]">
+                    <div className="text-[11px] text-[#5C6F68]">
                       {t('campaignWizard.stopOnDomainReplyDesc')}
                     </div>
                   </div>
@@ -1905,13 +1913,13 @@ export default function CampaignEditor({
                       onUpdateCampaign(updated);
                       saveToServer(updated);
                     }}
-                    className="mt-0.5 rounded bg-[#171B26] border-[#232938] accent-[#E85D2A] focus:ring-0 disabled:cursor-not-allowed"
+                    className="mt-0.5 rounded bg-[#F4F7F5] border-[#DCE3DF] accent-[#14213D] focus:ring-0 disabled:cursor-not-allowed"
                   />
                   <div>
-                    <div className="font-semibold text-[#F3F5F8]">
+                    <div className="font-semibold text-[#14213D]">
                       {t('campaignWizard.plainTextMode')}
                     </div>
-                    <div className="text-[11px] text-[#949EB0]">
+                    <div className="text-[11px] text-[#5C6F68]">
                       {t('campaignWizard.plainTextModeDesc')}
                     </div>
                   </div>
@@ -1923,23 +1931,23 @@ export default function CampaignEditor({
 
         {/* Live Batch Sending Progress Bar */}
         {isSending && sendProgress && (
-          <div className="mt-6 bg-[#11141C] border border-[#E85D2A]/40 rounded-xl p-4 space-y-2.5 animate-in fade-in">
+          <div className="mt-6 bg-white border border-[#14213D]/30 shadow-sm rounded-xl p-4 space-y-2.5 animate-in fade-in">
             <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 font-bold text-[#F3F5F8]">
-                <RefreshCw className="w-4 h-4 animate-spin text-[#E85D2A]" />
+              <div className="flex items-center gap-2 font-bold text-[#14213D]">
+                <RefreshCw className="w-4 h-4 animate-spin text-[#14213D]" />
                 <span>
                   {isEs
                     ? 'Despachando correos por lotes seguros (Conexión SMTP persistente)...'
                     : 'Dispatching emails in safe batches (Persistent SMTP pool)...'}
                 </span>
               </div>
-              <span className="font-mono tabular-nums font-bold text-[#F3F5F8]">
+              <span className="font-mono tabular-nums font-bold text-[#14213D]">
                 {sendProgress.sent} / {sendProgress.total || '?'}
               </span>
             </div>
-            <div className="w-full h-2 bg-[#0A0C10] rounded-full overflow-hidden border border-[#232938]">
+            <div className="w-full h-2 bg-[#EEF3F0] rounded-full overflow-hidden border border-[#DCE3DF]">
               <div
-                className="h-full bg-[#E85D2A] transition-all duration-300"
+                className="h-full bg-[#14213D] transition-all duration-300"
                 style={{
                   width: `${
                     sendProgress.total > 0
@@ -1955,73 +1963,79 @@ export default function CampaignEditor({
         {/* Live Dispatch Logs Modal / Panel */}
         {dispatchResult &&
           (dispatchResult.scheduledNotice ? (
-            <div className="mt-6 bg-emerald-500/10 border border-emerald-500/35 rounded-xl p-5 space-y-2">
+            <div className="mt-6 bg-[#D5ECD4]/60 border border-[#C3DAC3] rounded-xl p-5 space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 font-bold text-emerald-300 text-xs">
-                  <Clock className="w-4 h-4 text-emerald-400" />
+                <div className="flex items-center gap-2 font-bold text-[#14213D] text-xs">
+                  <Clock className="w-4 h-4 text-[#14213D]" />
                   <span>{isEs ? 'Programación Activada' : 'Schedule Armed'}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDispatchResult(null)}
-                  className="text-xs text-[#949EB0] hover:text-[#F3F5F8] cursor-pointer"
+                  className="text-xs text-[#5C6F68] hover:text-[#14213D] cursor-pointer"
                 >
                   {t('common.close')}
                 </button>
               </div>
-              <p className="text-xs text-emerald-200">{dispatchResult.scheduledNotice}</p>
+              <p className="text-xs text-[#14213D]">{dispatchResult.scheduledNotice}</p>
             </div>
           ) : dispatchResult.error ? (
-            <div className="mt-6 bg-rose-500/10 border border-rose-500/35 rounded-xl p-5 space-y-2">
+            <div className="mt-6 bg-rose-50 border border-rose-200 rounded-xl p-5 space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 font-bold text-rose-300 text-xs">
-                  <AlertTriangle className="w-4 h-4 text-rose-400" />
+                <div className="flex items-center gap-2 font-bold text-rose-700 text-xs">
+                  <AlertTriangle className="w-4 h-4 text-rose-600" />
                   <span>{isEs ? 'Aviso de Envío' : 'Dispatch Notice'}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDispatchResult(null)}
-                  className="text-xs text-[#949EB0] hover:text-[#F3F5F8] cursor-pointer"
+                  className="text-xs text-rose-600 hover:text-rose-800 cursor-pointer"
                 >
                   {t('common.close')}
                 </button>
               </div>
-              <p className="text-xs text-rose-200">{dispatchResult.error}</p>
+              <p className="text-xs text-rose-700">{dispatchResult.error}</p>
             </div>
           ) : (
-            <div className="mt-6 bg-[#11141C] border border-[#232938] rounded-xl p-5 space-y-4">
+            <div className="mt-6 bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                  <span className="text-sm font-bold text-[#F3F5F8]">
+                  <CheckCircle2 className="w-5 h-5 text-[#14213D]" />
+                  <span className="text-sm font-bold text-[#14213D]">
                     {t('campaignWizard.reportTitle')}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDispatchResult(null)}
-                  className="text-xs text-[#949EB0] hover:text-[#F3F5F8] cursor-pointer"
+                  className="text-xs text-[#5C6F68] hover:text-[#14213D] cursor-pointer"
                 >
                   {t('common.close')}
                 </button>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-[#171B26] p-3 rounded-xl border border-[#232938]">
-                  <div className="text-[10px] text-[#949EB0] uppercase">Leads Targeted</div>
-                  <div className="text-lg font-bold text-[#F3F5F8] mt-1 font-mono tabular-nums">
+                <div className="bg-[#F4F7F5] p-3 rounded-xl border border-[#DCE3DF]">
+                  <div className="text-[10px] text-[#5C6F68] uppercase font-semibold">
+                    Leads Targeted
+                  </div>
+                  <div className="text-lg font-bold text-[#14213D] mt-1 font-mono tabular-nums">
                     {dispatchResult.processed || 0}
                   </div>
                 </div>
-                <div className="bg-[#171B26] p-3 rounded-xl border border-[#232938]">
-                  <div className="text-[10px] text-[#949EB0] uppercase">Emails Dispatched</div>
-                  <div className="text-lg font-bold text-emerald-400 mt-1 font-mono tabular-nums">
+                <div className="bg-[#D5ECD4]/60 p-3 rounded-xl border border-[#C3DAC3]">
+                  <div className="text-[10px] text-[#5C6F68] uppercase font-semibold">
+                    Emails Dispatched
+                  </div>
+                  <div className="text-lg font-bold text-[#14213D] mt-1 font-mono tabular-nums">
                     {dispatchResult.sentCount || 0}
                   </div>
                 </div>
-                <div className="bg-[#171B26] p-3 rounded-xl border border-[#232938]">
-                  <div className="text-[10px] text-[#949EB0] uppercase">Dispatch Mode</div>
-                  <div className="text-sm font-medium text-[#E85D2A] mt-1">
+                <div className="bg-[#F4F7F5] p-3 rounded-xl border border-[#DCE3DF]">
+                  <div className="text-[10px] text-[#5C6F68] uppercase font-semibold">
+                    Dispatch Mode
+                  </div>
+                  <div className="text-sm font-semibold text-[#14213D] mt-1">
                     {dispatchResult.logs?.[0]?.status === 'simulated'
                       ? 'Test Simulation'
                       : 'Live SMTP'}
@@ -2038,19 +2052,19 @@ export default function CampaignEditor({
             onClick={() => setPreviewSpintaxModal(false)}
           >
             <div
-              className="bg-[#11141C] border border-[#232938] rounded-2xl p-6 max-w-2xl w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95"
+              className="bg-white border border-[#DCE3DF] text-[#14213D] rounded-2xl p-6 max-w-2xl w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between pb-3 border-b border-[#1D2330]">
+              <div className="flex items-center justify-between pb-3 border-b border-[#DCE3DF]">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#E85D2A]/15 border border-[#E85D2A]/30 text-[#E85D2A] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-[#D5ECD4] border border-[#C3DAC3] text-[#14213D] flex items-center justify-center">
                     <Sparkles className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-[#F3F5F8]">
+                    <h3 className="text-sm font-bold text-[#14213D]">
                       {isEs ? 'Variaciones Spintax' : 'Spintax Variations'}
                     </h3>
-                    <p className="text-[11px] text-[#949EB0]">
+                    <p className="text-[11px] text-[#5C6F68]">
                       {isEs
                         ? 'Simula las diferentes versiones únicas que recibirá cada prospecto'
                         : 'Preview distinct randomized variations sent to each prospect'}
@@ -2060,23 +2074,23 @@ export default function CampaignEditor({
                 <button
                   type="button"
                   onClick={() => setPreviewSpintaxModal(false)}
-                  className="text-[#949EB0] hover:text-[#F3F5F8] p-1 rounded-lg hover:bg-[#171B26] transition cursor-pointer"
+                  className="text-[#5C6F68] hover:text-[#14213D] p-1 rounded-lg hover:bg-[#EEF3F0] transition cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               {!hasSpintax(activeVariant?.body || '') ? (
-                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-3">
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                      <div className="text-xs font-bold text-amber-300">
+                      <div className="text-xs font-bold text-amber-900">
                         {isEs
                           ? 'No se detectó sintaxis Spintax en este correo'
                           : 'No Spintax syntax detected'}
                       </div>
-                      <p className="text-[11px] text-[#949EB0] leading-relaxed">
+                      <p className="text-[11px] text-amber-800/90 leading-relaxed">
                         {isEs
                           ? 'El Spintax te permite alternar saludos y frases para que cada correo enviado sea único y no caiga en spam. Por ejemplo: {Hola|Qué tal|Espero que todo vaya bien}.'
                           : 'Spintax lets you randomize greetings and sentences so each email is unique. For example: {Hi|Hello|Hey}.'}
@@ -2095,7 +2109,7 @@ export default function CampaignEditor({
                             setSpintaxPreviews(resolveVariations(newBody, 3));
                           }
                         }}
-                        className="px-3.5 py-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition"
+                        className="px-3.5 py-2 bg-[#14213D] hover:bg-[#1E3158] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>
@@ -2112,23 +2126,23 @@ export default function CampaignEditor({
                   {spintaxPreviews.map((sample, i) => (
                     <div
                       key={i}
-                      className="bg-[#171B26] border border-[#232938] p-4 rounded-xl space-y-1.5"
+                      className="bg-[#F4F7F5] border border-[#DCE3DF] p-4 rounded-xl space-y-1.5"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-[#E85D2A] font-mono tabular-nums font-semibold uppercase">
+                        <span className="text-[10px] text-[#14213D] font-mono tabular-nums font-semibold uppercase">
                           {isEs ? `Variación #${i + 1}:` : `Variation #${i + 1}:`}
                         </span>
-                        <span className="text-[10px] text-[#949EB0] font-mono">
+                        <span className="text-[10px] text-[#5C6F68] font-mono">
                           {isEs ? 'Muestra generada' : 'Generated sample'}
                         </span>
                       </div>
-                      <p className="text-xs text-[#F3F5F8] whitespace-pre-wrap leading-relaxed font-sans">
+                      <p className="text-xs text-[#14213D] whitespace-pre-wrap leading-relaxed font-sans">
                         {sample}
                       </p>
                     </div>
                   ))}
                   <div className="flex justify-between items-center pt-2">
-                    <span className="text-[11px] text-[#949EB0] font-mono">
+                    <span className="text-[11px] text-[#5C6F68] font-mono">
                       {isEs
                         ? 'Sintaxis: {opción 1|opción 2|opción 3}'
                         : 'Syntax: {option 1|option 2}'}
@@ -2140,7 +2154,7 @@ export default function CampaignEditor({
                           setSpintaxPreviews(resolveVariations(activeVariant.body, 3));
                         }
                       }}
-                      className="text-xs text-[#E85D2A] hover:text-[#F26B3A] flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-semibold text-[#14213D] hover:text-[#1E3158] flex items-center gap-1 cursor-pointer"
                     >
                       <RefreshCw className="w-3 h-3" />
                       <span>

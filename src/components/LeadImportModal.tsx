@@ -304,23 +304,23 @@ export default function LeadImportModal({
       onClick={handleClose}
     >
       <div
-        className="bg-[#11141C] border border-[#232938] rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]"
+        className="bg-white border border-[#DCE3DF] text-[#14213D] rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-6 py-5 border-b border-[#1D2330] flex items-center justify-between bg-[#171B26]/60 shrink-0">
+        <div className="px-6 py-5 border-b border-[#DCE3DF] flex items-center justify-between bg-[#F4F7F5] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#171B26] border border-[#232938] text-emerald-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[#D5ECD4] border border-[#C3DAC3] text-[#14213D] flex items-center justify-center">
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base font-bold text-[#F3F5F8]">
+                <h2 className="text-base font-bold text-[#14213D]">
                   {isEs
                     ? 'Importar y Sincronizar Contactos'
                     : 'Import & Sync Contacts Database'}
                 </h2>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg bg-[#D5ECD4] text-[#14213D] border border-[#C3DAC3]">
                   {wizardStep === 'source'
                     ? isEs
                       ? 'Paso 1 de 2: Origen'
@@ -334,7 +334,7 @@ export default function LeadImportModal({
                         : 'Synced'}
                 </span>
               </div>
-              <p className="text-xs text-[#949EB0] mt-0.5">
+              <p className="text-xs text-[#5C6F68] mt-0.5">
                 {isEs
                   ? 'Conecta tu Google Sheets público o sube un archivo .CSV y elige exactamente qué columnas usar en tu campaña.'
                   : 'Connect a public Google Sheet or upload a .CSV file and choose which columns to use in your campaign.'}
@@ -344,7 +344,7 @@ export default function LeadImportModal({
           <button
             type="button"
             onClick={handleClose}
-            className="text-[#949EB0] hover:text-[#F3F5F8] p-2 rounded-lg hover:bg-[#171B26] transition cursor-pointer"
+            className="text-[#5C6F68] hover:text-[#14213D] p-2 rounded-lg hover:bg-[#EEF3F0] transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -354,7 +354,7 @@ export default function LeadImportModal({
         {wizardStep === 'source' && (
           <>
             {/* Tab Switcher */}
-            <div className="flex border-b border-[#1D2330] px-6 bg-[#0A0C10]/60 shrink-0">
+            <div className="flex border-b border-[#DCE3DF] px-6 bg-[#EEF3F0]/60 shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -363,8 +363,8 @@ export default function LeadImportModal({
                 }}
                 className={`py-3.5 px-4 font-semibold text-xs border-b-2 flex items-center gap-2 transition cursor-pointer ${
                   activeTab === 'sheets'
-                    ? 'border-[#E85D2A] text-[#E85D2A]'
-                    : 'border-transparent text-[#949EB0] hover:text-[#F3F5F8]'
+                    ? 'border-[#14213D] text-[#14213D]'
+                    : 'border-transparent text-[#5C6F68] hover:text-[#14213D]'
                 }`}
               >
                 <FileSpreadsheet className="w-4 h-4" />
@@ -380,8 +380,8 @@ export default function LeadImportModal({
                 }}
                 className={`py-3.5 px-4 font-semibold text-xs border-b-2 flex items-center gap-2 transition cursor-pointer ${
                   activeTab === 'csv'
-                    ? 'border-[#E85D2A] text-[#E85D2A]'
-                    : 'border-transparent text-[#949EB0] hover:text-[#F3F5F8]'
+                    ? 'border-[#14213D] text-[#14213D]'
+                    : 'border-transparent text-[#5C6F68] hover:text-[#14213D]'
                 }`}
               >
                 <Upload className="w-4 h-4" />
@@ -393,16 +393,16 @@ export default function LeadImportModal({
               {/* TAB 1: GOOGLE SHEETS */}
               {activeTab === 'sheets' && (
                 <form onSubmit={handleFetchSheetPreview} className="space-y-4">
-                  <div className="bg-[#171B26] border border-[#232938] rounded-xl p-4 text-xs space-y-2">
-                    <div className="font-semibold text-emerald-400 flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4" />
+                  <div className="bg-[#F4F7F5] border border-[#DCE3DF] rounded-xl p-4 text-xs space-y-2">
+                    <div className="font-semibold text-[#14213D] flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-[#14213D]" />
                       <span>
                         {isEs
                           ? 'Sincronización Inteligente con Google Sheets:'
                           : 'Smart Google Sheets Synchronization:'}
                       </span>
                     </div>
-                    <ol className="text-[#949EB0] space-y-1.5 pl-4 list-decimal marker:text-emerald-500 text-[11px] leading-relaxed">
+                    <ol className="text-[#5C6F68] space-y-1.5 pl-4 list-decimal marker:text-[#14213D] text-[11px] leading-relaxed">
                       <li>
                         {isEs
                           ? 'En tu hoja de Google Sheets, haz clic en Compartir > Acceso general > "Cualquier persona con el enlace (Lector)".'
@@ -422,7 +422,7 @@ export default function LeadImportModal({
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-[#F3F5F8] block">
+                    <label className="text-xs font-semibold text-[#14213D] block">
                       {isEs
                         ? 'Enlace de tu archivo público de Google Sheets:'
                         : 'Public Google Sheet URL:'}
@@ -433,7 +433,7 @@ export default function LeadImportModal({
                       value={sheetUrl}
                       onChange={(e) => setSheetUrl(e.target.value)}
                       placeholder="https://docs.google.com/spreadsheets/d/1X7c.../edit#gid=0"
-                      className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-4 py-3 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition font-mono"
+                      className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg px-4 py-3 text-xs text-[#14213D] placeholder-[#5C6F68]/70 focus:outline-none transition font-mono"
                     />
                   </div>
 
@@ -441,7 +441,7 @@ export default function LeadImportModal({
                     <button
                       type="submit"
                       disabled={isLoadingPreview || !sheetUrl.trim()}
-                      className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-50 text-white font-semibold text-xs px-5 py-2.5 rounded-lg transition cursor-pointer"
+                      className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] disabled:opacity-50 text-white font-semibold text-xs px-5 py-2.5 rounded-lg transition cursor-pointer"
                     >
                       {isLoadingPreview ? (
                         <>
@@ -481,8 +481,8 @@ export default function LeadImportModal({
                     onClick={() => fileInputRef.current?.click()}
                     className={`border-2 border-dashed rounded-xl p-8 text-center transition cursor-pointer flex flex-col items-center justify-center gap-3 ${
                       isDragging
-                        ? 'border-[#E85D2A] bg-[#E85D2A]/10'
-                        : 'border-[#232938] hover:border-[#E85D2A]/60 bg-[#171B26]/70 hover:bg-[#171B26]'
+                        ? 'border-[#14213D] bg-[#D5ECD4]/40'
+                        : 'border-[#DCE3DF] hover:border-[#14213D]/60 bg-[#F4F7F5] hover:bg-[#EEF3F0]/60'
                     }`}
                   >
                     <input
@@ -492,24 +492,24 @@ export default function LeadImportModal({
                       onChange={handleFileChange}
                       className="hidden"
                     />
-                    <div className="w-12 h-12 rounded-xl bg-[#E85D2A]/10 border border-[#E85D2A]/30 text-[#E85D2A] flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-xl bg-[#D5ECD4] border border-[#C3DAC3] text-[#14213D] flex items-center justify-center">
                       <Upload className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs font-bold text-[#F3F5F8]">
+                      <p className="text-xs font-bold text-[#14213D]">
                         {uploadedFileName
                           ? `${isEs ? 'Archivo cargado:' : 'Loaded file:'} ${uploadedFileName}`
                           : isEs
                             ? 'Haz clic para seleccionar un archivo .CSV o arrástralo aquí'
                             : 'Click to select a .CSV file or drag and drop it here'}
                       </p>
-                      <p className="text-[11px] text-[#949EB0]">
+                      <p className="text-[11px] text-[#5C6F68]">
                         {isEs
                           ? 'Soporta archivos CSV exportados de Excel o Google Sheets (separados por comas o punto y coma).'
                           : 'Supports CSV files exported from Excel or Google Sheets (comma or semicolon separated).'}
                       </p>
                     </div>
-                    <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#E85D2A] bg-[#E85D2A]/10 border border-[#E85D2A]/25 px-3.5 py-1.5 rounded-lg">
+                    <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#14213D] bg-[#D5ECD4] border border-[#A1B0AB]/50 px-3.5 py-1.5 rounded-lg">
                       <FileText className="w-3.5 h-3.5" />
                       {isEs ? 'Examinar archivo .CSV en mi equipo' : 'Browse .CSV file'}
                     </span>
@@ -520,7 +520,7 @@ export default function LeadImportModal({
                     <button
                       type="button"
                       onClick={() => setShowRawCsvInput(!showRawCsvInput)}
-                      className="text-[11px] text-[#949EB0] hover:text-[#F3F5F8] underline cursor-pointer"
+                      className="text-[11px] text-[#5C6F68] hover:text-[#14213D] underline cursor-pointer"
                     >
                       {showRawCsvInput
                         ? isEs
@@ -540,14 +540,14 @@ export default function LeadImportModal({
                           placeholder={
                             'MAIL, Nombre, Empresa, DOLOR, ASUNTO\ncontacto@empresa.com, Juan, Acme, Demora en entregas, Propuesta para Acme'
                           }
-                          className="w-full bg-[#0A0C10] border border-[#232938] focus:border-[#E85D2A] rounded-lg p-3 text-xs font-mono text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none leading-relaxed transition"
+                          className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg p-3 text-xs font-mono text-[#14213D] placeholder-[#5C6F68]/70 focus:outline-none leading-relaxed transition"
                         />
                         <div className="flex justify-end">
                           <button
                             type="button"
                             onClick={() => processCsvString(csvText, 'Texto CSV Manual')}
                             disabled={!csvText.trim()}
-                            className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-50 text-white font-semibold text-xs px-4 py-2 rounded-lg transition cursor-pointer"
+                            className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] disabled:opacity-50 text-white font-semibold text-xs px-4 py-2 rounded-lg transition cursor-pointer"
                           >
                             <span>
                               {isEs
@@ -564,8 +564,8 @@ export default function LeadImportModal({
               )}
 
               {errorMsg && (
-                <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 flex items-start gap-3 text-xs text-rose-300 animate-in fade-in">
-                  <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start gap-3 text-xs text-rose-700 animate-in fade-in">
+                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <div className="font-bold">{isEs ? 'Aviso de lectura' : 'Read notice'}</div>
                     <div className="text-[11px] leading-relaxed">{errorMsg}</div>
@@ -580,7 +580,7 @@ export default function LeadImportModal({
         {wizardStep === 'columns' && (
           <div className="p-6 overflow-y-auto space-y-5 flex-1">
             {/* Top summary bar with Back button */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-[#171B26] border border-[#232938] rounded-xl p-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-[#EEF3F0] border border-[#DCE3DF] rounded-xl p-3.5">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -588,30 +588,30 @@ export default function LeadImportModal({
                     setWizardStep('source');
                     setErrorMsg(null);
                   }}
-                  className="flex items-center gap-1.5 text-xs text-[#F3F5F8] bg-[#11141C] hover:bg-[#1D2330] border border-[#232938] px-3 py-1.5 rounded-lg transition cursor-pointer"
+                  className="flex items-center gap-1.5 text-xs text-[#14213D] bg-white hover:bg-[#F4F7F5] border border-[#DCE3DF] px-3 py-1.5 rounded-lg transition cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>{isEs ? 'Cambiar origen' : 'Change source'}</span>
                 </button>
                 <div className="text-xs">
-                  <span className="font-bold text-[#F3F5F8] font-mono tabular-nums">
+                  <span className="font-bold text-[#14213D] font-mono tabular-nums">
                     {parsedRows.length}
                   </span>{' '}
-                  <span className="text-[#949EB0]">
+                  <span className="text-[#5C6F68]">
                     {isEs ? 'registros leídos' : 'rows detected'}
                   </span>
-                  <span className="mx-2 text-[#232938]">•</span>
-                  <span className="font-bold text-emerald-400 font-mono tabular-nums">
+                  <span className="mx-2 text-[#A1B0AB]">•</span>
+                  <span className="font-bold text-[#14213D] font-mono tabular-nums">
                     {detectedColumns.length}
                   </span>{' '}
-                  <span className="text-[#949EB0]">
+                  <span className="text-[#5C6F68]">
                     {isEs ? 'columnas encontradas' : 'columns found'}
                   </span>
                 </div>
               </div>
 
-              <div className="text-[11px] text-[#949EB0] flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <div className="text-[11px] text-[#5C6F68] flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-[#14213D]" />
                 <span>
                   {isEs
                     ? 'Los contactos ya enviados se protegerán automáticamente'
@@ -621,10 +621,10 @@ export default function LeadImportModal({
             </div>
 
             {/* 1. Mandatory Email Column Selector */}
-            <div className="bg-[#171B26] border border-[#232938] rounded-xl p-4 space-y-2.5">
+            <div className="bg-[#F4F7F5] border border-[#DCE3DF] rounded-xl p-4 space-y-2.5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <label className="text-xs font-bold text-[#F3F5F8] flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-[#E85D2A]" />
+                <label className="text-xs font-bold text-[#14213D] flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-[#14213D]" />
                   <span>
                     {isEs
                       ? '1. ¿Cuál es la columna que contiene la dirección de Email?'
@@ -634,7 +634,7 @@ export default function LeadImportModal({
                 <select
                   value={emailColumn}
                   onChange={(e) => setEmailColumn(e.target.value)}
-                  className="bg-[#0A0C10] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-xs font-mono text-[#F3F5F8] focus:outline-none transition"
+                  className="bg-white border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3.5 py-2 text-xs font-mono text-[#14213D] focus:outline-none transition"
                 >
                   {detectedColumns.map((col) => (
                     <option key={col} value={col}>
@@ -644,9 +644,9 @@ export default function LeadImportModal({
                 </select>
               </div>
               {parsedRows[0] && emailColumn && (
-                <p className="text-[11px] text-[#949EB0]">
+                <p className="text-[11px] text-[#5C6F68]">
                   {isEs ? 'Ejemplo detectado en fila 1:' : 'Sample from row 1:'}{' '}
-                  <span className="font-mono text-[#E85D2A] font-semibold">
+                  <span className="font-mono text-[#14213D] font-semibold">
                     {parsedRows[0][emailColumn] || '(vacío)'}
                   </span>
                 </p>
@@ -654,18 +654,18 @@ export default function LeadImportModal({
             </div>
 
             {/* 2. Interactive Checkboxes for Campaign Variables */}
-            <div className="bg-[#171B26] border border-[#232938] rounded-xl p-4 space-y-3">
+            <div className="bg-[#F4F7F5] border border-[#DCE3DF] rounded-xl p-4 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-xs font-bold text-[#F3F5F8] flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-emerald-400" />
+                  <h3 className="text-xs font-bold text-[#14213D] flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-[#14213D]" />
                     <span>
                       {isEs
                         ? '2. Selecciona qué columnas quieres importar y usar como variables en tu campaña:'
                         : '2. Select which columns to import and use as variables in your campaign:'}
                     </span>
                   </h3>
-                  <p className="text-[11px] text-[#949EB0] mt-0.5">
+                  <p className="text-[11px] text-[#5C6F68] mt-0.5">
                     {isEs
                       ? 'Solo las columnas marcadas se guardarán en la tabla de la campaña y aparecerán como botones {{Variable}} en el editor.'
                       : 'Only checked columns will be saved to the campaign table and shown as {{Variable}} tags in the editor.'}
@@ -676,14 +676,14 @@ export default function LeadImportModal({
                   <button
                     type="button"
                     onClick={handleSelectAllColumns}
-                    className="text-[11px] text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg transition cursor-pointer"
+                    className="text-[11px] text-[#14213D] bg-[#D5ECD4] hover:bg-[#C3DAC3] border border-[#A1B0AB]/50 px-2.5 py-1 rounded-lg transition cursor-pointer font-semibold"
                   >
                     {isEs ? 'Marcar todas' : 'Select all'}
                   </button>
                   <button
                     type="button"
                     onClick={handleDeselectAllColumns}
-                    className="text-[11px] text-[#949EB0] hover:text-[#F3F5F8] bg-[#11141C] border border-[#232938] px-2.5 py-1 rounded-lg transition cursor-pointer"
+                    className="text-[11px] text-[#5C6F68] hover:text-[#14213D] bg-white hover:bg-[#EEF3F0] border border-[#DCE3DF] px-2.5 py-1 rounded-lg transition cursor-pointer"
                   >
                     {isEs ? 'Desmarcar todas' : 'Deselect all'}
                   </button>
@@ -704,15 +704,15 @@ export default function LeadImportModal({
                       onClick={() => toggleColumnSelection(col)}
                       className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition cursor-pointer ${
                         isChecked
-                          ? 'bg-emerald-500/10 border-emerald-500/40 text-[#F3F5F8]'
-                          : 'bg-[#0A0C10]/60 border-[#232938] text-[#949EB0] hover:border-[#343D52]'
+                          ? 'bg-[#D5ECD4]/50 border-[#14213D] text-[#14213D]'
+                          : 'bg-white border-[#DCE3DF] text-[#5C6F68] hover:border-[#A1B0AB]'
                       }`}
                     >
                       <div className="mt-0.5 shrink-0">
                         {isChecked ? (
-                          <CheckSquare className="w-4 h-4 text-emerald-400" />
+                          <CheckSquare className="w-4 h-4 text-[#14213D]" />
                         ) : (
-                          <Square className="w-4 h-4 text-[#949EB0]/60" />
+                          <Square className="w-4 h-4 text-[#A1B0AB]" />
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -721,12 +721,12 @@ export default function LeadImportModal({
                             {`{{${col}}}`}
                           </span>
                           {isEmailCol && (
-                            <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 bg-[#E85D2A]/15 text-[#E85D2A] border border-[#E85D2A]/30 rounded-lg">
+                            <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 bg-[#14213D] text-white rounded-lg">
                               Email
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] text-[#949EB0] truncate mt-0.5" title={sampleVal}>
+                        <p className="text-[10px] text-[#5C6F68] truncate mt-0.5" title={sampleVal}>
                           {sampleVal ? `Ej: ${sampleVal}` : '(Sin vista previa)'}
                         </p>
                       </div>
@@ -739,23 +739,23 @@ export default function LeadImportModal({
             {/* 3. Live Table Preview of Selected Columns */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-[#F3F5F8]">
+                <span className="font-semibold text-[#14213D]">
                   {isEs
                     ? 'Vista previa de cómo quedará tu tabla en la campaña (primeros 3 registros):'
                     : 'Preview of your campaign table (first 3 records):'}
                 </span>
-                <span className="text-[11px] text-emerald-400 font-mono tabular-nums">
+                <span className="text-[11px] text-[#14213D] font-semibold font-mono tabular-nums">
                   {selectedColumns.length}{' '}
                   {isEs ? 'variables seleccionadas' : 'variables selected'}
                 </span>
               </div>
 
-              <div className="bg-[#0A0C10] border border-[#232938] rounded-xl overflow-hidden">
+              <div className="bg-white border border-[#DCE3DF] rounded-xl overflow-hidden">
                 <div className="overflow-x-auto max-w-full">
                   <table className="w-full text-left text-[11px] whitespace-nowrap">
-                    <thead className="bg-[#171B26] text-[#949EB0] border-b border-[#232938]">
+                    <thead className="bg-[#EEF3F0] text-[#5C6F68] border-b border-[#DCE3DF]">
                       <tr>
-                        <th className="py-2.5 px-3 font-bold text-[#E85D2A]">
+                        <th className="py-2.5 px-3 font-bold text-[#14213D]">
                           <span className="inline-flex items-center gap-1.5">
                             <Mail className="w-3.5 h-3.5" />
                             <span>{emailColumn || 'Email'}</span>
@@ -766,17 +766,17 @@ export default function LeadImportModal({
                           .map((col) => (
                             <th
                               key={col}
-                              className="py-2.5 px-3 font-mono text-emerald-400 border-l border-[#232938]"
+                              className="py-2.5 px-3 font-mono text-[#14213D] border-l border-[#DCE3DF]"
                             >
                               {`{{${col}}}`}
                             </th>
                           ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#1D2330] text-[#F3F5F8]">
+                    <tbody className="divide-y divide-[#DCE3DF] text-[#14213D]">
                       {parsedRows.slice(0, 3).map((row, rIdx) => (
                         <tr key={rIdx}>
-                          <td className="py-2 px-3 font-mono text-[#F3F5F8] font-medium">
+                          <td className="py-2 px-3 font-mono text-[#14213D] font-medium">
                             {row[emailColumn] || '-'}
                           </td>
                           {selectedColumns
@@ -784,7 +784,7 @@ export default function LeadImportModal({
                             .map((col) => (
                               <td
                                 key={col}
-                                className="py-2 px-3 max-w-[200px] truncate border-l border-[#1D2330] text-[#949EB0]"
+                                className="py-2 px-3 max-w-[200px] truncate border-l border-[#DCE3DF] text-[#5C6F68]"
                                 title={row[col] || ''}
                               >
                                 {row[col] || '-'}
@@ -799,18 +799,18 @@ export default function LeadImportModal({
             </div>
 
             {errorMsg && (
-              <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 flex items-start gap-3 text-xs text-rose-300">
-                <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+              <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start gap-3 text-xs text-rose-700">
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                 <div>{errorMsg}</div>
               </div>
             )}
 
             {/* Action Footer */}
-            <div className="flex items-center justify-between pt-3 border-t border-[#1D2330]">
+            <div className="flex items-center justify-between pt-3 border-t border-[#DCE3DF]">
               <button
                 type="button"
                 onClick={() => setWizardStep('source')}
-                className="flex items-center gap-1.5 text-xs text-[#949EB0] hover:text-[#F3F5F8] px-4 py-2 rounded-lg hover:bg-[#171B26] transition cursor-pointer"
+                className="flex items-center gap-1.5 text-xs text-[#5C6F68] hover:text-[#14213D] px-4 py-2 rounded-lg hover:bg-[#EEF3F0] transition cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>{isEs ? 'Atrás' : 'Back'}</span>
@@ -820,7 +820,7 @@ export default function LeadImportModal({
                 type="button"
                 onClick={handleSyncLeads}
                 disabled={isSyncing || !emailColumn}
-                className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-50 text-white font-bold text-xs px-6 py-2.5 rounded-lg transition cursor-pointer"
+                className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] disabled:opacity-50 text-white font-bold text-xs px-6 py-2.5 rounded-lg transition cursor-pointer"
               >
                 {isSyncing ? (
                   <>
@@ -847,9 +847,9 @@ export default function LeadImportModal({
         {/* STEP 3: SYNC SUMMARY */}
         {wizardStep === 'done' && syncSummary && (
           <div className="p-6 space-y-5">
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-5 space-y-4 text-xs">
-              <div className="flex items-center gap-2.5 font-bold text-emerald-400 text-sm">
-                <CheckCircle2 className="w-5 h-5" />
+            <div className="bg-[#D5ECD4]/45 border border-[#C3DAC3] rounded-xl p-5 space-y-4 text-xs">
+              <div className="flex items-center gap-2.5 font-bold text-[#14213D] text-sm">
+                <CheckCircle2 className="w-5 h-5 text-[#14213D]" />
                 <span>
                   {isEs
                     ? '¡Tabla de la campaña sincronizada con éxito!'
@@ -858,38 +858,38 @@ export default function LeadImportModal({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="bg-[#0A0C10] border border-[#232938] p-3.5 rounded-xl">
-                  <div className="text-[10px] uppercase text-[#949EB0] font-semibold">
+                <div className="bg-white border border-[#C3DAC3] p-3.5 rounded-xl">
+                  <div className="text-[10px] uppercase text-[#5C6F68] font-semibold">
                     {isEs ? 'Nuevos (Pendientes de envío)' : 'New (Pending send)'}
                   </div>
-                  <div className="text-xl font-bold text-emerald-400 mt-1 font-mono tabular-nums">
+                  <div className="text-xl font-bold text-[#14213D] mt-1 font-mono tabular-nums">
                     +{syncSummary.newAddedCount}
                   </div>
                 </div>
 
-                <div className="bg-[#0A0C10] border border-[#232938] p-3.5 rounded-xl">
-                  <div className="text-[10px] uppercase text-[#949EB0] font-semibold">
+                <div className="bg-white border border-[#DCE3DF] p-3.5 rounded-xl">
+                  <div className="text-[10px] uppercase text-[#5C6F68] font-semibold">
                     {isEs ? 'Pendientes Actualizados' : 'Updated Pending'}
                   </div>
-                  <div className="text-xl font-bold text-[#F3F5F8] mt-1 font-mono tabular-nums">
+                  <div className="text-xl font-bold text-[#14213D] mt-1 font-mono tabular-nums">
                     {syncSummary.updatedPendingCount}
                   </div>
                 </div>
 
-                <div className="bg-[#0A0C10] border border-[#232938] p-3.5 rounded-xl">
-                  <div className="text-[10px] uppercase text-[#949EB0] font-semibold">
+                <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl">
+                  <div className="text-[10px] uppercase text-amber-800 font-semibold">
                     {isEs ? 'Ya Enviados (Protegidos)' : 'Already Sent (Protected)'}
                   </div>
-                  <div className="text-xl font-bold text-amber-400 mt-1 font-mono tabular-nums">
+                  <div className="text-xl font-bold text-amber-800 mt-1 font-mono tabular-nums">
                     {syncSummary.skippedSentCount}
                   </div>
                 </div>
               </div>
 
               {syncSummary.selectedColumns.length > 0 && (
-                <div className="space-y-1.5 pt-2 border-t border-emerald-500/20">
-                  <div className="text-[11px] font-semibold text-[#F3F5F8] flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                <div className="space-y-1.5 pt-2 border-t border-[#C3DAC3]">
+                  <div className="text-[11px] font-semibold text-[#14213D] flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-[#14213D]" />
                     <span>
                       {isEs
                         ? 'Variables habilitadas para tus plantillas de correo:'
@@ -900,7 +900,7 @@ export default function LeadImportModal({
                     {syncSummary.selectedColumns.map((col, idx) => (
                       <span
                         key={idx}
-                        className="bg-[#171B26] border border-emerald-500/30 text-emerald-300 font-mono text-[11px] px-2.5 py-1 rounded-lg"
+                        className="bg-white border border-[#C3DAC3] text-[#14213D] font-mono text-[11px] px-2.5 py-1 rounded-lg"
                       >
                         {`{{${col}}}`}
                       </span>
@@ -914,7 +914,7 @@ export default function LeadImportModal({
               <button
                 type="button"
                 onClick={handleClose}
-                className="bg-[#E85D2A] hover:bg-[#F26B3A] text-white font-bold text-xs px-6 py-2.5 rounded-lg transition cursor-pointer"
+                className="bg-[#14213D] hover:bg-[#1E3158] text-white font-bold text-xs px-6 py-2.5 rounded-lg transition cursor-pointer"
               >
                 {isEs ? 'Listo, volver a la campaña' : 'Done, return to campaign'}
               </button>

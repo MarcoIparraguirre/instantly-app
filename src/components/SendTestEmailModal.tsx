@@ -102,23 +102,23 @@ export default function SendTestEmailModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="send-test-email-title"
-        className="bg-[#11141C] border border-[#232938] rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95"
+        className="bg-white border border-[#DCE3DF] text-[#14213D] rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-[#1D2330] flex items-center justify-between bg-[#171B26]/60">
+        <div className="px-6 py-4 border-b border-[#DCE3DF] flex items-center justify-between bg-[#F4F7F5]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#E85D2A]/15 border border-[#E85D2A]/30 text-[#E85D2A] flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-[#D5ECD4] border border-[#C3DAC3] text-[#14213D] flex items-center justify-center shrink-0">
               <Mail className="w-4 h-4" />
             </div>
             <div>
               <h3
                 id="send-test-email-title"
-                className="text-sm font-bold text-[#F3F5F8] leading-tight"
+                className="text-sm font-bold text-[#14213D] leading-tight"
               >
                 {isEs ? 'Enviar Correo de Prueba Real' : 'Send Real Test Email'}
               </h3>
-              <p className="text-[11px] text-[#949EB0]">
+              <p className="text-[11px] text-[#5C6F68]">
                 {isEs
                   ? 'Comprueba el envío real y míralo en tu Gmail'
                   : 'Test real SMTP delivery to your inbox'}
@@ -129,7 +129,7 @@ export default function SendTestEmailModal({
             type="button"
             onClick={handleClose}
             aria-label={isEs ? 'Cerrar' : 'Close'}
-            className="text-[#949EB0] hover:text-[#F3F5F8] p-1.5 rounded-lg hover:bg-[#171B26] transition cursor-pointer"
+            className="text-[#5C6F68] hover:text-[#14213D] p-1.5 rounded-lg hover:bg-[#EEF3F0] transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -140,7 +140,7 @@ export default function SendTestEmailModal({
           <div>
             <label
               htmlFor="test-email-destination"
-              className="block text-[11px] font-semibold text-[#949EB0] uppercase tracking-wider mb-1.5"
+              className="block text-[11px] font-semibold text-[#5C6F68] uppercase tracking-wider mb-1.5"
             >
               {isEs ? 'Enviar a este correo' : 'Destination Email'}
             </label>
@@ -151,14 +151,14 @@ export default function SendTestEmailModal({
               value={targetEmail}
               onChange={(e) => setTargetEmail(e.target.value)}
               placeholder="tu-correo@ejemplo.com"
-              className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none font-mono tabular-nums transition"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg px-3.5 py-2 text-xs text-[#14213D] placeholder-[#5C6F68]/70 focus:outline-none font-mono tabular-nums transition"
             />
           </div>
 
           <div>
             <label
               htmlFor="test-email-recipient-name"
-              className="block text-[11px] font-semibold text-[#949EB0] uppercase tracking-wider mb-1.5"
+              className="block text-[11px] font-semibold text-[#5C6F68] uppercase tracking-wider mb-1.5"
             >
               {isEs ? 'Nombre para personalizar variables' : 'Recipient Name for {{Nombre}}'}
             </label>
@@ -168,24 +168,24 @@ export default function SendTestEmailModal({
               value={recipientName}
               onChange={(e) => setRecipientName(e.target.value)}
               placeholder="Marco"
-              className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg px-3.5 py-2 text-xs text-[#14213D] placeholder-[#5C6F68]/70 focus:outline-none transition"
             />
           </div>
 
           {result &&
             (result.success ? (
-              <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs space-y-1.5 animate-in fade-in">
-                <div className="flex items-center gap-2 font-bold text-emerald-400">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <div className="p-3.5 bg-[#D5ECD4]/65 border border-[#C3DAC3] rounded-xl text-xs space-y-1.5 animate-in fade-in">
+                <div className="flex items-center gap-2 font-bold text-[#14213D]">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-[#14213D]" />
                   <span>
                     {isEs ? '¡Correo enviado con éxito!' : 'Email dispatched successfully!'}
                   </span>
                 </div>
-                <p className="text-[11px] text-[#F3F5F8]/90 leading-relaxed">
+                <p className="text-[11px] text-[#14213D]/90 leading-relaxed">
                   {isEs ? (
                     <>
                       Se envió a{' '}
-                      <span className="font-mono tabular-nums text-emerald-300">
+                      <span className="font-mono tabular-nums font-semibold text-[#14213D]">
                         {result.sentTo || targetEmail}
                       </span>
                       . Puedes verificarlo en tu Bandeja de Entrada y en tu carpeta
@@ -194,7 +194,7 @@ export default function SendTestEmailModal({
                   ) : (
                     <>
                       Dispatched to{' '}
-                      <span className="font-mono tabular-nums text-emerald-300">
+                      <span className="font-mono tabular-nums font-semibold text-[#14213D]">
                         {result.sentTo || targetEmail}
                       </span>
                       . Check your inbox and &ldquo;Sent&rdquo; folder.
@@ -202,35 +202,35 @@ export default function SendTestEmailModal({
                   )}
                 </p>
                 {result.messageId && (
-                  <p className="text-[10px] text-[#949EB0] font-mono tabular-nums truncate">
+                  <p className="text-[10px] text-[#5C6F68] font-mono tabular-nums truncate">
                     ID: {result.messageId}
                   </p>
                 )}
               </div>
             ) : (
-              <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs space-y-1 animate-in fade-in">
-                <div className="flex items-center gap-2 font-bold text-rose-400">
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs space-y-1 animate-in fade-in">
+                <div className="flex items-center gap-2 font-bold text-rose-700">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
                   <span>{isEs ? 'Error al enviar por SMTP' : 'SMTP dispatch error'}</span>
                 </div>
-                <p className="text-[11px] text-rose-300 leading-relaxed font-mono tabular-nums">
+                <p className="text-[11px] text-rose-700 leading-relaxed font-mono tabular-nums">
                   {result.error}
                 </p>
               </div>
             ))}
 
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#1D2330]">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#DCE3DF]">
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 rounded-lg bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] text-xs font-semibold text-[#949EB0] hover:text-[#F3F5F8] transition cursor-pointer"
+              className="px-4 py-2 rounded-lg bg-[#EEF3F0] hover:bg-[#DCE3DF] border border-[#DCE3DF] text-xs font-semibold text-[#14213D] transition cursor-pointer"
             >
               {isEs ? 'Cerrar' : 'Close'}
             </button>
             <button
               type="submit"
               disabled={isSending}
-              className="px-4 py-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white rounded-lg text-xs font-bold flex items-center gap-2 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-[#14213D] hover:bg-[#1E3158] text-white rounded-lg text-xs font-bold flex items-center gap-2 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSending ? (
                 <>

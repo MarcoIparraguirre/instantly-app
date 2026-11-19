@@ -495,7 +495,7 @@ export default function SimpleCampaignView({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#0A0C10] text-[#F3F5F8]">
+    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#F4F7F5] text-[#14213D]">
       <div className="p-8 max-w-4xl mx-auto w-full space-y-6">
         {/* Modal to Import Leads (Google Sheets / CSV) */}
         <LeadImportModal
@@ -506,27 +506,27 @@ export default function SimpleCampaignView({
         />
 
         {/* Top Banner: Novice Campaign Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1D2330] pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#DCE3DF] pb-5">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#E85D2A] bg-[#E85D2A]/10 px-2.5 py-0.5 rounded-lg border border-[#E85D2A]/25">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#14213D] bg-[#D5ECD4] px-2.5 py-0.5 rounded-lg border border-[#C3DAC3]">
                 {isEs ? 'Modo Simple (Paso a Paso)' : 'Simple Mode (Guided)'}
               </span>
               {isReadOnly && (
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-lg bg-[#11141C] border border-[#232938] text-[#949EB0]">
-                  <Eye className="w-3.5 h-3.5 text-[#E85D2A]" />
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-lg bg-white border border-[#DCE3DF] text-[#5C6F68]">
+                  <Eye className="w-3.5 h-3.5 text-[#14213D]" />
                   <span>{isEs ? 'Modo Solo Lectura' : 'Read-Only Mode'}</span>
                 </span>
               )}
-              <span className="text-[#232938] text-xs">•</span>
+              <span className="text-[#A1B0AB] text-xs">•</span>
               {/* Inline Editable Campaign Name */}
-              <div className="flex items-center gap-1.5 group bg-[#11141C] border border-[#232938] focus-within:border-[#E85D2A] rounded-lg px-2.5 py-1 transition">
+              <div className="flex items-center gap-1.5 group bg-white border border-[#DCE3DF] focus-within:border-[#14213D] rounded-lg px-2.5 py-1 transition shadow-sm">
                 <input
                   type="text"
                   disabled={isReadOnly}
                   value={campaign.name}
                   onChange={(e) => handleRenameCampaign(e.target.value)}
-                  className="text-xs font-bold text-[#F3F5F8] bg-transparent focus:outline-none min-w-[200px] disabled:opacity-75 disabled:cursor-not-allowed"
+                  className="text-xs font-bold text-[#14213D] bg-transparent focus:outline-none min-w-[200px] disabled:opacity-75 disabled:cursor-not-allowed"
                   placeholder={isEs ? 'Nombre de la campaña...' : 'Campaign name...'}
                   title={
                     isReadOnly
@@ -539,14 +539,14 @@ export default function SimpleCampaignView({
                   }
                 />
                 {!isReadOnly && (
-                  <Edit3 className="w-3 h-3 text-[#949EB0] group-hover:text-[#E85D2A] transition" />
+                  <Edit3 className="w-3 h-3 text-[#5C6F68] group-hover:text-[#14213D] transition" />
                 )}
               </div>
             </div>
-            <h1 className="text-xl font-bold text-[#F3F5F8] mt-1.5">
+            <h1 className="text-xl font-bold text-[#14213D] mt-1.5">
               {isEs ? 'Crear y Lanzar Campaña de Correo' : 'Draft & Launch Outreach Campaign'}
             </h1>
-            <p className="text-xs text-[#949EB0] mt-0.5">
+            <p className="text-xs text-[#5C6F68] mt-0.5">
               {isEs
                 ? 'Conecta tus contactos, escribe tu mensaje y el sistema enviará en horario laboral seguro sin caer en spam.'
                 : 'Connect your contacts, choose your message, and let automated safeguards deliver safely without spam flags.'}
@@ -561,12 +561,12 @@ export default function SimpleCampaignView({
               onClick={handleToggleStatus}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg border text-xs font-bold transition ${
                 isReadOnly
-                  ? 'opacity-50 cursor-not-allowed bg-[#11141C] border-[#232938] text-[#949EB0]'
+                  ? 'opacity-50 cursor-not-allowed bg-[#EEF3F0] border-[#DCE3DF] text-[#5C6F68]'
                   : campaign.status === 'active'
-                    ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-300 hover:bg-emerald-500/25 cursor-pointer'
+                    ? 'bg-[#D5ECD4] border-[#C3DAC3] text-[#14213D] hover:bg-[#C3DAC3] cursor-pointer'
                     : campaign.status === 'paused'
-                      ? 'bg-amber-500/15 border-amber-500/35 text-amber-300 hover:bg-amber-500/25 cursor-pointer'
-                      : 'bg-[#171B26] border-[#232938] text-[#F3F5F8] hover:bg-[#1D2330] cursor-pointer'
+                      ? 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100 cursor-pointer'
+                      : 'bg-white border-[#DCE3DF] text-[#14213D] hover:bg-[#EEF3F0] cursor-pointer shadow-sm'
               }`}
               title={
                 isReadOnly
@@ -580,13 +580,13 @@ export default function SimpleCampaignView({
             >
               {campaign.status === 'active' ? (
                 <>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
                   <span>{isEs ? 'Campaña Activa' : 'Campaign Active'}</span>
                   <Pause className="w-3.5 h-3.5 ml-1 opacity-70" />
                 </>
               ) : (
                 <>
-                  <Play className="w-3.5 h-3.5 text-[#E85D2A]" />
+                  <Play className="w-3.5 h-3.5 text-[#14213D]" />
                   <span>{isEs ? 'Activar Campaña' : 'Activate Campaign'}</span>
                 </>
               )}
@@ -596,9 +596,9 @@ export default function SimpleCampaignView({
               <button
                 type="button"
                 onClick={openCopilot}
-                className="flex items-center gap-2 bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] hover:border-[#E85D2A]/50 text-[#F3F5F8] text-xs font-semibold px-4 py-2 rounded-lg transition shrink-0 cursor-pointer"
+                className="flex items-center gap-2 bg-white hover:bg-[#EEF3F0] border border-[#DCE3DF] hover:border-[#14213D] text-[#14213D] text-xs font-semibold px-4 py-2 rounded-lg transition shrink-0 cursor-pointer shadow-sm"
               >
-                <Sparkles className="w-4 h-4 text-[#E85D2A]" />
+                <Sparkles className="w-4 h-4 text-[#14213D]" />
                 <span>{isEs ? 'Copilot IA' : 'Copilot AI'}</span>
               </button>
             )}
@@ -606,17 +606,17 @@ export default function SimpleCampaignView({
         </div>
 
         {/* Step 1: Recipients Card & Google Sheets Import */}
-        <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-6 space-y-4">
+        <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-6 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-[#E85D2A]/15 border border-[#E85D2A]/30 text-[#E85D2A] font-bold text-xs font-mono tabular-nums flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-[#14213D] text-white font-bold text-xs font-mono tabular-nums flex items-center justify-center">
                 1
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#F3F5F8]">
+                <h3 className="text-sm font-bold text-[#14213D]">
                   {isEs ? '¿A quién le escribes? (Destinatarios)' : 'Who are you emailing? (Recipients)'}
                 </h3>
-                <p className="text-xs text-[#949EB0]">
+                <p className="text-xs text-[#5C6F68]">
                   {isEs ? 'Base de contactos asignada a esta campaña' : 'Contacts targeted for this campaign'}
                 </p>
               </div>
@@ -627,7 +627,7 @@ export default function SimpleCampaignView({
                 type="button"
                 disabled={isReadOnly}
                 onClick={() => !isReadOnly && setIsImportModalOpen(true)}
-                className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold px-4 py-2 rounded-lg transition cursor-pointer"
+                className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold px-4 py-2 rounded-lg transition cursor-pointer"
               >
                 <FileSpreadsheet className="w-4 h-4" />
                 <span>
@@ -647,7 +647,7 @@ export default function SimpleCampaignView({
                   disabled={isReadOnly}
                   onClick={handleClearLeads}
                   title={isEs ? 'Vaciar lista' : 'Clear leads'}
-                  className="p-2 rounded-lg bg-[#171B26] hover:bg-rose-500/10 text-[#949EB0] hover:text-rose-400 border border-[#232938] hover:border-rose-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  className="p-2 rounded-lg bg-[#EEF3F0] hover:bg-rose-50 text-[#5C6F68] hover:text-rose-700 border border-[#DCE3DF] hover:border-rose-200 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -656,12 +656,12 @@ export default function SimpleCampaignView({
           </div>
 
           {/* Status of Loaded Contacts */}
-          <div className="bg-[#171B26] border border-[#232938] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+          <div className="bg-[#F4F7F5] border border-[#DCE3DF] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-3">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0" />
               <div>
                 <div className="flex items-center gap-3 flex-wrap">
-                  <span className="font-semibold text-[#F3F5F8]">
+                  <span className="font-semibold text-[#14213D]">
                     {campaignLeads.length > 0 ? (
                       <>
                         <span className="font-mono tabular-nums">{campaignLeads.length}</span>{' '}
@@ -675,18 +675,18 @@ export default function SimpleCampaignView({
                   </span>
                   {campaignLeads.length > 0 && (
                     <div className="flex items-center gap-2 text-[11px] font-mono tabular-nums">
-                      <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/25">
+                      <span className="text-[#14213D] bg-[#D5ECD4] px-2 py-0.5 rounded-lg border border-[#C3DAC3] font-semibold">
                         {campaignLeads.filter((l) => l.status === 'sent').length}{' '}
                         {isEs ? 'enviados' : 'sent'}
                       </span>
-                      <span className="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/25">
+                      <span className="text-amber-800 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200 font-semibold">
                         {campaignLeads.filter((l) => l.status === 'pending').length}{' '}
                         {isEs ? 'pendientes' : 'pending'}
                       </span>
                     </div>
                   )}
                 </div>
-                <p className="text-[11px] text-[#949EB0] mt-0.5">
+                <p className="text-[11px] text-[#5C6F68] mt-0.5">
                   {campaignLeads.length > 0
                     ? isEs
                       ? 'Se respetan todas las columnas de tu hoja para personalización'
@@ -704,7 +704,7 @@ export default function SimpleCampaignView({
                   type="button"
                   onClick={handleResetLeads}
                   disabled={isReadOnly || isResettingLeads}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#11141C] hover:bg-[#1D2330] border border-[#232938] text-[#F3F5F8] rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#EEF3F0] border border-[#DCE3DF] text-[#14213D] rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   title={
                     isEs
                       ? 'Reiniciar estado de leads a pendiente para reenviar o probar'
@@ -729,7 +729,7 @@ export default function SimpleCampaignView({
                           ? `Insertar {{${v}}} en el mensaje`
                           : `Insert {{${v}}} in message`
                       }
-                      className="bg-[#E85D2A]/10 border border-[#E85D2A]/30 hover:border-[#E85D2A] text-[#E85D2A] font-mono text-[10px] px-2 py-0.5 rounded-lg transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="bg-[#D5ECD4] hover:bg-[#C3DAC3] border border-[#A1B0AB]/50 text-[#14213D] font-mono font-semibold text-[10px] px-2 py-0.5 rounded-lg transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       +{`{{${v}}}`}
                     </button>
@@ -741,22 +741,22 @@ export default function SimpleCampaignView({
         </div>
 
         {/* Step 2: Sender Mailbox Selection */}
-        <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-6 space-y-4">
+        <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-[#E85D2A]/15 border border-[#E85D2A]/30 text-[#E85D2A] font-bold text-xs font-mono tabular-nums flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-[#14213D] text-white font-bold text-xs font-mono tabular-nums flex items-center justify-center">
                 2
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#F3F5F8] flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-[#E85D2A]" />
+                <h3 className="text-sm font-bold text-[#14213D] flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-[#14213D]" />
                   <span>
                     {isEs
                       ? '¿Desde qué cuenta de correo saldrá la campaña? (Casilla Remitente)'
                       : 'Which email account will send this campaign?'}
                   </span>
                 </h3>
-                <p className="text-xs text-[#949EB0]">
+                <p className="text-xs text-[#5C6F68]">
                   {isEs
                     ? 'Selecciona la casilla (Gmail, Outlook o SMTP) desde donde se enviarán tus correos.'
                     : 'Select the sender mailbox (Gmail, Outlook or SMTP) from which your emails will be dispatched.'}
@@ -766,7 +766,7 @@ export default function SimpleCampaignView({
           </div>
 
           {accounts.length === 0 ? (
-            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 flex items-center justify-between">
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center justify-between">
               <span>
                 {isEs ? 'No tienes casillas de correo conectadas.' : 'No email accounts connected.'}
               </span>
@@ -784,35 +784,38 @@ export default function SimpleCampaignView({
                       isReadOnly ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
                     } ${
                       isSelected
-                        ? 'bg-[#E85D2A]/10 border-[#E85D2A]/60'
-                        : 'bg-[#171B26] border-[#232938] hover:border-[#343D52] text-[#949EB0]'
+                        ? 'bg-[#D5ECD4]/45 border-[#14213D] text-[#14213D]'
+                        : 'bg-[#F4F7F5] border-[#DCE3DF] hover:border-[#A1B0AB] text-[#5C6F68]'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div
                         className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold font-mono uppercase shrink-0 ${
                           isSelected
-                            ? 'bg-[#E85D2A] text-white'
-                            : 'bg-[#0A0C10] border border-[#232938] text-[#949EB0]'
+                            ? 'bg-[#14213D] text-white'
+                            : 'bg-white border border-[#DCE3DF] text-[#5C6F68]'
                         }`}
                       >
                         {acc.provider === 'google' ? 'G' : acc.provider === 'microsoft' ? 'M' : 'SMTP'}
                       </div>
                       <div className="min-w-0">
-                        <div className="text-xs font-bold text-[#F3F5F8] truncate flex items-center gap-2">
+                        <div className="text-xs font-bold text-[#14213D] truncate flex items-center gap-2">
                           <span>{acc.name || acc.email}</span>
                           {isSelected && (
-                            <span className="text-[9px] bg-[#E85D2A]/15 text-[#E85D2A] border border-[#E85D2A]/30 px-1.5 py-0.5 rounded-lg font-semibold uppercase">
+                            <span className="text-[9px] bg-[#14213D] text-white px-1.5 py-0.5 rounded-lg font-semibold uppercase">
                               {isEs ? 'Casilla Activa' : 'Active Sender'}
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-[#949EB0] font-mono truncate">{acc.email}</div>
-                        <div className="text-[10px] text-emerald-400 font-medium mt-0.5 flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 shrink-0" />
+                        <div className="text-[11px] text-[#5C6F68] font-mono truncate">{acc.email}</div>
+                        <div className="text-[10px] text-[#5C6F68] font-medium mt-0.5 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 shrink-0 text-emerald-700" />
                           <span>
                             {isEs ? 'Conectada y lista' : 'Connected & ready'} •{' '}
-                            <span className="font-mono tabular-nums">{acc.dailyLimit || 50}</span>/día
+                            <span className="font-mono tabular-nums text-[#14213D] font-semibold">
+                              {acc.dailyLimit || 50}
+                            </span>
+                            /día
                           </span>
                         </div>
                       </div>
@@ -820,9 +823,9 @@ export default function SimpleCampaignView({
 
                     <div className="shrink-0">
                       {isSelected ? (
-                        <CheckCircle2 className="w-5 h-5 text-[#E85D2A]" />
+                        <CheckCircle2 className="w-5 h-5 text-[#14213D]" />
                       ) : (
-                        <div className="w-5 h-5 rounded-full border border-[#232938]" />
+                        <div className="w-5 h-5 rounded-full border border-[#A1B0AB]" />
                       )}
                     </div>
                   </div>
@@ -833,17 +836,17 @@ export default function SimpleCampaignView({
         </div>
 
         {/* Step 3: Message & Pre-built Templates */}
-        <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-6 space-y-5">
-          <div className="flex items-center justify-between border-b border-[#1D2330] pb-3 flex-wrap gap-2">
+        <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-6 space-y-5">
+          <div className="flex items-center justify-between border-b border-[#DCE3DF] pb-3 flex-wrap gap-2">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-[#E85D2A]/15 border border-[#E85D2A]/30 text-[#E85D2A] font-bold text-xs font-mono tabular-nums flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-[#14213D] text-white font-bold text-xs font-mono tabular-nums flex items-center justify-center">
                 3
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#F3F5F8]">
+                <h3 className="text-sm font-bold text-[#14213D]">
                   {isEs ? '¿Qué quieres decirles?' : 'What do you want to say?'}
                 </h3>
-                <p className="text-xs text-[#949EB0]">
+                <p className="text-xs text-[#5C6F68]">
                   {isEs
                     ? 'Selecciona una plantilla de alto impacto o escribe tu propio mensaje'
                     : 'Select a high-converting template or write your own'}
@@ -853,8 +856,8 @@ export default function SimpleCampaignView({
 
             {/* AI Spam Traffic Light Badge */}
             {totalSpam.length === 0 ? (
-              <div className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-lg font-medium">
-                <CheckCircle2 className="w-4 h-4" />
+              <div className="flex items-center gap-1.5 text-xs text-[#14213D] bg-[#D5ECD4] border border-[#C3DAC3] px-3 py-1 rounded-lg font-medium">
+                <CheckCircle2 className="w-4 h-4 text-[#14213D]" />
                 <span>{isEs ? 'Mensaje Seguro (Llega a Inbox)' : 'Spam-Safe (100% Inbox)'}</span>
               </div>
             ) : (
@@ -862,9 +865,9 @@ export default function SimpleCampaignView({
                 type="button"
                 disabled={isReadOnly}
                 onClick={handleCleanSpamWithAi}
-                className="flex items-center gap-1.5 text-xs text-rose-300 bg-rose-500/15 border border-rose-500/35 px-3 py-1 rounded-lg font-medium hover:bg-rose-500/25 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1 rounded-lg font-medium hover:bg-rose-100 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <AlertTriangle className="w-4 h-4 text-rose-400" />
+                <AlertTriangle className="w-4 h-4 text-rose-600" />
                 <span>{isEs ? 'Limpiar con IA (Evitar Spam)' : 'Auto-Clean with AI'}</span>
               </button>
             )}
@@ -872,7 +875,7 @@ export default function SimpleCampaignView({
 
           {/* 3 High-Impact Ready Templates Selector */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-[#F3F5F8] block">
+            <label className="text-xs font-semibold text-[#14213D] block">
               {isEs ? 'Plantillas Recomendadas en 1 Clic:' : '1-Click Recommended Templates:'}
             </label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -887,12 +890,12 @@ export default function SimpleCampaignView({
                     onClick={() => applyTemplate(tmpl.id)}
                     className={`p-3 rounded-xl border text-left transition space-y-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                       active
-                        ? 'bg-[#E85D2A]/10 border-[#E85D2A] text-[#F3F5F8]'
-                        : 'bg-[#171B26] border-[#232938] text-[#949EB0] hover:text-[#F3F5F8] hover:border-[#343D52]'
+                        ? 'bg-[#D5ECD4]/55 border-[#14213D] text-[#14213D]'
+                        : 'bg-[#F4F7F5] border-[#DCE3DF] text-[#5C6F68] hover:text-[#14213D] hover:border-[#A1B0AB]'
                     }`}
                   >
-                    <div className="font-bold text-xs text-[#F3F5F8]">{tmpl.name[langKey]}</div>
-                    <p className="text-[11px] text-[#949EB0] line-clamp-2 leading-relaxed">
+                    <div className="font-bold text-xs text-[#14213D]">{tmpl.name[langKey]}</div>
+                    <p className="text-[11px] text-[#5C6F68] line-clamp-2 leading-relaxed">
                       {tmpl.description[langKey]}
                     </p>
                   </button>
@@ -902,17 +905,17 @@ export default function SimpleCampaignView({
           </div>
 
           {/* Variable Insertion Pills Toolbar */}
-          <div className="bg-[#171B26] border border-[#232938] rounded-xl p-3.5 space-y-2">
-            <div className="flex items-center justify-between text-[11px] font-semibold text-[#949EB0] flex-wrap gap-2">
+          <div className="bg-[#F4F7F5] border border-[#DCE3DF] rounded-xl p-3.5 space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-[#5C6F68] flex-wrap gap-2">
               <span className="flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5 text-[#E85D2A]" />
+                <Tag className="w-3.5 h-3.5 text-[#14213D]" />
                 <span>
                   {isEs
                     ? 'Haz clic en una variable para insertarla en tu correo:'
                     : 'Click any variable tag to insert into your email:'}
                 </span>
               </span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] text-[#E85D2A] font-medium bg-[#E85D2A]/10 px-2.5 py-0.5 rounded-lg border border-[#E85D2A]/25">
+              <span className="inline-flex items-center gap-1.5 text-[10px] text-[#14213D] font-medium bg-[#D5ECD4] px-2.5 py-0.5 rounded-lg border border-[#C3DAC3]">
                 <Target className="w-3 h-3" />
                 <span>
                   {isEs
@@ -937,8 +940,8 @@ export default function SimpleCampaignView({
                     onClick={() => handleInsertVariable(tag)}
                     className={`font-mono text-[11px] px-2.5 py-1 rounded-lg transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                       isCustomSheet
-                        ? 'bg-[#E85D2A]/10 hover:bg-[#E85D2A]/20 border border-[#E85D2A]/30 hover:border-[#E85D2A] text-[#E85D2A] font-semibold'
-                        : 'bg-[#11141C] hover:bg-[#1D2330] border border-[#232938] text-[#F3F5F8]'
+                        ? 'bg-[#D5ECD4] hover:bg-[#C3DAC3] border border-[#A1B0AB]/50 text-[#14213D] font-semibold'
+                        : 'bg-white hover:bg-[#EEF3F0] border border-[#DCE3DF] text-[#14213D]'
                     }`}
                     title={
                       isCustomSheet
@@ -950,10 +953,10 @@ export default function SimpleCampaignView({
                           : `Insert {{${tag}}}`
                     }
                   >
-                    <Plus className="w-3 h-3 text-[#E85D2A]" />
+                    <Plus className="w-3 h-3 text-[#14213D]" />
                     <span>{`{{${tag}}}`}</span>
                     {isCustomSheet && (
-                      <span className="text-[9px] bg-[#E85D2A]/20 text-[#E85D2A] px-1 py-0.2 rounded font-sans uppercase">
+                      <span className="text-[9px] bg-[#14213D] text-white px-1 py-0.2 rounded font-sans uppercase">
                         Sheet
                       </span>
                     )}
@@ -966,16 +969,16 @@ export default function SimpleCampaignView({
           {/* Subject Field */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <label className="text-xs font-semibold text-[#F3F5F8]">
+              <label className="text-xs font-semibold text-[#14213D]">
                 {isEs ? 'Asunto del Correo' : 'Email Subject Line'}
               </label>
-              <div className="text-[11px] text-[#949EB0] flex items-center gap-1">
+              <div className="text-[11px] text-[#5C6F68] flex items-center gap-1">
                 <span>{isEs ? 'Variables rápidas para asunto:' : 'Subject tags:'}</span>
                 <button
                   type="button"
                   disabled={isReadOnly}
                   onClick={() => handleInsertVariable(isEs ? 'Nombre' : 'firstName', 'subject')}
-                  className="text-[#E85D2A] hover:underline font-mono cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="text-[#14213D] font-semibold hover:underline font-mono cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   +&#123;&#123;{isEs ? 'Nombre' : 'firstName'}&#125;&#125;
                 </button>
@@ -983,7 +986,7 @@ export default function SimpleCampaignView({
                   type="button"
                   disabled={isReadOnly}
                   onClick={() => handleInsertVariable(isEs ? 'Empresa' : 'companyName', 'subject')}
-                  className="text-[#E85D2A] hover:underline font-mono ml-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="text-[#14213D] font-semibold hover:underline font-mono ml-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   +&#123;&#123;{isEs ? 'Empresa' : 'companyName'}&#125;&#125;
                 </button>
@@ -996,7 +999,7 @@ export default function SimpleCampaignView({
               onFocus={() => setLastFocusedField('subject')}
               value={activeVariant?.subject || ''}
               onChange={(e) => handleUpdateContent({ subject: e.target.value })}
-              className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-4 py-2.5 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg px-4 py-2.5 text-xs text-[#14213D] placeholder-[#5C6F68]/70 focus:outline-none transition disabled:opacity-60 disabled:cursor-not-allowed"
               placeholder={
                 isEs
                   ? 'Consulta breve sobre {{Empresa}}...'
@@ -1008,10 +1011,10 @@ export default function SimpleCampaignView({
           {/* Body Field */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <label className="text-xs font-semibold text-[#F3F5F8]">
+              <label className="text-xs font-semibold text-[#14213D]">
                 {isEs ? 'Cuerpo del Mensaje' : 'Email Content'}
               </label>
-              <div className="text-[11px] text-[#949EB0]">
+              <div className="text-[11px] text-[#5C6F68]">
                 {isEs
                   ? 'Cualquier columna de tu hoja (ej: {{DOLOR}}, {{MAIL}}) se reemplazará automáticamente'
                   : 'Any column like {{Cargo}}, {{Ciudad}} is dynamically populated'}
@@ -1024,7 +1027,7 @@ export default function SimpleCampaignView({
               onFocus={() => setLastFocusedField('body')}
               value={activeVariant?.body || ''}
               onChange={(e) => handleUpdateContent({ body: e.target.value })}
-              className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg p-4 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition leading-relaxed font-sans disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] focus:bg-white rounded-lg p-4 text-xs text-[#14213D] placeholder-[#5C6F68]/70 focus:outline-none transition leading-relaxed font-sans disabled:opacity-60 disabled:cursor-not-allowed"
               placeholder={
                 isEs
                   ? 'Hola {{Nombre}}, te escribo porque...'
@@ -1035,13 +1038,13 @@ export default function SimpleCampaignView({
         </div>
 
         {/* Step 4: Automated Safeguards Summary */}
-        <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-5 space-y-3 text-xs">
+        <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-5 space-y-3 text-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-[#E85D2A]/15 border border-[#E85D2A]/30 text-[#E85D2A] font-bold text-xs font-mono tabular-nums flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-[#14213D] text-white font-bold text-xs font-mono tabular-nums flex items-center justify-center">
                 4
               </div>
-              <h4 className="font-bold text-[#F3F5F8] text-xs">
+              <h4 className="font-bold text-[#14213D] text-xs">
                 {isEs
                   ? 'Ajustes de Entrega Segura (Automáticos)'
                   : 'Safe Delivery Safeguards (Auto-Pilot)'}
@@ -1051,7 +1054,7 @@ export default function SimpleCampaignView({
             <button
               type="button"
               onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-              className="text-[#949EB0] hover:text-[#F3F5F8] text-[11px] flex items-center gap-1 transition cursor-pointer"
+              className="text-[#5C6F68] hover:text-[#14213D] text-[11px] flex items-center gap-1 transition cursor-pointer"
             >
               <span>{isEs ? 'Opciones avanzadas' : 'Advanced options'}</span>
               {showAdvancedSettings ? (
@@ -1063,46 +1066,46 @@ export default function SimpleCampaignView({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="bg-[#171B26] p-3 rounded-xl border border-[#232938] space-y-1">
-              <div className="text-[10px] text-[#949EB0] font-semibold uppercase">
+            <div className="bg-[#F4F7F5] p-3 rounded-xl border border-[#DCE3DF] space-y-1">
+              <div className="text-[10px] text-[#5C6F68] font-semibold uppercase">
                 {isEs ? 'Horario de Oficina' : 'Business Hours'}
               </div>
-              <div className="text-[#F3F5F8] font-medium font-mono tabular-nums">
+              <div className="text-[#14213D] font-medium font-mono tabular-nums">
                 09:00 - 17:30 (Lun–Vie)
               </div>
-              <div className="text-[10px] text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 shrink-0" />
+              <div className="text-[10px] text-[#5C6F68] flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 shrink-0 text-emerald-700" />
                 <span>{isEs ? 'Optimizado para apertura' : 'Optimized for opens'}</span>
               </div>
             </div>
 
-            <div className="bg-[#171B26] p-3 rounded-xl border border-[#232938] space-y-1">
-              <div className="text-[10px] text-[#949EB0] font-semibold uppercase">
+            <div className="bg-[#F4F7F5] p-3 rounded-xl border border-[#DCE3DF] space-y-1">
+              <div className="text-[10px] text-[#5C6F68] font-semibold uppercase">
                 {isEs ? 'Pausa si Responde' : 'Auto-Stop on Reply'}
               </div>
-              <div className="text-[#F3F5F8] font-medium font-mono tabular-nums">100%</div>
-              <div className="text-[10px] text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 shrink-0" />
+              <div className="text-[#14213D] font-medium font-mono tabular-nums">100%</div>
+              <div className="text-[10px] text-[#5C6F68] flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 shrink-0 text-emerald-700" />
                 <span>{isEs ? 'No molesta a quien ya contestó' : 'Stops on prospect reply'}</span>
               </div>
             </div>
 
-            <div className="bg-[#171B26] p-3 rounded-xl border border-[#232938] space-y-1">
-              <div className="text-[10px] text-[#949EB0] font-semibold uppercase">
+            <div className="bg-[#F4F7F5] p-3 rounded-xl border border-[#DCE3DF] space-y-1">
+              <div className="text-[10px] text-[#5C6F68] font-semibold uppercase">
                 {isEs ? 'Límite Seguro Diario' : 'Safe Daily Volume'}
               </div>
-              <div className="text-[#F3F5F8] font-medium font-mono tabular-nums">
+              <div className="text-[#14213D] font-medium font-mono tabular-nums">
                 50 {isEs ? 'correos / día' : 'emails / day'}
               </div>
-              <div className="text-[10px] text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 shrink-0" />
+              <div className="text-[10px] text-[#5C6F68] flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 shrink-0 text-emerald-700" />
                 <span>{isEs ? 'Protege tu dominio de spam' : 'Protects domain reputation'}</span>
               </div>
             </div>
           </div>
 
           {showAdvancedSettings && (
-            <div className="pt-3 border-t border-[#1D2330] space-y-2 text-[#949EB0] text-[11px]">
+            <div className="pt-3 border-t border-[#DCE3DF] space-y-2 text-[#5C6F68] text-[11px]">
               <p>
                 {isEs
                   ? 'Para configurar pruebas A/Z, sintaxis Spintax compleja o códigos DNS específicos, puedes conmutar a "Modo Pro" en la barra superior en cualquier momento.'
@@ -1118,14 +1121,14 @@ export default function SimpleCampaignView({
             <button
               type="button"
               onClick={() => setIsTestEmailModalOpen(true)}
-              className="flex items-center gap-1.5 bg-[#11141C] hover:bg-[#171B26] text-[#F3F5F8] border border-[#232938] px-3.5 py-2.5 rounded-lg text-xs font-semibold transition cursor-pointer"
+              className="flex items-center gap-1.5 bg-white hover:bg-[#EEF3F0] text-[#14213D] border border-[#DCE3DF] shadow-sm px-3.5 py-2.5 rounded-lg text-xs font-semibold transition cursor-pointer"
               title={
                 isEs
                   ? 'Enviar un correo de prueba real a tu dirección'
                   : 'Send a test email to your address'
               }
             >
-              <Mail className="w-3.5 h-3.5 text-[#E85D2A]" />
+              <Mail className="w-3.5 h-3.5 text-[#14213D]" />
               <span>{isEs ? 'Enviar Prueba a mi Correo' : 'Send Test to My Email'}</span>
             </button>
 
@@ -1133,7 +1136,7 @@ export default function SimpleCampaignView({
               type="button"
               onClick={() => handleRunCampaign(true)}
               disabled={isSending}
-              className="flex items-center gap-2 bg-[#171B26] hover:bg-[#1D2330] text-[#F3F5F8] text-xs font-semibold px-4 py-2.5 rounded-lg border border-[#232938] transition cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-2 bg-[#D5ECD4] hover:bg-[#C3DAC3] text-[#14213D] text-xs font-semibold px-4 py-2.5 rounded-lg border border-[#A1B0AB]/50 transition cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSending ? 'animate-spin' : ''}`} />
               <span>{isEs ? 'Simular Envío Seguro (Prueba)' : 'Safe Test Simulation'}</span>
@@ -1143,7 +1146,7 @@ export default function SimpleCampaignView({
               <button
                 type="button"
                 onClick={() => setIsImportModalOpen(true)}
-                className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white text-xs font-bold px-5 py-2.5 rounded-lg transition cursor-pointer"
+                className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] text-white text-xs font-bold px-5 py-2.5 rounded-lg transition cursor-pointer"
               >
                 <FileSpreadsheet className="w-4 h-4" />
                 <span>{isEs ? 'Cargar Leads de Sheets para Enviar' : 'Load Leads to Send'}</span>
@@ -1153,7 +1156,7 @@ export default function SimpleCampaignView({
                 type="button"
                 onClick={() => handleRunCampaign(false)}
                 disabled={isSending}
-                className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-50 text-white text-xs font-bold px-6 py-2.5 rounded-lg transition cursor-pointer"
+                className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] disabled:opacity-50 text-white text-xs font-bold px-6 py-2.5 rounded-lg transition cursor-pointer"
               >
                 <Rocket className="w-4 h-4" />
                 <span>{isEs ? 'Activar y Enviar Campaña' : 'Launch Campaign'}</span>
@@ -1164,23 +1167,23 @@ export default function SimpleCampaignView({
 
         {/* Live Batch Sending Progress Bar */}
         {isSending && sendProgress && (
-          <div className="bg-[#11141C] border border-[#E85D2A]/40 rounded-xl p-4 space-y-2.5 animate-in fade-in">
+          <div className="bg-white border border-[#14213D]/30 shadow-sm rounded-xl p-4 space-y-2.5 animate-in fade-in">
             <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 font-bold text-[#F3F5F8]">
-                <RefreshCw className="w-4 h-4 animate-spin text-[#E85D2A]" />
+              <div className="flex items-center gap-2 font-bold text-[#14213D]">
+                <RefreshCw className="w-4 h-4 animate-spin text-[#14213D]" />
                 <span>
                   {isEs
                     ? 'Despachando correos por lotes seguros (Conexión SMTP persistente)...'
                     : 'Dispatching emails in safe batches (Persistent SMTP pool)...'}
                 </span>
               </div>
-              <span className="font-mono tabular-nums font-bold text-[#F3F5F8]">
+              <span className="font-mono tabular-nums font-bold text-[#14213D]">
                 {sendProgress.sent} / {sendProgress.total || '?'}
               </span>
             </div>
-            <div className="w-full h-2 bg-[#0A0C10] rounded-full overflow-hidden border border-[#232938]">
+            <div className="w-full h-2 bg-[#EEF3F0] rounded-full overflow-hidden border border-[#DCE3DF]">
               <div
-                className="h-full bg-[#E85D2A] transition-all duration-300"
+                className="h-full bg-[#14213D] transition-all duration-300"
                 style={{
                   width: `${
                     sendProgress.total > 0
@@ -1196,27 +1199,27 @@ export default function SimpleCampaignView({
         {/* Execution Results or Error Banner */}
         {dispatchResult &&
           (dispatchResult.error ? (
-            <div className="bg-rose-500/10 border border-rose-500/35 rounded-xl p-5 space-y-2 animate-in fade-in">
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-5 space-y-2 animate-in fade-in">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 font-bold text-rose-300 text-xs">
-                  <AlertTriangle className="w-4 h-4 text-rose-400" />
+                <div className="flex items-center gap-2 font-bold text-rose-700 text-xs">
+                  <AlertTriangle className="w-4 h-4 text-rose-600" />
                   <span>{isEs ? 'Aviso de Envío' : 'Dispatch Notice'}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDispatchResult(null)}
-                  className="text-[#949EB0] hover:text-[#F3F5F8] p-1 rounded-lg transition cursor-pointer"
+                  className="text-rose-600 hover:text-rose-800 p-1 rounded-lg transition cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-xs text-rose-200 leading-relaxed">{dispatchResult.error}</p>
+              <p className="text-xs text-rose-700 leading-relaxed">{dispatchResult.error}</p>
             </div>
           ) : (
-            <div className="bg-[#11141C] border border-emerald-500/35 rounded-xl p-5 space-y-3 animate-in fade-in">
+            <div className="bg-white border border-[#C3DAC3] shadow-sm rounded-xl p-5 space-y-3 animate-in fade-in">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 font-bold text-[#F3F5F8] text-xs">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <div className="flex items-center gap-2 font-bold text-[#14213D] text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-[#14213D]" />
                   <span>
                     {isEs ? '¡Campaña Procesada con Éxito!' : 'Campaign Processed Successfully!'}
                   </span>
@@ -1224,26 +1227,26 @@ export default function SimpleCampaignView({
                 <button
                   type="button"
                   onClick={() => setDispatchResult(null)}
-                  className="text-[#949EB0] hover:text-[#F3F5F8] p-1 rounded-lg transition cursor-pointer"
+                  className="text-[#5C6F68] hover:text-[#14213D] p-1 rounded-lg transition cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="bg-[#171B26] border border-[#232938] p-3 rounded-xl">
-                  <span className="text-[#949EB0] text-[10px] uppercase">
+                <div className="bg-[#F4F7F5] border border-[#DCE3DF] p-3 rounded-xl">
+                  <span className="text-[#5C6F68] text-[10px] uppercase font-semibold">
                     {isEs ? 'Emails Enviados' : 'Emails Sent'}
                   </span>
-                  <div className="text-lg font-bold text-emerald-400 mt-0.5 font-mono tabular-nums">
+                  <div className="text-lg font-bold text-[#14213D] mt-0.5 font-mono tabular-nums">
                     {dispatchResult.sentCount || 0}
                   </div>
                 </div>
-                <div className="bg-[#171B26] border border-[#232938] p-3 rounded-xl">
-                  <span className="text-[#949EB0] text-[10px] uppercase">
+                <div className="bg-[#F4F7F5] border border-[#DCE3DF] p-3 rounded-xl">
+                  <span className="text-[#5C6F68] text-[10px] uppercase font-semibold">
                     {isEs ? 'Modo' : 'Mode'}
                   </span>
-                  <div className="text-sm font-medium text-[#E85D2A] mt-0.5">
+                  <div className="text-sm font-semibold text-[#14213D] mt-0.5">
                     {dispatchResult.logs?.[0]?.status === 'simulated'
                       ? isEs
                         ? 'Simulación Segura'
