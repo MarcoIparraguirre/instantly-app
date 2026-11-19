@@ -30,9 +30,9 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} dark h-full antialiased`}
+      className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#0A0C10] text-[#F3F5F8] font-sans">
+      <body className="min-h-full flex flex-col bg-[#F4F7F5] text-[#14213D] font-sans">
         <Providers>{children}</Providers>
       </body>
     </html>

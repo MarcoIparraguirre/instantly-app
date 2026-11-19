@@ -30,7 +30,7 @@ export function BrandMark({ size = 'md', className = '' }: BrandMarkProps): Reac
     <div
       role="img"
       aria-label="MiSender"
-      className={`${dimensions.container} bg-[#171B26] border border-[#232938] inline-flex items-center justify-center shrink-0 shadow-sm ${className}`.trim()}
+      className={`${dimensions.container} bg-[#14213D] border border-[#C3DAC3]/35 inline-flex items-center justify-center shrink-0 shadow-sm ${className}`.trim()}
     >
       <svg
         viewBox="0 0 24 24"
@@ -42,7 +42,7 @@ export function BrandMark({ size = 'md', className = '' }: BrandMarkProps): Reac
         {/* Envelope perimeter leaving top-right open for the telemetry signal beacon */}
         <path
           d="M3 8.5C3 7.395 3.895 6.5 5 6.5H13.5M21 11.5V16.5C21 17.605 20.105 18.5 19 18.5H5C3.895 18.5 3 17.605 3 16.5V8.5Z"
-          stroke="#F3F5F8"
+          stroke="#FFFFFF"
           strokeWidth="1.65"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -50,7 +50,7 @@ export function BrandMark({ size = 'md', className = '' }: BrandMarkProps): Reac
         {/* Clean postal fold meeting the outgoing vector */}
         <path
           d="M3.75 7.5L12 13.1L15.75 10.55"
-          stroke="#F3F5F8"
+          stroke="#FFFFFF"
           strokeWidth="1.65"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -58,18 +58,18 @@ export function BrandMark({ size = 'md', className = '' }: BrandMarkProps): Reac
         {/* Directional telemetry trajectory vector */}
         <path
           d="M12 13.1L16.3 8.4"
-          stroke="#E85D2A"
+          stroke="#D5ECD4"
           strokeWidth="1.6"
           strokeLinecap="round"
         />
         {/* Precision telemetry reticle arc & beacon core */}
         <path
           d="M14.75 3.75A5.25 5.25 0 0 1 20.75 9.75"
-          stroke="#E85D2A"
+          stroke="#D5ECD4"
           strokeWidth="1.6"
           strokeLinecap="round"
         />
-        <circle cx="18" cy="6.5" r="2" fill="#E85D2A" />
+        <circle cx="18" cy="6.5" r="2" fill="#D5ECD4" />
       </svg>
     </div>
   );

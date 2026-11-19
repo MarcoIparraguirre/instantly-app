@@ -183,19 +183,19 @@ export default function WorkspaceManagerModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-[#11141C] border border-[#232938] rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150"
+        className="bg-white border border-[#DCE3DF] text-[#14213D] rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150"
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-[#1D2330]">
+        <div className="flex items-center justify-between pb-4 border-b border-[#DCE3DF]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#171B26] border border-[#232938] flex items-center justify-center text-[#E85D2A]">
+            <div className="w-10 h-10 rounded-xl bg-[#D5ECD4]/60 border border-[#C3DAC3] flex items-center justify-center text-[#14213D]">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-[#F3F5F8] leading-tight">
+              <h2 className="text-base font-bold text-[#14213D] leading-tight">
                 {isEs ? 'Gestión de Espacios de Trabajo' : 'Workspace Management'}
               </h2>
-              <p className="text-xs text-[#949EB0]">
+              <p className="text-xs text-[#5C6F68]">
                 {isEs
                   ? 'Organiza tus clientes, marcas o campañas en entornos separados'
                   : 'Separate clients, brands or outbound campaigns'}
@@ -207,7 +207,7 @@ export default function WorkspaceManagerModal({
             type="button"
             onClick={onClose}
             aria-label={isEs ? 'Cerrar modal' : 'Close modal'}
-            className="w-8 h-8 rounded-lg bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] text-[#949EB0] hover:text-[#F3F5F8] flex items-center justify-center transition cursor-pointer"
+            className="w-8 h-8 rounded-lg bg-[#EEF3F0] hover:bg-[#DCE3DF] border border-[#DCE3DF] text-[#5C6F68] hover:text-[#14213D] flex items-center justify-center transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -224,30 +224,30 @@ export default function WorkspaceManagerModal({
               return (
                 <div
                   key={ws.id}
-                  className="p-3 bg-[#171B26] border border-[#E85D2A]/50 rounded-xl space-y-2.5"
+                  className="p-3 bg-[#EEF3F0] border border-[#14213D]/40 rounded-xl space-y-2.5"
                 >
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10px] text-[#949EB0] font-semibold uppercase">
+                      <label className="text-[10px] text-[#5C6F68] font-semibold uppercase">
                         {isEs ? 'Nombre del Espacio' : 'Workspace Name'}
                       </label>
                       <input
                         type="text"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
-                        className="w-full mt-1 bg-[#11141C] border border-[#232938] rounded-lg px-3 py-1.5 text-xs text-[#F3F5F8] focus:outline-none focus:border-[#E85D2A]"
+                        className="w-full mt-1 bg-[#F4F7F5] border border-[#DCE3DF] rounded-lg px-3 py-1.5 text-xs text-[#14213D] focus:outline-none focus:border-[#14213D]"
                         autoFocus
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] text-[#949EB0] font-semibold uppercase">
+                      <label className="text-[10px] text-[#5C6F68] font-semibold uppercase">
                         {isEs ? 'Cliente / Organización' : 'Client / Org'}
                       </label>
                       <input
                         type="text"
                         value={editClient}
                         onChange={(e) => setEditClient(e.target.value)}
-                        className="w-full mt-1 bg-[#11141C] border border-[#232938] rounded-lg px-3 py-1.5 text-xs text-[#F3F5F8] focus:outline-none focus:border-[#E85D2A]"
+                        className="w-full mt-1 bg-[#F4F7F5] border border-[#DCE3DF] rounded-lg px-3 py-1.5 text-xs text-[#14213D] focus:outline-none focus:border-[#14213D]"
                       />
                     </div>
                   </div>
@@ -255,14 +255,14 @@ export default function WorkspaceManagerModal({
                     <button
                       type="button"
                       onClick={() => setEditingId(null)}
-                      className="px-3 py-1 text-xs text-[#949EB0] hover:text-[#F3F5F8] cursor-pointer"
+                      className="px-3 py-1 text-xs text-[#5C6F68] hover:text-[#14213D] cursor-pointer"
                     >
                       {isEs ? 'Cancelar' : 'Cancel'}
                     </button>
                     <button
                       type="button"
                       onClick={() => handleSaveEdit(ws.id)}
-                      className="px-3 py-1 bg-[#E85D2A] hover:bg-[#F26B3A] text-white rounded-lg text-xs font-semibold cursor-pointer"
+                      className="px-3 py-1 bg-[#14213D] hover:bg-[#1E3158] text-white rounded-lg text-xs font-semibold cursor-pointer"
                     >
                       {isEs ? 'Guardar' : 'Save'}
                     </button>
@@ -276,8 +276,8 @@ export default function WorkspaceManagerModal({
                 key={ws.id}
                 className={`p-3.5 rounded-xl border transition flex items-center justify-between ${
                   isActive
-                    ? 'bg-[#E85D2A]/10 border-[#E85D2A]/45 shadow-sm'
-                    : 'bg-[#171B26] border-[#232938] hover:border-[#343D52]'
+                    ? 'bg-[#D5ECD4]/40 border-[#C3DAC3] shadow-sm'
+                    : 'bg-[#F4F7F5] border-[#DCE3DF] hover:border-[#A1B0AB]'
                 }`}
               >
                 <div
@@ -287,27 +287,27 @@ export default function WorkspaceManagerModal({
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
                       isActive
-                        ? 'bg-[#E85D2A] text-white'
-                        : 'bg-[#11141C] border border-[#232938] text-[#949EB0]'
+                        ? 'bg-[#14213D] text-white'
+                        : 'bg-white border border-[#DCE3DF] text-[#5C6F68]'
                     }`}
                   >
                     {ws.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1 pr-2">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs text-[#F3F5F8] truncate">
+                      <span className="font-bold text-xs text-[#14213D] truncate">
                         {ws.name}
                       </span>
-                      <span className="text-[10px] bg-[#11141C] text-[#949EB0] border border-[#232938] px-1.5 py-0.5 rounded-lg font-mono shrink-0">
+                      <span className="text-[10px] bg-white text-[#5C6F68] border border-[#DCE3DF] px-1.5 py-0.5 rounded-lg font-mono shrink-0">
                         {planCfg.name}
                       </span>
                       {isActive && (
-                        <span className="text-[10px] bg-[#E85D2A]/15 text-[#E85D2A] border border-[#E85D2A]/35 px-2 py-0.5 rounded-lg font-semibold shrink-0">
+                        <span className="text-[10px] bg-[#D5ECD4] text-[#14213D] border border-[#C3DAC3] px-2 py-0.5 rounded-lg font-semibold shrink-0">
                           {isEs ? 'Activo' : 'Active'}
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-[#949EB0] truncate mt-0.5 flex items-center gap-2">
+                    <div className="text-[11px] text-[#5C6F68] truncate mt-0.5 flex items-center gap-2">
                       <span>{ws.clientName || 'Vectra Systems'}</span>
                       <span>•</span>
                       <span className="font-mono tabular-nums">
@@ -321,7 +321,7 @@ export default function WorkspaceManagerModal({
                   <button
                     type="button"
                     onClick={() => handleStartEdit(ws)}
-                    className="p-1.5 text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#11141C] rounded-lg transition cursor-pointer"
+                    className="p-1.5 text-[#5C6F68] hover:text-[#14213D] hover:bg-white rounded-lg transition cursor-pointer"
                     title={isEs ? 'Editar nombre' : 'Edit name'}
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -331,7 +331,7 @@ export default function WorkspaceManagerModal({
                     <button
                       type="button"
                       onClick={() => handleDelete(ws.id)}
-                      className="p-1.5 text-[#949EB0] hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
+                      className="p-1.5 text-[#5C6F68] hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                       title={isEs ? 'Eliminar espacio' : 'Delete workspace'}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -347,15 +347,15 @@ export default function WorkspaceManagerModal({
         {isCreating ? (
           <form
             onSubmit={handleCreate}
-            className="p-4 bg-[#171B26] border border-[#232938] rounded-xl space-y-3"
+            className="p-4 bg-[#EEF3F0]/60 border border-[#DCE3DF] rounded-xl space-y-3"
           >
-            <h3 className="text-xs font-bold text-[#F3F5F8] flex items-center gap-2">
-              <Plus className="w-3.5 h-3.5 text-[#E85D2A]" />
+            <h3 className="text-xs font-bold text-[#14213D] flex items-center gap-2">
+              <Plus className="w-3.5 h-3.5 text-[#14213D]" />
               <span>{isEs ? 'Nuevo Espacio de Trabajo' : 'New Workspace'}</span>
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
-                <label className="text-[10px] text-[#949EB0] font-semibold uppercase">
+                <label className="text-[10px] text-[#5C6F68] font-semibold uppercase">
                   {isEs ? 'Nombre del Espacio' : 'Workspace Name'}
                 </label>
                 <input
@@ -364,11 +364,11 @@ export default function WorkspaceManagerModal({
                   placeholder={isEs ? 'Ej: Campañas Inmobiliarias' : 'e.g. FinTech Outbound'}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full mt-1 bg-[#11141C] border border-[#232938] rounded-lg px-3 py-1.5 text-xs text-[#F3F5F8] placeholder-[#949EB0]/50 focus:outline-none focus:border-[#E85D2A]"
+                  className="w-full mt-1 bg-[#F4F7F5] border border-[#DCE3DF] rounded-lg px-3 py-1.5 text-xs text-[#14213D] placeholder-[#A1B0AB] focus:outline-none focus:border-[#14213D]"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-[#949EB0] font-semibold uppercase">
+                <label className="text-[10px] text-[#5C6F68] font-semibold uppercase">
                   {isEs ? 'Cliente u Organización' : 'Client or Organization'}
                 </label>
                 <input
@@ -376,13 +376,13 @@ export default function WorkspaceManagerModal({
                   placeholder={isEs ? 'Ej: Cliente ABC' : 'e.g. Acme Corp'}
                   value={newClient}
                   onChange={(e) => setNewClient(e.target.value)}
-                  className="w-full mt-1 bg-[#11141C] border border-[#232938] rounded-lg px-3 py-1.5 text-xs text-[#F3F5F8] placeholder-[#949EB0]/50 focus:outline-none focus:border-[#E85D2A]"
+                  className="w-full mt-1 bg-[#F4F7F5] border border-[#DCE3DF] rounded-lg px-3 py-1.5 text-xs text-[#14213D] placeholder-[#A1B0AB] focus:outline-none focus:border-[#14213D]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-[10px] text-[#949EB0] font-semibold uppercase block mb-1.5">
+              <label className="text-[10px] text-[#5C6F68] font-semibold uppercase block mb-1.5">
                 {isEs ? 'Plan SaaS Inicial (7d prueba)' : 'Initial SaaS Plan (7d trial)'}
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -396,15 +396,15 @@ export default function WorkspaceManagerModal({
                       onClick={() => setNewPlan(p)}
                       className={`p-2.5 rounded-lg border text-left transition cursor-pointer ${
                         selected
-                          ? 'bg-[#E85D2A]/15 border-[#E85D2A]/60 text-[#F3F5F8]'
-                          : 'bg-[#11141C] border-[#232938] text-[#949EB0] hover:border-[#343D52]'
+                          ? 'bg-[#D5ECD4]/50 border-[#14213D] text-[#14213D]'
+                          : 'bg-[#F4F7F5] border-[#DCE3DF] text-[#5C6F68] hover:border-[#A1B0AB]'
                       }`}
                     >
-                      <div className="text-xs font-bold text-[#F3F5F8]">{cfg.name}</div>
-                      <div className="text-[10px] text-[#949EB0] font-mono tabular-nums">
+                      <div className="text-xs font-bold text-[#14213D]">{cfg.name}</div>
+                      <div className="text-[10px] text-[#5C6F68] font-mono tabular-nums">
                         ${cfg.monthlyPriceUsd}/m
                       </div>
-                      <div className="text-[9px] text-emerald-400 font-mono tabular-nums mt-0.5">
+                      <div className="text-[9px] text-emerald-700 font-semibold font-mono tabular-nums mt-0.5">
                         {cfg.maxAccounts === 999 ? '∞' : cfg.maxAccounts}{' '}
                         {isEs ? 'casillas' : 'mailboxes'}
                       </div>
@@ -419,14 +419,14 @@ export default function WorkspaceManagerModal({
                 type="button"
                 onClick={() => setIsCreating(false)}
                 disabled={isSubmitting}
-                className="px-3 py-1.5 text-xs text-[#949EB0] hover:text-[#F3F5F8] cursor-pointer"
+                className="px-3 py-1.5 text-xs text-[#5C6F68] hover:text-[#14213D] cursor-pointer"
               >
                 {isEs ? 'Cancelar' : 'Cancel'}
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-1.5 bg-[#E85D2A] hover:bg-[#F26B3A] text-white rounded-lg text-xs font-semibold shadow-sm transition cursor-pointer disabled:opacity-50"
+                className="px-4 py-1.5 bg-[#14213D] hover:bg-[#1E3158] text-white rounded-lg text-xs font-semibold shadow-sm transition cursor-pointer disabled:opacity-50"
               >
                 {isSubmitting
                   ? isEs
@@ -442,23 +442,23 @@ export default function WorkspaceManagerModal({
           <button
             type="button"
             onClick={() => setIsCreating(true)}
-            className="w-full py-2.5 px-4 bg-[#171B26] hover:bg-[#1D2330] border border-dashed border-[#232938] hover:border-[#E85D2A]/50 rounded-xl text-xs font-semibold text-[#949EB0] hover:text-[#F3F5F8] flex items-center justify-center gap-2 transition cursor-pointer"
+            className="w-full py-2.5 px-4 bg-[#F4F7F5] hover:bg-[#EEF3F0] border border-dashed border-[#A1B0AB] hover:border-[#14213D] rounded-xl text-xs font-semibold text-[#5C6F68] hover:text-[#14213D] flex items-center justify-center gap-2 transition cursor-pointer"
           >
-            <Plus className="w-4 h-4 text-[#E85D2A]" />
+            <Plus className="w-4 h-4 text-[#14213D]" />
             <span>
               {isEs ? 'Crear Nuevo Espacio de Trabajo' : 'Create New Workspace'}
             </span>
           </button>
         )}
 
-        <div className="pt-2 border-t border-[#1D2330] flex items-center justify-between text-[11px] text-[#949EB0]">
+        <div className="pt-2 border-t border-[#DCE3DF] flex items-center justify-between text-[11px] text-[#5C6F68]">
           <span className="font-mono tabular-nums">
             {workspaces.length} {isEs ? 'espacios configurados' : 'workspaces'}
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] text-[#F3F5F8] rounded-lg text-xs font-semibold transition cursor-pointer"
+            className="px-4 py-1.5 bg-[#EEF3F0] hover:bg-[#DCE3DF] border border-[#DCE3DF] text-[#14213D] rounded-lg text-xs font-semibold transition cursor-pointer"
           >
             {isEs ? 'Cerrar' : 'Close'}
           </button>

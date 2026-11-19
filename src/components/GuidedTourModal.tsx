@@ -56,7 +56,7 @@ const TOUR_STATIONS: TourStation[] = [
     stepNumber: 1,
     targetTab: 'campaigns',
     icon: Sparkles,
-    accentColor: 'text-[#E85D2A] bg-[#E85D2A]/15 border-[#E85D2A]/35',
+    accentColor: 'text-[#14213D] bg-[#D5ECD4] border-[#C3DAC3]',
     shortLabelEs: 'Bienvenida y Modos',
     shortLabelEn: 'Welcome & Modes',
     titleEs: 'Bienvenida: Modo Simple vs. Modo Pro y Workspaces Multi-Cliente',
@@ -87,7 +87,7 @@ const TOUR_STATIONS: TourStation[] = [
     stepNumber: 2,
     targetTab: 'accounts',
     icon: Server,
-    accentColor: 'text-amber-400 bg-amber-500/15 border-amber-500/30',
+    accentColor: 'text-amber-800 bg-amber-50 border-amber-200',
     shortLabelEs: 'Casillas y DNS',
     shortLabelEn: 'Mailboxes & DNS',
     titleEs: 'Casillas de Envío: Conexión OAuth 1-Click y Auditoría DNS (SPF/DKIM/DMARC)',
@@ -118,7 +118,7 @@ const TOUR_STATIONS: TourStation[] = [
     stepNumber: 3,
     targetTab: 'finder',
     icon: FileSpreadsheet,
-    accentColor: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30',
+    accentColor: 'text-[#14213D] bg-[#D5ECD4] border-[#C3DAC3]',
     shortLabelEs: 'Leads y Sheets',
     shortLabelEn: 'Leads & Sheets',
     titleEs: 'Grupos de Leads: Sincronización Viva con Google Sheets y Verificador MX',
@@ -149,7 +149,7 @@ const TOUR_STATIONS: TourStation[] = [
     stepNumber: 4,
     targetTab: 'campaigns',
     icon: Send,
-    accentColor: 'text-[#E85D2A] bg-[#E85D2A]/15 border-[#E85D2A]/35',
+    accentColor: 'text-[#14213D] bg-[#EEF3F0] border-[#C3DAC3]',
     shortLabelEs: 'Secuencias e IA',
     shortLabelEn: 'Sequences & AI',
     titleEs: 'Editor de Secuencias: Multietapa, Spintax IA, Anti-Spam y Live Preview',
@@ -180,7 +180,7 @@ const TOUR_STATIONS: TourStation[] = [
     stepNumber: 5,
     targetTab: 'unibox',
     icon: Inbox,
-    accentColor: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30',
+    accentColor: 'text-[#14213D] bg-[#D5ECD4] border-[#C3DAC3]',
     shortLabelEs: 'Unibox IMAP/IA',
     shortLabelEn: 'Unibox IMAP/AI',
     titleEs: 'Buzón Unificado (Unibox): Lectura IMAP y Clasificación IA de Respuestas',
@@ -212,7 +212,7 @@ const TOUR_STATIONS: TourStation[] = [
     targetTab: 'crm',
     isProOnly: true,
     icon: Kanban,
-    accentColor: 'text-[#F3F5F8] bg-[#171B26] border-[#232938]',
+    accentColor: 'text-[#14213D] bg-[#EEF3F0] border-[#DCE3DF]',
     shortLabelEs: 'CRM Kanban',
     shortLabelEn: 'CRM Kanban',
     titleEs: 'Pipeline CRM Kanban: Oportunidades con Drag & Drop',
@@ -243,7 +243,7 @@ const TOUR_STATIONS: TourStation[] = [
     stepNumber: 7,
     targetTab: 'billing',
     icon: CreditCard,
-    accentColor: 'text-rose-400 bg-rose-500/15 border-rose-500/30',
+    accentColor: 'text-[#14213D] bg-[#D5ECD4] border-[#C3DAC3]',
     shortLabelEs: 'Planes y Pagos',
     shortLabelEn: 'Plans & Billing',
     titleEs: 'Planes SaaS y Pasarela de Pagos (MercadoPago ARS + Internacional USD)',
@@ -369,27 +369,27 @@ export default function GuidedTourModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-[#11141C] border border-[#232938] rounded-2xl w-full max-w-4xl max-h-[92vh] shadow-2xl flex flex-col overflow-hidden"
+        className="bg-white border border-[#DCE3DF] text-[#14213D] rounded-2xl w-full max-w-4xl max-h-[92vh] shadow-2xl flex flex-col overflow-hidden"
       >
         {/* Top Header + Progress Bar */}
-        <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-[#1D2330] bg-[#0A0C10]/80 space-y-3 shrink-0">
+        <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-[#DCE3DF] bg-[#F4F7F5] space-y-3 shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-[#171B26] border border-[#232938] flex items-center justify-center text-[#E85D2A] shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[#D5ECD4] border border-[#C3DAC3] flex items-center justify-center text-[#14213D] shrink-0">
                 <Compass className="w-5 h-5" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm sm:text-base font-bold text-[#F3F5F8] truncate">
+                  <h2 className="text-sm sm:text-base font-bold text-[#14213D] truncate">
                     {isEs ? 'Tour Guiado Interactivo — MiSender' : 'Interactive Guided Tour — MiSender'}
                   </h2>
-                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono tabular-nums shrink-0">
+                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-[#D5ECD4] text-[#14213D] border border-[#C3DAC3] font-mono tabular-nums shrink-0">
                     {isEs
                       ? `Estación ${currentStep + 1} / ${TOUR_STATIONS.length}`
                       : `Station ${currentStep + 1} / ${TOUR_STATIONS.length}`}
                   </span>
                 </div>
-                <p className="text-[11px] text-[#949EB0] truncate">
+                <p className="text-[11px] text-[#5C6F68] truncate">
                   {isEs
                     ? 'Navega por cada estación para ver el módulo en vivo detrás del recorrido.'
                     : 'Step through each station to preview the live module behind the tour.'}
@@ -398,14 +398,14 @@ export default function GuidedTourModal({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs font-mono tabular-nums font-bold text-[#E85D2A] bg-[#E85D2A]/10 border border-[#E85D2A]/30 px-2.5 py-1 rounded-lg">
+              <span className="text-xs font-mono tabular-nums font-bold text-[#14213D] bg-[#EEF3F0] border border-[#DCE3DF] px-2.5 py-1 rounded-lg">
                 {progressPct}%
               </span>
               <button
                 type="button"
                 onClick={handleClose}
                 aria-label={isEs ? 'Cerrar tour' : 'Close tour'}
-                className="p-1.5 rounded-lg text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26] transition cursor-pointer"
+                className="p-1.5 rounded-lg text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0] transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -413,10 +413,10 @@ export default function GuidedTourModal({
           </div>
 
           {/* Visual Progress Bar */}
-          <div className="w-full h-1.5 bg-[#171B26] border border-[#1D2330] rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-[#EEF3F0] border border-[#DCE3DF] rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-300 ${
-                isLast ? 'bg-emerald-500' : 'bg-[#E85D2A]'
+                isLast ? 'bg-[#5C6F68]' : 'bg-[#14213D]'
               }`}
               style={{ width: `${progressPct}%` }}
             />
@@ -426,8 +426,8 @@ export default function GuidedTourModal({
         {/* Body: Clickable Station Sidebar + Active Station Detail */}
         <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
           {/* Station List Sidebar */}
-          <aside className="md:w-64 shrink-0 bg-[#0A0C10]/60 border-b md:border-b-0 md:border-r border-[#1D2330] p-3 overflow-x-auto md:overflow-y-auto flex md:flex-col gap-1.5">
-            <div className="hidden md:flex items-center justify-between px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#949EB0]/70">
+          <aside className="md:w-64 shrink-0 bg-[#F4F7F5] border-b md:border-b-0 md:border-r border-[#DCE3DF] p-3 overflow-x-auto md:overflow-y-auto flex md:flex-col gap-1.5">
+            <div className="hidden md:flex items-center justify-between px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#5C6F68]">
               <span>{isEs ? 'Estaciones del Recorrido' : 'Tour Stations'}</span>
               <span className="font-mono tabular-nums">
                 {currentStep + 1}/{TOUR_STATIONS.length}
@@ -445,17 +445,17 @@ export default function GuidedTourModal({
                   onClick={() => goToStep(idx)}
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition cursor-pointer shrink-0 md:w-full ${
                     isActive
-                      ? 'bg-[#E85D2A]/15 border border-[#E85D2A]/45 text-[#F3F5F8]'
-                      : 'border border-transparent text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26]'
+                      ? 'bg-[#D5ECD4]/65 border border-[#C3DAC3] text-[#14213D]'
+                      : 'border border-transparent text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0]'
                   }`}
                 >
                   <div
                     className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-mono tabular-nums font-bold shrink-0 ${
                       isActive
-                        ? 'bg-[#E85D2A] text-white'
+                        ? 'bg-[#14213D] text-white'
                         : isVisited
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-[#171B26] border border-[#232938] text-[#949EB0]'
+                          ? 'bg-[#D5ECD4] text-[#14213D] border border-[#C3DAC3]'
+                          : 'bg-white border border-[#DCE3DF] text-[#5C6F68]'
                     }`}
                   >
                     {isVisited ? (
@@ -469,7 +469,7 @@ export default function GuidedTourModal({
                     <div className="flex items-center gap-1.5">
                       <Icon
                         className={`w-3.5 h-3.5 shrink-0 ${
-                          isActive ? 'text-[#E85D2A]' : 'text-[#949EB0]'
+                          isActive ? 'text-[#14213D]' : 'text-[#5C6F68]'
                         }`}
                       />
                       <span className="text-xs font-semibold truncate">
@@ -479,7 +479,7 @@ export default function GuidedTourModal({
                   </div>
 
                   {item.isProOnly && (
-                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-lg bg-[#E85D2A]/15 text-[#E85D2A] border border-[#E85D2A]/30 shrink-0">
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-lg bg-[#14213D] text-white shrink-0">
                       PRO
                     </span>
                   )}
@@ -489,7 +489,7 @@ export default function GuidedTourModal({
           </aside>
 
           {/* Main Station Content */}
-          <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 bg-[#11141C]">
+          <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 bg-white">
             {/* Station Title Header */}
             <div className="space-y-2.5">
               <div className="flex flex-wrap items-center gap-2">
@@ -499,22 +499,22 @@ export default function GuidedTourModal({
                   <StationIcon className="w-3.5 h-3.5" />
                   <span>{isEs ? station.badgeEs : station.badgeEn}</span>
                 </span>
-                <span className="text-[10px] font-mono text-[#949EB0] bg-[#171B26] border border-[#232938] px-2 py-1 rounded-lg">
+                <span className="text-[10px] font-mono text-[#5C6F68] bg-[#EEF3F0] border border-[#DCE3DF] px-2 py-1 rounded-lg">
                   {isEs ? 'Vista activa:' : 'Active tab:'} {station.targetTab}
                 </span>
               </div>
 
-              <h3 className="text-lg sm:text-xl font-bold text-[#F3F5F8] leading-snug">
+              <h3 className="text-lg sm:text-xl font-bold text-[#14213D] leading-snug">
                 {isEs ? station.titleEs : station.titleEn}
               </h3>
             </div>
 
             {/* Pro Mode Notice when user is currently in Simple Mode */}
             {needsProSwitch && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-[#171B26] border border-[#E85D2A]/35 text-xs">
-                <div className="flex items-start gap-2.5 text-[#F3F5F8]">
-                  <Sliders className="w-4 h-4 text-[#E85D2A] shrink-0 mt-0.5" />
-                  <span className="text-[#949EB0]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-[#EEF3F0] border border-[#C3DAC3] text-xs">
+                <div className="flex items-start gap-2.5 text-[#14213D]">
+                  <Sliders className="w-4 h-4 text-[#14213D] shrink-0 mt-0.5" />
+                  <span className="text-[#5C6F68]">
                     {isEs
                       ? 'Esta estación pertenece al Modo Pro. Al hacer clic en "Ir a usar este módulo ahora" activaremos Modo Pro automáticamente (puedes volver a Simple cuando quieras).'
                       : 'This station belongs to Pro Mode. Clicking "Go use this module now" will switch to Pro Mode automatically (you can switch back anytime).'}
@@ -523,7 +523,7 @@ export default function GuidedTourModal({
                 <button
                   type="button"
                   onClick={() => setMode('pro')}
-                  className="px-3 py-1.5 rounded-lg bg-[#E85D2A] hover:bg-[#F26B3A] text-white font-semibold text-[11px] transition cursor-pointer shrink-0"
+                  className="px-3 py-1.5 rounded-lg bg-[#14213D] hover:bg-[#1E3158] text-white font-semibold text-[11px] transition cursor-pointer shrink-0"
                 >
                   {isEs ? 'Activar Modo Pro' : 'Enable Pro Mode'}
                 </button>
@@ -531,18 +531,18 @@ export default function GuidedTourModal({
             )}
 
             {/* What this module does */}
-            <div className="p-4 rounded-xl bg-[#171B26] border border-[#232938] space-y-1.5">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-[#E85D2A]">
+            <div className="p-4 rounded-xl bg-[#F4F7F5] border border-[#DCE3DF] space-y-1.5">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-[#14213D]">
                 {isEs ? '¿Qué hace este módulo?' : 'What does this module do?'}
               </div>
-              <p className="text-xs sm:text-sm text-[#F3F5F8]/90 leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#14213D]/90 leading-relaxed">
                 {isEs ? station.whatItDoesEs : station.whatItDoesEn}
               </p>
             </div>
 
             {/* Step-by-step usage */}
-            <div className="p-4 rounded-xl bg-[#171B26] border border-[#232938] space-y-3">
-              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+            <div className="p-4 rounded-xl bg-[#F4F7F5] border border-[#DCE3DF] space-y-3">
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#5C6F68]">
                 <ListChecks className="w-4 h-4" />
                 <span>{isEs ? 'Cómo usarlo paso a paso' : 'How to use it step-by-step'}</span>
               </div>
@@ -551,29 +551,29 @@ export default function GuidedTourModal({
                 {(isEs ? station.stepsEs : station.stepsEn).map((stepText, idx) => (
                   <li
                     key={idx}
-                    className="flex items-start gap-3 text-xs sm:text-[13px] text-[#949EB0] leading-relaxed"
+                    className="flex items-start gap-3 text-xs sm:text-[13px] text-[#5C6F68] leading-relaxed"
                   >
-                    <span className="w-5 h-5 rounded-lg bg-[#11141C] border border-[#232938] text-[#F3F5F8] font-mono tabular-nums font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="w-5 h-5 rounded-lg bg-[#D5ECD4] border border-[#C3DAC3] text-[#14213D] font-mono tabular-nums font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">
                       {idx + 1}
                     </span>
-                    <span className="text-[#F3F5F8]/90">{stepText}</span>
+                    <span className="text-[#14213D]">{stepText}</span>
                   </li>
                 ))}
               </ol>
             </div>
 
             {/* Expert Tip */}
-            <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
-                <Lightbulb className="w-4 h-4 text-amber-400" />
+            <div className="p-4 rounded-xl bg-[#EEF3F0] border border-[#C3DAC3] flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#D5ECD4] border border-[#C3DAC3] flex items-center justify-center shrink-0">
+                <Lightbulb className="w-4 h-4 text-[#14213D]" />
               </div>
               <div className="space-y-1">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-amber-300">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-[#14213D]">
                   {isEs
                     ? 'Tip Experto de Entregabilidad y Conversión'
                     : 'Expert Deliverability & Conversion Tip'}
                 </div>
-                <p className="text-xs text-amber-100/90 leading-relaxed">
+                <p className="text-xs text-[#5C6F68] leading-relaxed">
                   {isEs ? station.tipEs : station.tipEn}
                 </p>
               </div>
@@ -582,28 +582,28 @@ export default function GuidedTourModal({
         </div>
 
         {/* Footer Controls */}
-        <div className="px-5 sm:px-6 py-4 border-t border-[#1D2330] bg-[#0A0C10]/80 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div className="px-5 sm:px-6 py-4 border-t border-[#DCE3DF] bg-[#F4F7F5] flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3">
             <button
               type="button"
               disabled={isFirst}
               onClick={() => goToStep(currentStep - 1)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#171B26] hover:bg-[#1D2330] disabled:opacity-40 disabled:pointer-events-none border border-[#232938] text-xs font-semibold text-[#F3F5F8] transition cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-[#EEF3F0] disabled:opacity-40 disabled:pointer-events-none border border-[#DCE3DF] text-xs font-semibold text-[#14213D] transition cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>{isEs ? 'Anterior' : 'Previous'}</span>
             </button>
 
-            <span className="hidden lg:inline-flex items-center gap-1.5 text-[11px] text-[#949EB0] font-mono">
-              <kbd className="px-1.5 py-0.5 rounded bg-[#171B26] border border-[#232938] text-[#F3F5F8]">
+            <span className="hidden lg:inline-flex items-center gap-1.5 text-[11px] text-[#5C6F68] font-mono">
+              <kbd className="px-1.5 py-0.5 rounded bg-white border border-[#DCE3DF] text-[#14213D]">
                 ←
               </kbd>
-              <kbd className="px-1.5 py-0.5 rounded bg-[#171B26] border border-[#232938] text-[#F3F5F8]">
+              <kbd className="px-1.5 py-0.5 rounded bg-white border border-[#DCE3DF] text-[#14213D]">
                 →
               </kbd>
               <span>{isEs ? 'Navegar' : 'Navigate'}</span>
               <span>•</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-[#171B26] border border-[#232938] text-[#F3F5F8]">
+              <kbd className="px-1.5 py-0.5 rounded bg-white border border-[#DCE3DF] text-[#14213D]">
                 ESC
               </kbd>
               <span>{isEs ? 'Cerrar' : 'Close'}</span>
@@ -614,7 +614,7 @@ export default function GuidedTourModal({
             <button
               type="button"
               onClick={handleUseModuleNow}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 text-xs font-bold transition cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#D5ECD4] hover:bg-[#C3DAC3] border border-[#C3DAC3] text-[#14213D] text-xs font-bold transition cursor-pointer"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               <span>{isEs ? 'Ir a usar este módulo ahora' : 'Go use this module now'}</span>
@@ -624,7 +624,7 @@ export default function GuidedTourModal({
               <button
                 type="button"
                 onClick={() => goToStep(currentStep + 1)}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#E85D2A] hover:bg-[#F26B3A] text-white text-xs font-bold shadow-sm transition cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#14213D] hover:bg-[#1E3158] text-white text-xs font-bold shadow-sm transition cursor-pointer"
               >
                 <span>{isEs ? 'Siguiente' : 'Next'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -633,7 +633,7 @@ export default function GuidedTourModal({
               <button
                 type="button"
                 onClick={handleClose}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#14213D] hover:bg-[#1E3158] text-white text-xs font-bold shadow-sm transition cursor-pointer"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>{isEs ? 'Finalizar Tour' : 'Finish Tour'}</span>
