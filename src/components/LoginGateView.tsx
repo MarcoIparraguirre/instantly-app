@@ -88,7 +88,7 @@ export default function LoginGateView() {
             <span className="font-bold text-[#14213D] text-sm tracking-tight">
               MiSender
             </span>
-            <span className="text-[10px] uppercase font-mono font-bold px-1.5 py-0.5 rounded-lg bg-[#D5ECD4] text-[#14213D] border border-[#C3DAC3]">
+            <span className="text-[10px] uppercase font-mono font-bold px-1.5 py-0.5 rounded-lg bg-[#D5ECD4] text-[#14213D] border border-[#C3DAC3] whitespace-nowrap shrink-0">
               Outbound OS
             </span>
           </div>

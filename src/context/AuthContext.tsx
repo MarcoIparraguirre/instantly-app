@@ -17,7 +17,6 @@ import {
   SAAS_PLANS,
   UserRole,
   TeamMember,
-  ROLE_PERMISSIONS,
   normalizeRole,
 } from '@/types';
 
@@ -28,6 +27,7 @@ export interface AuthUser {
   company?: string;
   avatarInitials: string;
   role: UserRole;
+  agencyId?: string;
   workspaceId?: string;
   allowedWorkspaceIds?: string[];
   isDemo?: boolean;
@@ -49,6 +49,7 @@ export interface CreateWorkspaceInput {
   plan?: WorkspacePlan;
   ownerId?: string;
   ownerEmail?: string;
+  agencyId?: string;
   subscriptionStatus?: Workspace['subscriptionStatus'];
 }
 
@@ -87,15 +88,15 @@ interface AuthContextType {
   refreshWorkspaces: (preferredWorkspaceId?: string) => Promise<void>;
 }
 
-const DEFAULT_PRIMARY_WORKSPACE: Workspace = {
-  id: 'ws-primary',
-  name: 'Espacio Principal',
-  clientName: 'Vectra Systems',
-  credits: SAAS_PLANS.growth.credits,
+const EMPTY_WORKSPACE: Workspace = {
+  id: '',
+  name: 'Sin Workspace',
+  clientName: '',
+  credits: 0,
   plan: 'growth',
   subscriptionStatus: 'trialing',
-  maxAccounts: SAAS_PLANS.growth.maxAccounts,
-  maxLeads: SAAS_PLANS.growth.maxLeads,
+  maxAccounts: 0,
+  maxLeads: 0,
   billingProvider: 'sandbox',
 };
 
@@ -104,6 +105,7 @@ const ROLE_OVERRIDE_STORAGE_KEY = 'misender_role_override';
 const WORKSPACES_STORAGE_KEY = 'misender_workspaces';
 const CURRENT_WORKSPACE_STORAGE_KEY = 'misender_current_workspace_id';
 const FOUNDER_SESSION_STORAGE_KEY = 'misender_founder_session';
+const CLEAN_BOOT_STORAGE_KEY = 'misender_clean_boot_v3';
 
 const FOUNDER_EMAILS = ['marcos@vectrasystems.com.ar', 'iparraguirre.marcos@gmail.com'];
 
@@ -275,6 +277,9 @@ function mapSupabaseUser(sbUser: SupabaseUser, teamMatch?: TeamMember | null): A
       (typeof meta.company === 'string' ? meta.company : undefined),
     avatarInitials: buildInitials(fullName, email),
     role,
+    agencyId:
+      teamMatch?.agencyId ||
+      (typeof meta.agencyId === 'string' ? meta.agencyId : undefined),
     workspaceId: teamMatch?.workspaceId || allowedWorkspaceIds?.[0],
     allowedWorkspaceIds,
     isDemo: false,
@@ -300,6 +305,7 @@ function normalizeStoredAuthUser(raw: Partial<AuthUser>): AuthUser {
     company: raw.company,
     avatarInitials: raw.avatarInitials || buildInitials(fullName, email),
     role,
+    agencyId: raw.agencyId,
     workspaceId: raw.workspaceId || allowedWorkspaceIds?.[0],
     allowedWorkspaceIds,
     isDemo: raw.isDemo ?? true,
@@ -362,10 +368,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([DEFAULT_PRIMARY_WORKSPACE]);
-  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace>(DEFAULT_PRIMARY_WORKSPACE);
-  const currentWorkspaceIdRef = useRef<string>(DEFAULT_PRIMARY_WORKSPACE.id);
-  const workspacesRef = useRef<Workspace[]>([DEFAULT_PRIMARY_WORKSPACE]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace>(EMPTY_WORKSPACE);
+  const currentWorkspaceIdRef = useRef<string>(EMPTY_WORKSPACE.id);
+  const workspacesRef = useRef<Workspace[]>([]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalTab, setAuthModalTab] = useState<AuthModalTab>('signin');
   const [isFounderSession, setIsFounderSession] = useState<boolean>(false);
@@ -407,32 +413,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [workspaces]);
 
   const visibleWorkspaces = useMemo<Workspace[]>(() => {
-    if (!user) return workspaces;
-    const perms = ROLE_PERMISSIONS[normalizeRole(user.role)];
-    if (perms.canManageWorkspaces) {
+    if (!user) return [];
+    const role = normalizeRole(user.role);
+    if (role === 'super_admin') {
       return workspaces;
     }
 
-    const allowedIds =
-      Array.isArray(user.allowedWorkspaceIds) && user.allowedWorkspaceIds.length > 0
-        ? user.allowedWorkspaceIds
-        : user.workspaceId
-          ? [user.workspaceId]
-          : [];
-
-    if (allowedIds.length > 0) {
-      const allowedSet = new Set(allowedIds);
-      const matched = workspaces.filter((ws) => allowedSet.has(ws.id));
-      if (matched.length > 0) {
-        return matched;
-      }
+    const allowedSet = new Set<string>(
+      Array.isArray(user.allowedWorkspaceIds) ? user.allowedWorkspaceIds : []
+    );
+    if (user.workspaceId) {
+      allowedSet.add(user.workspaceId);
     }
 
-    return workspaces.length > 0 ? [workspaces[0]] : [];
+    if (role === 'admin') {
+      const cleanEmail = (user.email || '').trim().toLowerCase();
+      return workspaces.filter(
+        (ws) =>
+          (user.agencyId && ws.agencyId === user.agencyId) ||
+          (cleanEmail && ws.ownerEmail?.toLowerCase() === cleanEmail) ||
+          allowedSet.has(ws.id)
+      );
+    }
+
+    if (allowedSet.size === 0) {
+      return [];
+    }
+
+    return workspaces.filter((ws) => allowedSet.has(ws.id));
   }, [user, workspaces]);
 
+  const visibleWorkspacesRef = useRef<Workspace[]>([]);
   useEffect(() => {
-    if (visibleWorkspaces.length === 0) return;
+    visibleWorkspacesRef.current = visibleWorkspaces;
+  }, [visibleWorkspaces]);
+
+  useEffect(() => {
+    if (visibleWorkspaces.length === 0) {
+      if (currentWorkspace.id !== '') {
+        const timer = setTimeout(() => {
+          setCurrentWorkspace(EMPTY_WORKSPACE);
+          try {
+            localStorage.removeItem(CURRENT_WORKSPACE_STORAGE_KEY);
+          } catch {}
+        }, 0);
+        return () => clearTimeout(timer);
+      }
+      return;
+    }
     const containsCurrent = visibleWorkspaces.some((w) => w.id === currentWorkspace.id);
     if (!containsCurrent) {
       const nextWorkspace = enrichWorkspaceDefaults(visibleWorkspaces[0]);
@@ -448,6 +476,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const persistWorkspacesLocally = useCallback((list: Workspace[], activeId?: string) => {
     try {
+      if (list.length === 0) {
+        localStorage.removeItem(WORKSPACES_STORAGE_KEY);
+        localStorage.removeItem(CURRENT_WORKSPACE_STORAGE_KEY);
+        return;
+      }
       localStorage.setItem(WORKSPACES_STORAGE_KEY, JSON.stringify(list));
       if (activeId) {
         localStorage.setItem(CURRENT_WORKSPACE_STORAGE_KEY, activeId);
@@ -461,7 +494,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const res = await fetch('/api/workspaces', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
+          if (Array.isArray(data)) {
+            if (data.length === 0) {
+              setWorkspaces([]);
+              setCurrentWorkspace(EMPTY_WORKSPACE);
+              persistWorkspacesLocally([]);
+              return;
+            }
+
             const enriched = data.map(enrichWorkspaceDefaults);
             setWorkspaces(enriched);
 
@@ -486,7 +526,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn('Error refreshing workspaces from API, using local cache:', err);
       }
 
-      // Local fallback hydration
+      // Local fallback hydration (only when API call failed)
       try {
         const saved = localStorage.getItem(WORKSPACES_STORAGE_KEY);
         if (saved) {
@@ -501,9 +541,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               enriched.find((w) => w.id === savedId) ||
               enriched[0];
             setCurrentWorkspace(active);
+            return;
           }
         }
       } catch {}
+
+      setWorkspaces([]);
+      setCurrentWorkspace(EMPTY_WORKSPACE);
     },
     [persistWorkspacesLocally]
   );
@@ -512,6 +556,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let active = true;
 
     const init = async () => {
+      // One-time clean boot purge so stale localStorage from pre-reset seeds never resurrects
+      try {
+        if (localStorage.getItem(CLEAN_BOOT_STORAGE_KEY) !== '1') {
+          localStorage.removeItem(WORKSPACES_STORAGE_KEY);
+          localStorage.removeItem(CURRENT_WORKSPACE_STORAGE_KEY);
+          localStorage.removeItem(DEMO_USER_STORAGE_KEY);
+          localStorage.removeItem(ROLE_OVERRIDE_STORAGE_KEY);
+          localStorage.removeItem('misender_onboarding_collapsed');
+          localStorage.removeItem('misender_admin_profile');
+          localStorage.setItem(CLEAN_BOOT_STORAGE_KEY, '1');
+        }
+      } catch {}
+
       const storedFounder = readStoredFounderSession();
       if (active && storedFounder) {
         setIsFounderSession(true);
@@ -532,8 +589,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch {}
 
-      // 2. Hydrate Supabase session or Demo fallback session
+      // 2. Hydrate Supabase session or verified team/concierge fallback session
       let resolvedWorkspaceId: string | undefined;
+      const hydrateStoredDemoUser = async () => {
+        try {
+          const demoRaw = localStorage.getItem(DEMO_USER_STORAGE_KEY);
+          if (!active || !demoRaw) return;
+          const normalized = normalizeStoredAuthUser(JSON.parse(demoRaw));
+          // Verify against DB so deleted accounts cannot remain logged in
+          const teamMatch = normalized.email
+            ? await lookupTeamMemberByEmail(normalized.email)
+            : null;
+          if (!active) return;
+
+          if (!teamMatch && !isFounderEmail(normalized.email)) {
+            localStorage.removeItem(DEMO_USER_STORAGE_KEY);
+            return;
+          }
+
+          const syncedUser: AuthUser = teamMatch
+            ? {
+                ...normalized,
+                id: teamMatch.id || normalized.id,
+                fullName: teamMatch.fullName || normalized.fullName,
+                company: teamMatch.company || normalized.company,
+                agencyId: teamMatch.agencyId ?? normalized.agencyId,
+                workspaceId: teamMatch.workspaceId || normalized.workspaceId,
+                allowedWorkspaceIds:
+                  teamMatch.allowedWorkspaceIds ?? normalized.allowedWorkspaceIds,
+                role: isFounderEmail(normalized.email)
+                  ? normalized.role
+                  : normalizeRole(teamMatch.roleId),
+              }
+            : normalized;
+
+          setUser(syncedUser);
+          resolvedWorkspaceId = syncedUser.workspaceId;
+          if (isFounderEmail(syncedUser.email)) {
+            persistFounderSession({
+              email: syncedUser.email,
+              fullName: syncedUser.fullName,
+              company: syncedUser.company,
+              id: syncedUser.id,
+              isDemo: syncedUser.isDemo,
+            });
+          }
+        } catch {}
+      };
+
       const sb = getBrowserSupabase();
       if (sb) {
         try {
@@ -557,41 +660,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
             }
           } else {
-            const demoRaw = localStorage.getItem(DEMO_USER_STORAGE_KEY);
-            if (active && demoRaw) {
-              const normalized = normalizeStoredAuthUser(JSON.parse(demoRaw));
-              setUser(normalized);
-              resolvedWorkspaceId = normalized.workspaceId;
-              if (isFounderEmail(normalized.email)) {
-                persistFounderSession({
-                  email: normalized.email,
-                  fullName: normalized.fullName,
-                  company: normalized.company,
-                  id: normalized.id,
-                  isDemo: normalized.isDemo,
-                });
-              }
-            }
+            await hydrateStoredDemoUser();
           }
-        } catch {}
+        } catch {
+          await hydrateStoredDemoUser();
+        }
       } else {
-        try {
-          const demoRaw = localStorage.getItem(DEMO_USER_STORAGE_KEY);
-          if (active && demoRaw) {
-            const normalized = normalizeStoredAuthUser(JSON.parse(demoRaw));
-            setUser(normalized);
-            resolvedWorkspaceId = normalized.workspaceId;
-            if (isFounderEmail(normalized.email)) {
-              persistFounderSession({
-                email: normalized.email,
-                fullName: normalized.fullName,
-                company: normalized.company,
-                id: normalized.id,
-                isDemo: normalized.isDemo,
-              });
-            }
-          }
-        } catch {}
+        await hydrateStoredDemoUser();
       }
 
       // 3. Fetch authoritative workspaces from API / Supabase
@@ -682,6 +757,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             clientName: input.clientName?.trim() || 'Internal',
             plan: input.plan || 'growth',
             subscriptionStatus: input.subscriptionStatus || 'trialing',
+            agencyId: input.agencyId ?? user?.agencyId,
             ownerId: input.ownerId ?? user?.id,
             ownerEmail: input.ownerEmail ?? user?.email,
           }),
@@ -708,18 +784,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateWorkspaces = useCallback(
     (updated: Workspace[]) => {
       const previous = workspacesRef.current;
-      const enriched = updated.map(enrichWorkspaceDefaults);
-      setWorkspaces(enriched);
-      const nextActive =
-        enriched.find((w) => w.id === currentWorkspaceIdRef.current) ||
-        enriched[0] ||
-        DEFAULT_PRIMARY_WORKSPACE;
-      setCurrentWorkspace(nextActive);
-      persistWorkspacesLocally(enriched, nextActive.id);
+      const visibleIds = new Set(visibleWorkspacesRef.current.map((w) => w.id));
+      const hiddenWorkspaces = previous.filter((w) => !visibleIds.has(w.id));
+      const previousVisible = previous.filter((w) => visibleIds.has(w.id));
 
-      // Sync additions, edits, and deletions with /api/workspaces in background
-      for (const ws of enriched) {
-        const prev = previous.find((p) => p.id === ws.id);
+      const enrichedUpdated = updated.map(enrichWorkspaceDefaults);
+      const mergedAll = [...hiddenWorkspaces, ...enrichedUpdated];
+
+      setWorkspaces(mergedAll);
+      const nextActive =
+        enrichedUpdated.find((w) => w.id === currentWorkspaceIdRef.current) ||
+        enrichedUpdated[0] ||
+        EMPTY_WORKSPACE;
+      setCurrentWorkspace(nextActive);
+      persistWorkspacesLocally(mergedAll, nextActive.id || undefined);
+
+      // Sync additions, edits, and deletions strictly within the visible scope
+      for (const ws of enrichedUpdated) {
+        const prev = previousVisible.find((p) => p.id === ws.id);
         if (!prev) {
           fetch('/api/workspaces', {
             method: 'POST',
@@ -740,8 +822,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      for (const prev of previous) {
-        if (!enriched.some((ws) => ws.id === prev.id)) {
+      for (const prev of previousVisible) {
+        if (!enrichedUpdated.some((ws) => ws.id === prev.id)) {
           fetch(`/api/workspaces?id=${encodeURIComponent(prev.id)}`, {
             method: 'DELETE',
           }).catch(() => {});
@@ -759,7 +841,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       idOverride?: string,
       role: UserRole = 'admin',
       workspaceId?: string,
-      allowedWorkspaceIds?: string[]
+      allowedWorkspaceIds?: string[],
+      agencyId?: string
     ): AuthUser => {
       const cleanEmail = email.trim().toLowerCase();
       const normalizedRole = normalizeRole(role);
@@ -771,6 +854,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         company,
         avatarInitials: buildInitials(fullName, cleanEmail),
         role: normalizedRole,
+        agencyId,
         workspaceId: workspaceId || normalizedAllowed?.[0],
         allowedWorkspaceIds: normalizedAllowed,
         isDemo: true,
@@ -822,6 +906,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const targetName = customUser?.fullName || preset.fullName;
       const targetCompany = customUser?.company || preset.company;
       const targetId = customUser?.id || preset.id;
+      const targetAgencyId =
+        customUser?.agencyId ?? (normalized === 'super_admin' ? 'ag-founder' : undefined);
       const targetAllowedWorkspaceIds = normalizeOptionalWorkspaceIds(
         customUser?.allowedWorkspaceIds
       );
@@ -835,7 +921,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         targetId,
         normalized,
         targetWorkspaceId,
-        targetAllowedWorkspaceIds
+        targetAllowedWorkspaceIds,
+        targetAgencyId
       );
       await refreshWorkspaces(targetWorkspaceId);
       setIsAuthModalOpen(false);
@@ -846,7 +933,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInDemo = useCallback(
     async (email = 'marcos@vectrasystems.com.ar', fullName = 'Marco Iparraguirre') => {
       const role = inferDefaultRoleFromEmail(email);
-      const demo = activateDemoUser(email, fullName, 'Vectra Systems', 'admin-default', role);
+      const demo = activateDemoUser(
+        email,
+        fullName,
+        'Vectra Systems',
+        'admin-default',
+        role,
+        'ws-founder',
+        ['ws-founder'],
+        isFounderEmail(email) ? 'ag-founder' : undefined
+      );
       if (isFounderEmail(demo.email)) {
         persistFounderSession({
           email: demo.email,
@@ -882,21 +978,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const resolvedAllowedWorkspaceIds = teamMatch?.allowedWorkspaceIds;
       const resolvedWorkspaceId =
         teamMatch?.workspaceId || resolvedAllowedWorkspaceIds?.[0];
+      const resolvedAgencyId =
+        teamMatch?.agencyId || (isFounder ? 'ag-founder' : undefined);
 
-      try {
-        localStorage.setItem(ROLE_OVERRIDE_STORAGE_KEY, resolvedRole);
-      } catch {}
+      const matchesAccessCode = Boolean(
+        teamMatch?.accessCode && password.trim() === teamMatch.accessCode.trim()
+      );
 
       const sb = getBrowserSupabase();
       if (!sb) {
+        if (!teamMatch) {
+          return { error: 'Cuenta no encontrada. Verifica tu email o regístrate.' };
+        }
+        if (teamMatch.accessCode && !matchesAccessCode) {
+          return { error: 'Contraseña o código de acceso incorrecto.' };
+        }
+        try {
+          localStorage.setItem(ROLE_OVERRIDE_STORAGE_KEY, resolvedRole);
+        } catch {}
         const demo = activateDemoUser(
           cleanEmail,
-          teamMatch?.fullName,
-          teamMatch?.company,
-          teamMatch?.id,
+          teamMatch.fullName,
+          teamMatch.company,
+          teamMatch.id,
           resolvedRole,
           resolvedWorkspaceId,
-          resolvedAllowedWorkspaceIds
+          resolvedAllowedWorkspaceIds,
+          resolvedAgencyId
         );
         if (isFounder) {
           persistFounderSession({
@@ -921,10 +1029,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         if (!error && data.user) {
+          try {
+            localStorage.setItem(ROLE_OVERRIDE_STORAGE_KEY, resolvedRole);
+          } catch {}
           const mapped = mapSupabaseUser(data.user, teamMatch);
           const resolvedUser: AuthUser = isFounder
-            ? { ...mapped, role: 'super_admin' }
-            : mapped;
+            ? { ...mapped, role: 'super_admin', agencyId: resolvedAgencyId }
+            : { ...mapped, agencyId: mapped.agencyId ?? resolvedAgencyId };
           setUser(resolvedUser);
           if (isFounder) {
             persistFounderSession({
@@ -946,16 +1057,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const msg = error?.message || '';
-        // Unblock staging tests & team/concierge-provisioned users when Auth record or SMTP confirmation is absent
-        if (/email not confirmed/i.test(msg) || teamMatch) {
+        // Allow team/concierge-provisioned users ONLY when their assigned accessCode matches,
+        // or when Supabase GoTrue verified the password on an unconfirmed signup email.
+        const isConfirmedMatch =
+          matchesAccessCode || (!isFounder && Boolean(teamMatch) && /email not confirmed/i.test(msg));
+
+        if (teamMatch && isConfirmedMatch) {
+          try {
+            localStorage.setItem(ROLE_OVERRIDE_STORAGE_KEY, resolvedRole);
+          } catch {}
           const demo = activateDemoUser(
             cleanEmail,
-            teamMatch?.fullName || cleanEmail.split('@')[0],
-            teamMatch?.company,
-            teamMatch?.id,
+            teamMatch.fullName || cleanEmail.split('@')[0],
+            teamMatch.company,
+            teamMatch.id,
             resolvedRole,
             resolvedWorkspaceId,
-            resolvedAllowedWorkspaceIds
+            resolvedAllowedWorkspaceIds,
+            resolvedAgencyId
           );
           if (isFounder) {
             persistFounderSession({
@@ -973,7 +1092,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { isDemo: true };
         }
 
-        return { error: msg || 'Invalid email or password' };
+        if (teamMatch && teamMatch.accessCode && !matchesAccessCode) {
+          return { error: 'Contraseña o código de acceso incorrecto.' };
+        }
+
+        return { error: msg || 'Email o contraseña incorrectos.' };
       } catch (err: unknown) {
         return { error: err instanceof Error ? err.message : 'Sign in failed' };
       }
@@ -998,6 +1121,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const plan = metadata?.plan || 'growth';
       const isFounder = isFounderEmail(cleanEmail);
       const signupRole: UserRole = isFounder ? 'super_admin' : 'admin';
+      const signupAgencyId = isFounder
+        ? 'ag-founder'
+        : `ag-${Date.now().toString(36)}`;
 
       const sb = getBrowserSupabase();
       let createdUserId: string | undefined;
@@ -1013,6 +1139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 full_name: fullName,
                 company,
                 role: signupRole,
+                agencyId: signupAgencyId,
               },
             },
           });
@@ -1020,7 +1147,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (error) {
             // In staging, gracefully fall back if SMTP rate limits or confirmation settings block signup
             if (/rate limit|email|smtp|confirm/i.test(error.message)) {
-              const demo = activateDemoUser(cleanEmail, fullName, company, undefined, signupRole);
+              const demo = activateDemoUser(
+                cleanEmail,
+                fullName,
+                company,
+                undefined,
+                signupRole,
+                undefined,
+                undefined,
+                signupAgencyId
+              );
               createdUserId = demo.id;
               needsConfirmation = true;
             } else {
@@ -1029,10 +1165,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else if (data.user) {
             createdUserId = data.user.id;
             if (data.session) {
-              setUser(mapSupabaseUser(data.user));
+              setUser({ ...mapSupabaseUser(data.user), agencyId: signupAgencyId });
             } else {
               // Email confirmation pending on Supabase -> activate immediate staging session
-              activateDemoUser(cleanEmail, fullName, company, data.user.id, signupRole);
+              activateDemoUser(
+                cleanEmail,
+                fullName,
+                company,
+                data.user.id,
+                signupRole,
+                undefined,
+                undefined,
+                signupAgencyId
+              );
               needsConfirmation = true;
             }
           }
@@ -1040,7 +1185,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { error: err instanceof Error ? err.message : 'Sign up failed' };
         }
       } else {
-        const demo = activateDemoUser(cleanEmail, fullName, company, undefined, signupRole);
+        const demo = activateDemoUser(
+          cleanEmail,
+          fullName,
+          company,
+          undefined,
+          signupRole,
+          undefined,
+          undefined,
+          signupAgencyId
+        );
         createdUserId = demo.id;
       }
 
@@ -1060,6 +1214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: workspaceName,
         clientName: company,
         plan,
+        agencyId: signupAgencyId,
         ownerId: createdUserId,
         ownerEmail: cleanEmail,
       });
@@ -1072,6 +1227,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           workspaceId: assignedWorkspaceId,
+          allowedWorkspaceIds: assignedWorkspaceId ? [assignedWorkspaceId] : undefined,
+          agencyId: signupAgencyId,
           fullName,
           email: cleanEmail,
           company,
@@ -1080,7 +1237,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }).catch(() => {});
 
       setUser((prev) =>
-        prev ? { ...prev, role: signupRole, workspaceId: assignedWorkspaceId } : prev
+        prev
+          ? {
+              ...prev,
+              role: signupRole,
+              agencyId: signupAgencyId,
+              workspaceId: assignedWorkspaceId,
+              allowedWorkspaceIds: assignedWorkspaceId ? [assignedWorkspaceId] : prev.allowedWorkspaceIds,
+            }
+          : prev
       );
 
       setIsAuthModalOpen(false);
@@ -1162,7 +1327,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       targetName,
       targetCompany,
       targetId,
-      'super_admin'
+      'super_admin',
+      'ws-founder',
+      ['ws-founder'],
+      'ag-founder'
     );
     persistFounderSession({
       email: restored.email,

@@ -88,9 +88,10 @@ export default function Topbar({
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const userRole: UserRole = normalizeRole(user?.role);
+  const isSuperAdmin = userRole === 'super_admin';
   const perms = ROLE_PERMISSIONS[userRole];
   const roleLabel = language === 'es' ? perms.labelEs : perms.labelEn;
-  const canSwitchOrManageWorkspaces = perms.canManageWorkspaces || workspaces.length > 1;
+  const canSwitchOrManageWorkspaces = !isSuperAdmin && (perms.canManageWorkspaces || workspaces.length > 1);
   const isFounder = isFounderSession || isFounderEmail(user?.email);
 
   const activePlan = normalizePlan(currentWorkspace.plan);
@@ -282,91 +283,93 @@ export default function Topbar({
     }
   };
 
-  const actionItems = [
-    {
-      id: 'action-tour',
-      label:
-        language === 'es'
-          ? 'Iniciar Tour Guiado Interactivo'
-          : 'Start Interactive Guided Tour',
-      desc:
-        language === 'es'
-          ? 'Recorrido paso a paso por las 7 estaciones de MiSender'
-          : 'Step-by-step walkthrough across all 7 MiSender stations',
-      icon: Compass,
-      onSelect: () => {
-        handleTriggerTour();
-        setIsCommandPaletteOpen(false);
-        setSearchQuery('');
-      },
-    },
-    {
-      id: 'action-copilot',
-      label:
-        language === 'es'
-          ? 'Abrir MiSender Copilot con IA'
-          : 'Open MiSender Copilot AI',
-      desc:
-        language === 'es'
-          ? 'Consultar optimizaciones o crear secuencias'
-          : 'Ask optimizations or draft sequences',
-      icon: Sparkles,
-      onSelect: () => {
-        openCopilot();
-        setIsCommandPaletteOpen(false);
-        setSearchQuery('');
-      },
-    },
-    {
-      id: 'action-mode',
-      label:
-        mode === 'simple'
-          ? language === 'es'
-            ? 'Cambiar a Modo Pro'
-            : 'Switch to Pro Mode'
-          : language === 'es'
-            ? 'Cambiar a Modo Simple'
-            : 'Switch to Simple Mode',
-      desc:
-        language === 'es'
-          ? 'Alternar interfaz de trabajo'
-          : 'Toggle experience mode',
-      icon: mode === 'simple' ? Sliders : Layers,
-      onSelect: () => {
-        setMode(mode === 'simple' ? 'pro' : 'simple');
-        setIsCommandPaletteOpen(false);
-        setSearchQuery('');
-      },
-    },
-    ...(user && !perms.canManageWorkspaces
-      ? []
-      : [
-          {
-            id: 'action-workspace-or-auth',
-            label: user
-              ? language === 'es'
-                ? 'Gestionar / Crear Workspaces'
-                : 'Manage / Create Workspaces'
-              : language === 'es'
-                ? 'Iniciar Sesión / Prueba 7 días gratis'
-                : 'Sign In / 7-Day Free Trial',
-            desc:
-              language === 'es'
-                ? 'Espacios multi-cliente y configuración de agencia'
-                : 'Multi-client spaces & agency workspace management',
-            icon: user ? Building2 : LogIn,
-            onSelect: () => {
-              if (user) {
-                setIsWorkspaceManagerOpen(true);
-              } else {
-                openAuthModal('signin');
-              }
-              setIsCommandPaletteOpen(false);
-              setSearchQuery('');
-            },
+  const actionItems = isSuperAdmin
+    ? []
+    : [
+        {
+          id: 'action-tour',
+          label:
+            language === 'es'
+              ? 'Iniciar Tour Guiado Interactivo'
+              : 'Start Interactive Guided Tour',
+          desc:
+            language === 'es'
+              ? 'Recorrido paso a paso por las 7 estaciones de MiSender'
+              : 'Step-by-step walkthrough across all 7 MiSender stations',
+          icon: Compass,
+          onSelect: () => {
+            handleTriggerTour();
+            setIsCommandPaletteOpen(false);
+            setSearchQuery('');
           },
-        ]),
-  ];
+        },
+        {
+          id: 'action-copilot',
+          label:
+            language === 'es'
+              ? 'Abrir MiSender Copilot con IA'
+              : 'Open MiSender Copilot AI',
+          desc:
+            language === 'es'
+              ? 'Consultar optimizaciones o crear secuencias'
+              : 'Ask optimizations or draft sequences',
+          icon: Sparkles,
+          onSelect: () => {
+            openCopilot();
+            setIsCommandPaletteOpen(false);
+            setSearchQuery('');
+          },
+        },
+        {
+          id: 'action-mode',
+          label:
+            mode === 'simple'
+              ? language === 'es'
+                ? 'Cambiar a Modo Pro'
+                : 'Switch to Pro Mode'
+              : language === 'es'
+                ? 'Cambiar a Modo Simple'
+                : 'Switch to Simple Mode',
+          desc:
+            language === 'es'
+              ? 'Alternar interfaz de trabajo'
+              : 'Toggle experience mode',
+          icon: mode === 'simple' ? Sliders : Layers,
+          onSelect: () => {
+            setMode(mode === 'simple' ? 'pro' : 'simple');
+            setIsCommandPaletteOpen(false);
+            setSearchQuery('');
+          },
+        },
+        ...(user && !perms.canManageWorkspaces
+          ? []
+          : [
+              {
+                id: 'action-workspace-or-auth',
+                label: user
+                  ? language === 'es'
+                    ? 'Gestionar / Crear Workspaces'
+                    : 'Manage / Create Workspaces'
+                  : language === 'es'
+                    ? 'Iniciar Sesión / Prueba 7 días gratis'
+                    : 'Sign In / 7-Day Free Trial',
+                desc:
+                  language === 'es'
+                    ? 'Espacios multi-cliente y configuración de agencia'
+                    : 'Multi-client spaces & agency workspace management',
+                icon: user ? Building2 : LogIn,
+                onSelect: () => {
+                  if (user) {
+                    setIsWorkspaceManagerOpen(true);
+                  } else {
+                    openAuthModal('signin');
+                  }
+                  setIsCommandPaletteOpen(false);
+                  setSearchQuery('');
+                },
+              },
+            ]),
+      ];
 
   const filteredActions = actionItems.filter(
     (a) =>
@@ -405,10 +408,22 @@ export default function Topbar({
       </div>
       <div className="text-left">
         <div className="text-[#14213D] leading-tight font-semibold max-w-[120px] 2xl:max-w-[175px] truncate">
-          {currentWorkspace.name}
+          {currentWorkspace.id
+            ? currentWorkspace.name
+            : language === 'es'
+              ? 'Sin Workspace activo'
+              : 'No Active Workspace'}
         </div>
         <div className="text-[10px] text-[#5C6F68] font-normal max-w-[120px] 2xl:max-w-[175px] truncate">
-          {currentWorkspace.clientName}
+          {currentWorkspace.id
+            ? currentWorkspace.clientName
+            : perms.canManageWorkspaces
+              ? language === 'es'
+                ? 'Haz clic para crear uno'
+                : 'Click to create one'
+              : language === 'es'
+                ? 'Esperando asignación'
+                : 'Pending assignment'}
         </div>
       </div>
     </>
@@ -416,8 +431,25 @@ export default function Topbar({
 
   return (
     <header className="h-14 border-b border-[#DCE3DF] bg-white text-[#14213D] px-3 2xl:px-5 flex items-center justify-between gap-2 shrink-0 select-none z-30 min-w-0">
-      {/* Left Area: Workspace Selector & Prussian Blue Search Pill */}
+      {/* Left Area: Super Admin Console Badge OR Workspace Selector + Search Pill */}
       <div className="flex items-center gap-2 2xl:gap-3 min-w-0 shrink-0">
+        {isSuperAdmin ? (
+          <div className="flex items-center gap-2 bg-[#EEF3F0] border border-[#DCE3DF] text-[#14213D] px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0">
+            <div className="w-5 h-5 rounded-lg bg-[#14213D] text-[#D5ECD4] flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5" />
+            </div>
+            <div className="text-left">
+              <div className="text-[#14213D] leading-tight font-bold">
+                {language === 'es' ? 'Consola Central Super Admin' : 'Super Admin Central Console'}
+              </div>
+              <div className="text-[10px] text-[#5C6F68] font-normal">
+                {language === 'es'
+                  ? 'Gestión de Agencias y Usuarios'
+                  : 'Agencies & User Provisioning'}
+              </div>
+            </div>
+          </div>
+        ) : (
         <div ref={workspaceMenuRef} className="relative shrink-0">
           {canSwitchOrManageWorkspaces ? (
             <button
@@ -444,37 +476,45 @@ export default function Topbar({
               <div className="px-3 py-1.5 text-[10px] font-semibold text-[#5C6F68] uppercase tracking-wider">
                 {t('topbar.switchWorkspace')}
               </div>
-              {workspaces.map((ws) => {
-                const wsPlan = SAAS_PLANS[normalizePlan(ws.plan)].name;
-                return (
-                  <button
-                    key={ws.id}
-                    type="button"
-                    onClick={() => {
-                      onSelectWorkspace(ws);
-                      setIsWorkspaceMenuOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition cursor-pointer ${
-                      currentWorkspace.id === ws.id
-                        ? 'bg-[#D5ECD4]/65 text-[#14213D] border border-[#C3DAC3]'
-                        : 'text-[#5C6F68] hover:bg-[#F4F7F5] hover:text-[#14213D] border border-transparent'
-                    }`}
-                  >
-                    <div className="text-left truncate pr-2">
-                      <div className="font-semibold text-[#14213D] flex items-center gap-1.5">
-                        <span className="truncate">{ws.name}</span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-lg bg-[#EEF3F0] text-[#5C6F68] border border-[#DCE3DF] font-mono shrink-0">
-                          {wsPlan}
-                        </span>
+              {workspaces.length === 0 ? (
+                <div className="px-3 py-2.5 text-[11px] text-[#5C6F68]">
+                  {language === 'es'
+                    ? 'Aún no creaste Workspaces para clientes de tu agencia.'
+                    : 'No client workspaces created yet.'}
+                </div>
+              ) : (
+                workspaces.map((ws) => {
+                  const wsPlan = SAAS_PLANS[normalizePlan(ws.plan)].name;
+                  return (
+                    <button
+                      key={ws.id}
+                      type="button"
+                      onClick={() => {
+                        onSelectWorkspace(ws);
+                        setIsWorkspaceMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition cursor-pointer ${
+                        currentWorkspace.id === ws.id
+                          ? 'bg-[#D5ECD4]/65 text-[#14213D] border border-[#C3DAC3]'
+                          : 'text-[#5C6F68] hover:bg-[#F4F7F5] hover:text-[#14213D] border border-transparent'
+                      }`}
+                    >
+                      <div className="text-left truncate pr-2">
+                        <div className="font-semibold text-[#14213D] flex items-center gap-1.5">
+                          <span className="truncate">{ws.name}</span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-lg bg-[#EEF3F0] text-[#5C6F68] border border-[#DCE3DF] font-mono shrink-0">
+                            {wsPlan}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-[#5C6F68]">{ws.clientName}</div>
                       </div>
-                      <div className="text-[10px] text-[#5C6F68]">{ws.clientName}</div>
-                    </div>
-                    {currentWorkspace.id === ws.id && (
-                      <Check className="w-4 h-4 text-[#14213D] shrink-0" />
-                    )}
-                  </button>
-                );
-              })}
+                      {currentWorkspace.id === ws.id && (
+                        <Check className="w-4 h-4 text-[#14213D] shrink-0" />
+                      )}
+                    </button>
+                  );
+                })
+              )}
 
               {perms.canManageWorkspaces ? (
                 <div className="pt-1.5 border-t border-[#DCE3DF]">
@@ -504,6 +544,7 @@ export default function Topbar({
             </div>
           )}
         </div>
+        )}
 
         {/* Global Search / Command Palette Trigger — Prussian Blue Dark Pill */}
         <div
@@ -529,39 +570,41 @@ export default function Topbar({
 
       {/* Right Area: Experience Switcher (Simple / Pro), Credits, Language, Profile */}
       <div className="flex items-center gap-1.5 2xl:gap-2.5 shrink-0">
-        {/* Experience Mode Toggle Pill */}
-        <div className="flex items-center gap-0.5 bg-[#EEF3F0] border border-[#DCE3DF] rounded-lg p-0.5 text-xs">
-          <button
-            type="button"
-            onClick={() => setMode('simple')}
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg transition font-bold text-xs cursor-pointer ${
-              mode === 'simple'
-                ? 'bg-[#14213D] text-white shadow-sm'
-                : 'text-[#5C6F68] hover:text-[#14213D]'
-            }`}
-            title="Switch to Simple Mode (Beginner friendly)"
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Simple</span>
-          </button>
+        {/* Experience Mode Toggle Pill (Operational roles only) */}
+        {!isSuperAdmin && (
+          <div className="flex items-center gap-0.5 bg-[#EEF3F0] border border-[#DCE3DF] rounded-lg p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setMode('simple')}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg transition font-bold text-xs cursor-pointer ${
+                mode === 'simple'
+                  ? 'bg-[#14213D] text-white shadow-sm'
+                  : 'text-[#5C6F68] hover:text-[#14213D]'
+              }`}
+              title="Switch to Simple Mode (Beginner friendly)"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Simple</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setMode('pro')}
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg transition font-bold text-xs cursor-pointer ${
-              mode === 'pro'
-                ? 'bg-[#14213D] text-white shadow-sm'
-                : 'text-[#5C6F68] hover:text-[#14213D]'
-            }`}
-            title="Switch to Pro Mode (Advanced tools)"
-          >
-            <Sliders className="w-3.5 h-3.5" />
-            <span>Pro</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => setMode('pro')}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg transition font-bold text-xs cursor-pointer ${
+                mode === 'pro'
+                  ? 'bg-[#14213D] text-white shadow-sm'
+                  : 'text-[#5C6F68] hover:text-[#14213D]'
+              }`}
+              title="Switch to Pro Mode (Advanced tools)"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>Pro</span>
+            </button>
+          </div>
+        )}
 
-        {/* Clickable Plan / Trial Badge (Visible only when role has billing access) */}
-        {perms.canManageBilling && (
+        {/* Clickable Plan / Trial Badge (Operational billing roles with active workspace) */}
+        {!isSuperAdmin && perms.canManageBilling && Boolean(currentWorkspace.id) && (
           <button
             type="button"
             onClick={() => onNavigate?.('billing')}
@@ -598,48 +641,54 @@ export default function Topbar({
           </button>
         )}
 
-        {/* Verification Credits Badge */}
-        <div
-          title={t('topbar.creditsAvailable')}
-          className="flex items-center gap-1 bg-[#D5ECD4] border border-[#C3DAC3] text-[#14213D] px-2.5 py-1 rounded-lg text-xs font-semibold shrink-0"
-        >
-          <Zap className="w-3.5 h-3.5 text-[#14213D] shrink-0" />
-          <span className="font-mono tabular-nums">
-            {currentWorkspace.credits.toLocaleString()}
-          </span>
-          <span className="hidden 2xl:inline text-[10px] text-[#5C6F68] font-normal">
-            {t('topbar.creditsAvailable')}
-          </span>
-        </div>
+        {/* Verification Credits Badge (Operational roles with active workspace) */}
+        {!isSuperAdmin && Boolean(currentWorkspace.id) && (
+          <div
+            title={t('topbar.creditsAvailable')}
+            className="flex items-center gap-1 bg-[#D5ECD4] border border-[#C3DAC3] text-[#14213D] px-2.5 py-1 rounded-lg text-xs font-semibold shrink-0"
+          >
+            <Zap className="w-3.5 h-3.5 text-[#14213D] shrink-0" />
+            <span className="font-mono tabular-nums">
+              {currentWorkspace.credits.toLocaleString()}
+            </span>
+            <span className="hidden 2xl:inline text-[10px] text-[#5C6F68] font-normal">
+              {t('topbar.creditsAvailable')}
+            </span>
+          </div>
+        )}
 
-        {/* Permanent Guided Tour Trigger */}
-        <button
-          type="button"
-          onClick={handleTriggerTour}
-          title={
-            language === 'es'
-              ? 'Abrir Tour Guiado Interactivo (7 Estaciones)'
-              : 'Open Interactive Guided Tour (7 Stations)'
-          }
-          className="flex items-center gap-1.5 bg-[#EEF3F0] hover:bg-[#D5ECD4] border border-[#DCE3DF] hover:border-[#C3DAC3] text-[#14213D] text-xs font-semibold px-2.5 py-1.5 rounded-lg transition cursor-pointer shrink-0"
-        >
-          <Compass className="w-3.5 h-3.5 shrink-0" />
-          <span className="hidden 2xl:inline">
-            {language === 'es' ? 'Tour Guiado' : 'Guided Tour'}
-          </span>
-          <span className="2xl:hidden">Tour</span>
-        </button>
+        {/* Permanent Guided Tour Trigger (Operational roles) */}
+        {!isSuperAdmin && (
+          <button
+            type="button"
+            onClick={handleTriggerTour}
+            title={
+              language === 'es'
+                ? 'Abrir Tour Guiado Interactivo (7 Estaciones)'
+                : 'Open Interactive Guided Tour (7 Stations)'
+            }
+            className="flex items-center gap-1.5 bg-[#EEF3F0] hover:bg-[#D5ECD4] border border-[#DCE3DF] hover:border-[#C3DAC3] text-[#14213D] text-xs font-semibold px-2.5 py-1.5 rounded-lg transition cursor-pointer shrink-0"
+          >
+            <Compass className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden 2xl:inline">
+              {language === 'es' ? 'Tour Guiado' : 'Guided Tour'}
+            </span>
+            <span className="2xl:hidden">Tour</span>
+          </button>
+        )}
 
-        {/* MiSender Copilot Trigger */}
-        <button
-          type="button"
-          onClick={openCopilot}
-          title="MiSender Copilot IA"
-          className="flex items-center gap-1 bg-[#14213D] hover:bg-[#1E3158] text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-sm transition cursor-pointer shrink-0"
-        >
-          <Sparkles className="w-3.5 h-3.5 shrink-0" />
-          <span>Copilot</span>
-        </button>
+        {/* MiSender Copilot Trigger (Operational roles) */}
+        {!isSuperAdmin && (
+          <button
+            type="button"
+            onClick={openCopilot}
+            title="MiSender Copilot IA"
+            className="flex items-center gap-1 bg-[#14213D] hover:bg-[#1E3158] text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-sm transition cursor-pointer shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5 shrink-0" />
+            <span>Copilot</span>
+          </button>
+        )}
 
         {/* Language Switcher */}
         <LanguageToggle />
@@ -723,7 +772,11 @@ export default function Topbar({
                   {user ? user.email : profile.email}
                 </div>
                 <div className="text-[10px] text-[#5C6F68] mt-1">
-                  {`Workspace: ${currentWorkspace.name}`}
+                  {isSuperAdmin
+                    ? language === 'es'
+                      ? 'Ámbito: Plataforma Global SaaS'
+                      : 'Scope: Global SaaS Platform'
+                    : `Workspace: ${currentWorkspace.name}`}
                 </div>
               </div>
 
@@ -763,7 +816,7 @@ export default function Topbar({
                     </button>
                   )}
 
-                  {perms.canManageTeam && (
+                  {!isSuperAdmin && perms.canManageTeam && (
                     <button
                       type="button"
                       onClick={() => {
@@ -779,7 +832,7 @@ export default function Topbar({
                     </button>
                   )}
 
-                  {perms.canManageWorkspaces && (
+                  {!isSuperAdmin && perms.canManageWorkspaces && (
                     <button
                       type="button"
                       onClick={() => {
@@ -799,7 +852,7 @@ export default function Topbar({
                 </>
               )}
 
-              {perms.canManageBilling && (
+              {!isSuperAdmin && perms.canManageBilling && (
                 <button
                   type="button"
                   onClick={() => {
@@ -844,7 +897,14 @@ export default function Topbar({
                       <button
                         key={r}
                         type="button"
-                        onClick={() => switchRole(r)}
+                        onClick={() => {
+                          if (r === 'super_admin' && !isFounderEmail(user.email)) {
+                            setIsProfileMenuOpen(false);
+                            void restoreFounderSession();
+                          } else {
+                            switchRole(r);
+                          }
+                        }}
                         className={`px-2 py-1 rounded-lg text-[10px] font-semibold border transition cursor-pointer truncate ${
                           userRole === r
                             ? 'bg-[#14213D] text-white border-[#14213D]'

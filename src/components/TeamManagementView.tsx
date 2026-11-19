@@ -22,12 +22,12 @@ import { useFeedback } from '@/context/FeedbackContext';
 import { TeamMember, UserRole, ROLE_PERMISSIONS, normalizeRole } from '@/types';
 
 export default function TeamManagementView() {
-  const { user, workspaces, currentWorkspace, signInAsRole } = useAuth();
+  const { user, visibleWorkspaces, currentWorkspace, signInAsRole } = useAuth();
   return (
     <TeamManagementContent
       key={currentWorkspace.id}
       user={user}
-      workspaces={workspaces}
+      workspaces={visibleWorkspaces}
       currentWorkspace={currentWorkspace}
       signInAsRole={signInAsRole}
     />
@@ -36,7 +36,7 @@ export default function TeamManagementView() {
 
 interface TeamManagementContentProps {
   user: ReturnType<typeof useAuth>['user'];
-  workspaces: ReturnType<typeof useAuth>['workspaces'];
+  workspaces: ReturnType<typeof useAuth>['visibleWorkspaces'];
   currentWorkspace: ReturnType<typeof useAuth>['currentWorkspace'];
   signInAsRole: ReturnType<typeof useAuth>['signInAsRole'];
 }
@@ -60,6 +60,7 @@ function TeamManagementContent({
   // Add Member form state
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [accessCode, setAccessCode] = useState('Equipo-2026');
   const [roleId, setRoleId] = useState<UserRole>('campaign_manager');
   const [company, setCompany] = useState(currentWorkspace.clientName || '');
   const [assignedWorkspaceIds, setAssignedWorkspaceIds] = useState<string[]>([currentWorkspace.id]);
@@ -69,36 +70,46 @@ function TeamManagementContent({
   const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  const effectiveAgencyId = user?.agencyId || currentWorkspace.agencyId;
+
   const fetchMembers = useCallback(async () => {
     try {
-      const res = await fetch(
-        `/api/team?workspaceId=${encodeURIComponent(currentWorkspace.id)}`,
-        { cache: 'no-store' }
-      );
+      const query = effectiveAgencyId
+        ? `agencyId=${encodeURIComponent(effectiveAgencyId)}`
+        : `workspaceId=${encodeURIComponent(currentWorkspace.id)}`;
+      const res = await fetch(`/api/team?${query}`, { cache: 'no-store' });
       const data = await res.json().catch(() => []);
       if (Array.isArray(data)) {
-        setMembers(data);
+        setMembers(
+          (data as TeamMember[]).filter(
+            (m) => m.id !== 'admin-default' && m.roleId !== 'super_admin'
+          )
+        );
       }
     } catch {
       setMembers([]);
     } finally {
       setLoading(false);
     }
-  }, [currentWorkspace.id]);
+  }, [currentWorkspace.id, effectiveAgencyId]);
 
   useEffect(() => {
     if (!canManageTeam) return;
     let active = true;
     const loadInitialMembers = async () => {
       try {
-        const res = await fetch(
-          `/api/team?workspaceId=${encodeURIComponent(currentWorkspace.id)}`,
-          { cache: 'no-store' }
-        );
+        const query = effectiveAgencyId
+          ? `agencyId=${encodeURIComponent(effectiveAgencyId)}`
+          : `workspaceId=${encodeURIComponent(currentWorkspace.id)}`;
+        const res = await fetch(`/api/team?${query}`, { cache: 'no-store' });
         const data = await res.json().catch(() => []);
         if (!active) return;
         if (Array.isArray(data)) {
-          setMembers(data);
+          setMembers(
+            (data as TeamMember[]).filter(
+              (m) => m.id !== 'admin-default' && m.roleId !== 'super_admin'
+            )
+          );
         }
       } catch {
         if (active) setMembers([]);
@@ -110,7 +121,7 @@ function TeamManagementContent({
     return () => {
       active = false;
     };
-  }, [canManageTeam, currentWorkspace.id]);
+  }, [canManageTeam, currentWorkspace.id, effectiveAgencyId]);
 
   if (!canManageTeam) {
     return (
@@ -169,6 +180,8 @@ function TeamManagementContent({
         body: JSON.stringify({
           workspaceId: primaryWorkspaceId,
           allowedWorkspaceIds: effectiveAllowedIds,
+          agencyId: effectiveAgencyId,
+          accessCode: accessCode.trim() || `Equipo-${Math.floor(1000 + Math.random() * 9000)}`,
           fullName: fullName.trim(),
           email: email.trim().toLowerCase(),
           company: company.trim() || currentWorkspace.clientName,
@@ -184,6 +197,7 @@ function TeamManagementContent({
       setLastCreatedMember(created);
       setFullName('');
       setEmail('');
+      setAccessCode(`Equipo-${Math.floor(1000 + Math.random() * 9000)}`);
       setAssignedWorkspaceIds([currentWorkspace.id]);
       await fetchMembers();
 
@@ -356,9 +370,11 @@ function TeamManagementContent({
     const roleLabel = isEs
       ? ROLE_PERMISSIONS[member.roleId].labelEs
       : ROLE_PERMISSIONS[member.roleId].labelEn;
+    const codeLineEs = member.accessCode ? `\nContraseña / Código de acceso: ${member.accessCode}` : '';
+    const codeLineEn = member.accessCode ? `\nAccess code: ${member.accessCode}` : '';
     const text = isEs
-      ? `Hola ${member.fullName}, te dimos acceso a MiSender en el Workspace "${currentWorkspace.name}" (${currentWorkspace.clientName}) con rol ${roleLabel}.\n\nAcceso: ${origin}\nEmail: ${member.email}\nUsa tu email para ingresar directo a este espacio.`
-      : `Hi ${member.fullName}, you've been invited to MiSender workspace "${currentWorkspace.name}" (${currentWorkspace.clientName}) as ${roleLabel}.\n\nLogin: ${origin}\nEmail: ${member.email}`;
+      ? `Hola ${member.fullName}, te dimos acceso a MiSender en "${currentWorkspace.name}" (${currentWorkspace.clientName}) con rol ${roleLabel}.\n\nAcceso: ${origin}\nEmail: ${member.email}${codeLineEs}`
+      : `Hi ${member.fullName}, you've been invited to MiSender workspace "${currentWorkspace.name}" (${currentWorkspace.clientName}) as ${roleLabel}.\n\nLogin: ${origin}\nEmail: ${member.email}${codeLineEn}`;
 
     try {
       await navigator.clipboard.writeText(text);
@@ -506,7 +522,7 @@ function TeamManagementContent({
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
           <div>
             <label className="block text-xs font-semibold text-[#5C6F68] mb-1.5">
               {isEs ? 'Nombre Completo *' : 'Full Name *'}
@@ -532,6 +548,21 @@ function TeamManagementContent({
               onChange={(e) => setEmail(e.target.value)}
               placeholder="lucas@tuagencia.com"
               className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3.5 py-2 text-xs font-mono text-[#14213D] placeholder-[#5C6F68]/60 focus:outline-none transition"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#5C6F68] mb-1.5">
+              {isEs ? 'Código de Acceso *' : 'Access Code *'}
+            </label>
+            <input
+              type="text"
+              required
+              minLength={4}
+              value={accessCode}
+              onChange={(e) => setAccessCode(e.target.value)}
+              placeholder="Equipo-2026"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3.5 py-2 text-xs font-mono text-[#14213D] focus:outline-none transition"
             />
           </div>
 
@@ -693,6 +724,14 @@ function TeamManagementContent({
                           )}
                         </div>
                         <div className="text-[11px] text-[#5C6F68] font-mono">{member.email}</div>
+                        {member.accessCode && (
+                          <div className="text-[10px] text-[#5C6F68] font-mono mt-0.5">
+                            {isEs ? 'Código:' : 'Code:'}{' '}
+                            <span className="bg-[#EEF3F0] px-1.5 py-0.5 rounded text-[#14213D] font-semibold">
+                              {member.accessCode}
+                            </span>
+                          </div>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4 text-[#5C6F68]">
@@ -805,6 +844,7 @@ function TeamManagementContent({
                                   fullName: member.fullName,
                                   email: member.email,
                                   company: member.company,
+                                  agencyId: member.agencyId ?? effectiveAgencyId,
                                   workspaceId: member.workspaceId,
                                 },
                                 { allowedWorkspaceIds: member.allowedWorkspaceIds }

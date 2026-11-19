@@ -23,6 +23,8 @@ export interface TeamMember {
   id: string;
   workspaceId: string;
   allowedWorkspaceIds?: string[];
+  agencyId?: string;
+  accessCode?: string;
   fullName: string;
   email: string;
   company?: string;
@@ -49,9 +51,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissionConfig> = {
   super_admin: {
     labelEs: 'Super Admin',
     labelEn: 'Super Admin',
-    descriptionEs: 'Dueño del SaaS: da de alta agencias, asigna planes y tiene control total.',
-    descriptionEn: 'SaaS Owner: onboards agencies, assigns plans, and has full control.',
-    allowedTabs: ['finder', 'accounts', 'campaigns', 'unibox', 'crm', 'analytics', 'team', 'billing', 'backoffice'],
+    descriptionEs: 'Dueño del SaaS: da de alta agencias, asigna planes y administra usuarios de agencias.',
+    descriptionEn: 'SaaS Owner: onboards agencies, assigns plans, and manages agency admin users.',
+    allowedTabs: ['backoffice'],
     canManageWorkspaces: true,
     canManageTeam: true,
     canManageBilling: true,
@@ -108,6 +110,10 @@ export function canAccessTab(role: UserRole | undefined | null, tab: string): bo
   return ROLE_PERMISSIONS[effectiveRole].allowedTabs.includes(tab as AppTab);
 }
 
+export function getDefaultTabForRole(role?: UserRole | string | null): AppTab {
+  return normalizeRole(role) === 'super_admin' ? 'backoffice' : 'campaigns';
+}
+
 export interface PlanConfig {
   id: WorkspacePlan;
   name: string;
@@ -160,6 +166,7 @@ export interface Workspace {
   name: string;
   clientName: string;
   credits: number;
+  agencyId?: string;
   ownerId?: string;
   ownerEmail?: string;
   plan?: WorkspacePlan;

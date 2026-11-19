@@ -12,7 +12,6 @@ import { SupabaseLeadRepository } from '@/core/storage/supabase/SupabaseLeadRepo
 import { SupabaseAccountRepository } from '@/core/storage/supabase/SupabaseAccountRepository';
 import { SupabaseDealRepository } from '@/core/storage/supabase/SupabaseDealRepository';
 import { SupabaseThreadRepository } from '@/core/storage/supabase/SupabaseThreadRepository';
-import { initialUniboxThreads } from '@/core/storage/mockData';
 import type { Campaign, Lead, SenderAccount, Deal, EmailThread } from '@/types';
 
 class InMemoryJsonDriver implements IJsonStorageDriver {
@@ -480,7 +479,7 @@ describe('Multi-tenant Workspace Isolation & Team Visibility', () => {
       );
     });
 
-    it('SupabaseThreadRepository returns [] for empty non-primary workspace and initialUniboxThreads for ws-primary', async () => {
+    it('SupabaseThreadRepository returns [] cleanly when DB has no threads for any workspace', async () => {
       const eqSpy = vi.fn().mockResolvedValue({ data: [], error: null });
       const upsertSpy = vi.fn().mockResolvedValue({ error: null });
       const client = {
@@ -500,7 +499,7 @@ describe('Multi-tenant Workspace Isolation & Team Visibility', () => {
 
       const primaryThreads = await repo.getThreads('ws-primary');
       expect(eqSpy).toHaveBeenCalledWith('workspace_id', 'ws-primary');
-      expect(primaryThreads).toEqual(initialUniboxThreads);
+      expect(primaryThreads).toEqual([]);
 
       await repo.upsertThread(makeThread('th-2', 'lead@c2.io', 'ws-client-2'));
       expect(upsertSpy).toHaveBeenCalledWith(

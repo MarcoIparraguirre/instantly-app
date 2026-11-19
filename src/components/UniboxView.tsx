@@ -14,7 +14,6 @@ import {
   Eye
 } from 'lucide-react';
 import { EmailThread, AiSentimentTag, ROLE_PERMISSIONS, normalizeRole } from '@/types';
-import { initialUniboxThreads } from '@/core/storage/mockData';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAdminProfile } from '@/context/AdminProfileContext';
 import { useAuth } from '@/context/AuthContext';
@@ -56,12 +55,8 @@ function UniboxViewContent({
   const { profile } = useAdminProfile();
   const { showToast } = useFeedback();
 
-  const [threads, setThreads] = useState<EmailThread[]>(() =>
-    workspaceId === 'ws-primary' ? initialUniboxThreads : []
-  );
-  const [selectedThreadId, setSelectedThreadId] = useState<string>(() =>
-    workspaceId === 'ws-primary' ? (initialUniboxThreads[0]?.id || '') : ''
-  );
+  const [threads, setThreads] = useState<EmailThread[]>([]);
+  const [selectedThreadId, setSelectedThreadId] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'unread' | AiSentimentTag>('all');
   const [replyText, setReplyText] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);

@@ -265,16 +265,15 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
   });
 
   describe('/api/workspaces GET, POST, PUT handlers', () => {
-    it('GET seeds ws-primary when empty and returns mapped workspaces', async () => {
+    it('GET returns [] when empty (clean zero state) without auto-seeding ws-primary', async () => {
       const req = new NextRequest('http://localhost:3000/api/workspaces');
       const res = await getWorkspaces(req);
       const data = await res.json();
 
       expect(res.status).toBe(200);
       expect(Array.isArray(data)).toBe(true);
-      expect(data[0].id).toBe('ws-primary');
-      expect(data[0].plan).toBe('growth');
-      expect(mockState.upsertedWorkspaces).toHaveLength(1);
+      expect(data).toHaveLength(0);
+      expect(mockState.upsertedWorkspaces).toHaveLength(0);
     });
 
     it('POST creates a new SaaS workspace with 7-day trial and plan limits', async () => {
@@ -931,15 +930,16 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
 
   describe('RBAC permissions (ROLE_PERMISSIONS, canAccessTab) & /api/team management', () => {
     it('enforces exact tab and capability access across super_admin, admin, campaign_manager, and viewer', () => {
-      // 1. Super Admin
+      // 1. Super Admin (restricted solely to Backoffice SaaS agency & user management)
       expect(ROLE_PERMISSIONS.super_admin.canAccessBackoffice).toBe(true);
       expect(ROLE_PERMISSIONS.super_admin.canManageTeam).toBe(true);
       expect(ROLE_PERMISSIONS.super_admin.canManageBilling).toBe(true);
       expect(ROLE_PERMISSIONS.super_admin.canManageWorkspaces).toBe(true);
       expect(ROLE_PERMISSIONS.super_admin.isReadOnly).toBe(false);
       expect(canAccessTab('super_admin', 'backoffice')).toBe(true);
-      expect(canAccessTab('super_admin', 'team')).toBe(true);
-      expect(canAccessTab('super_admin', 'billing')).toBe(true);
+      expect(canAccessTab('super_admin', 'campaigns')).toBe(false);
+      expect(canAccessTab('super_admin', 'team')).toBe(false);
+      expect(canAccessTab('super_admin', 'billing')).toBe(false);
 
       // 2. Agency Admin
       expect(ROLE_PERMISSIONS.admin.canAccessBackoffice).toBe(false);
@@ -983,31 +983,36 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
       expect(normalizeRole('unknown-role')).toBe('admin');
     });
 
-    it('supports GET by workspaceId/email, POST creation, PUT role update, and DELETE protection on /api/team', async () => {
-      // Seed defaults on initial GET
-      const getAllReq = new NextRequest('http://localhost:3000/api/team?workspaceId=ws-primary');
+    it('supports GET by workspaceId/agencyId/email, POST creation with accessCode, PUT role update, and DELETE protection on /api/team', async () => {
+      // Seed only founder super_admin on initial empty GET
+      const getAllReq = new NextRequest('http://localhost:3000/api/team');
       const getAllRes = await getTeam(getAllReq);
       const initialMembers = await getAllRes.json();
 
       expect(getAllRes.status).toBe(200);
       expect(Array.isArray(initialMembers)).toBe(true);
-      expect(initialMembers.length).toBeGreaterThanOrEqual(4);
-      expect(mockState.upsertedUserProfiles.length).toBeGreaterThanOrEqual(4);
+      expect(initialMembers).toHaveLength(1);
+      expect(initialMembers[0].id).toBe('admin-default');
+      expect(initialMembers[0].email).toBe('marcos@vectrasystems.com.ar');
+      expect(initialMembers[0].roleId).toBe('super_admin');
+      expect(mockState.upsertedUserProfiles).toHaveLength(1);
 
       // Lookup by email (case-insensitive)
-      const byEmailReq = new NextRequest('http://localhost:3000/api/team?email=SOFIA@agenciab2b.com');
+      const byEmailReq = new NextRequest('http://localhost:3000/api/team?email=MARCOS@vectrasystems.com.ar');
       const byEmailRes = await getTeam(byEmailReq);
       const byEmailData = await byEmailRes.json();
       expect(byEmailRes.status).toBe(200);
       expect(byEmailData).toHaveLength(1);
-      expect(byEmailData[0].roleId).toBe('admin');
+      expect(byEmailData[0].roleId).toBe('super_admin');
 
-      // POST creates campaign_manager in isolated agency workspace
+      // POST creates campaign_manager in isolated agency & workspace with accessCode
       const createSdrReq = new NextRequest('http://localhost:3000/api/team', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           workspaceId: 'ws-agency-99',
+          agencyId: 'ag-99',
+          accessCode: 'Code-9911',
           fullName: 'Valeria Soto',
           email: 'valeria@agencia99.com',
           company: 'Agencia 99',
@@ -1019,6 +1024,8 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
       expect(createSdrRes.status).toBe(201);
       expect(sdrData.id).toMatch(/^usr-/);
       expect(sdrData.workspaceId).toBe('ws-agency-99');
+      expect(sdrData.agencyId).toBe('ag-99');
+      expect(sdrData.accessCode).toBe('Code-9911');
       expect(sdrData.roleId).toBe('campaign_manager');
 
       // POST creates viewer client

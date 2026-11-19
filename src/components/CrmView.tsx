@@ -13,7 +13,6 @@ import {
   X
 } from 'lucide-react';
 import { Deal, DealStage, ROLE_PERMISSIONS, normalizeRole } from '@/types';
-import { initialDeals } from '@/core/storage/mockData';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { useFeedback } from '@/context/FeedbackContext';
@@ -81,17 +80,13 @@ function CrmViewContent({
         if (!active) return;
 
         if (res.ok && Array.isArray(data)) {
-          if (data.length > 0) {
-            setDeals(data);
-          } else {
-            setDeals(wsId === 'ws-primary' ? initialDeals : []);
-          }
+          setDeals(data);
         } else {
-          setDeals(wsId === 'ws-primary' ? initialDeals : []);
+          setDeals([]);
         }
       } catch {
         if (!active) return;
-        setDeals(wsId === 'ws-primary' ? initialDeals : []);
+        setDeals([]);
       } finally {
         if (active) {
           setIsLoading(false);

@@ -55,7 +55,7 @@ export function ToastNotification({ toasts, onDismiss }: ToastNotificationProps)
   return (
     <div
       aria-live="polite"
-      className="fixed bottom-5 right-5 z-[90] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none"
+      className="fixed top-16 right-4 sm:top-auto sm:bottom-10 sm:right-5 z-[90] flex flex-col gap-2.5 max-w-[calc(100vw-2rem)] sm:max-w-sm w-auto sm:w-full pointer-events-none"
     >
       {toasts.map((toast) => {
         const style = VARIANT_STYLES[toast.variant];

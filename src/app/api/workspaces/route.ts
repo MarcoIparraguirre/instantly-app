@@ -32,26 +32,10 @@ function getDefaultTrialEndsAt(): string {
   return new Date(Date.now() + SEVEN_DAYS_MS).toISOString();
 }
 
-function createDefaultPrimaryWorkspace(): Workspace {
-  const growth = SAAS_PLANS.growth;
-  return {
-    id: 'ws-primary',
-    name: 'Espacio Principal',
-    clientName: 'Vectra Systems',
-    credits: growth.credits,
-    plan: 'growth',
-    subscriptionStatus: 'trialing',
-    trialEndsAt: getDefaultTrialEndsAt(),
-    maxAccounts: growth.maxAccounts,
-    maxLeads: growth.maxLeads,
-    billingProvider: 'sandbox',
-  };
-}
-
 function getFallbackStore(): Workspace[] {
   const g = globalThis as unknown as { __misenderWorkspacesStore?: Workspace[] };
-  if (!g.__misenderWorkspacesStore || g.__misenderWorkspacesStore.length === 0) {
-    g.__misenderWorkspacesStore = [createDefaultPrimaryWorkspace()];
+  if (!Array.isArray(g.__misenderWorkspacesStore)) {
+    g.__misenderWorkspacesStore = [];
   }
   return g.__misenderWorkspacesStore;
 }
@@ -68,7 +52,6 @@ function shouldUseSupabase(): boolean {
   );
   if (hasEnv) return true;
 
-  // Allow mocked Supabase clients in Vitest unit tests even without env vars
   const clientUrl = (supabase as unknown as { supabaseUrl?: string })?.supabaseUrl;
   const hasFrom = typeof (supabase as unknown as { from?: unknown })?.from === 'function';
   return hasFrom && clientUrl !== 'https://placeholder.supabase.co';
@@ -78,12 +61,14 @@ function mapDbRowToWorkspace(row: Record<string, unknown>): Workspace {
   const plan = normalizePlan(typeof row.plan === 'string' ? row.plan : undefined);
   const planDefaults = SAAS_PLANS[plan];
   const subStatus = (row.subscription_status || row.subscriptionStatus || 'trialing') as SubscriptionStatus;
+  const rawAgencyId = row.agency_id ?? row.agencyId;
 
   return {
     id: String(row.id),
-    name: String(row.name || 'Espacio Principal'),
+    name: String(row.name || 'Workspace'),
     clientName: String(row.client_name ?? row.clientName ?? 'Internal'),
     credits: Number(row.credits ?? planDefaults.credits),
+    agencyId: typeof rawAgencyId === 'string' && rawAgencyId.trim() ? rawAgencyId.trim() : undefined,
     ownerId: typeof (row.owner_id ?? row.ownerId) === 'string' ? String(row.owner_id ?? row.ownerId) : undefined,
     ownerEmail: typeof (row.owner_email ?? row.ownerEmail) === 'string' ? String(row.owner_email ?? row.ownerEmail) : undefined,
     plan,
@@ -104,7 +89,7 @@ function mapDbRowToWorkspace(row: Record<string, unknown>): Workspace {
 function mapWorkspaceToDbRow(ws: Workspace): Record<string, unknown> {
   const plan = normalizePlan(ws.plan);
   const planDefaults = SAAS_PLANS[plan];
-  return {
+  const row: Record<string, unknown> = {
     id: ws.id,
     name: ws.name,
     client_name: ws.clientName || 'Internal',
@@ -120,6 +105,21 @@ function mapWorkspaceToDbRow(ws: Workspace): Record<string, unknown> {
     billing_subscription_id: ws.billingSubscriptionId || null,
     updated_at: new Date().toISOString(),
   };
+  if (ws.agencyId !== undefined) {
+    row.agency_id = ws.agencyId || null;
+  }
+  return row;
+}
+
+async function upsertWorkspaceToSupabase(ws: Workspace): Promise<{ error?: { message?: string } | null }> {
+  const dbRow = mapWorkspaceToDbRow(ws);
+  const { error } = await supabase.from('workspaces').upsert(dbRow, { onConflict: 'id' });
+  if (error && (error.message || '').toLowerCase().includes('agency_id')) {
+    const legacyRow = { ...dbRow };
+    delete legacyRow.agency_id;
+    return await supabase.from('workspaces').upsert(legacyRow, { onConflict: 'id' });
+  }
+  return { error };
 }
 
 async function fetchWorkspacesFromDb(): Promise<{ rows: Workspace[]; error: { message?: string } | null }> {
@@ -138,41 +138,34 @@ async function fetchWorkspacesFromDb(): Promise<{ rows: Workspace[]; error: { me
   return { rows, error: null };
 }
 
+function filterWorkspaces(list: Workspace[], ownerId: string | null, agencyId: string | null): Workspace[] {
+  let result = list;
+  if (agencyId) {
+    result = result.filter((w) => w.agencyId === agencyId);
+  }
+  if (ownerId) {
+    result = result.filter((w) => !w.ownerId || w.ownerId === ownerId);
+  }
+  return result;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const ownerId = searchParams.get('ownerId');
+    const agencyId = searchParams.get('agencyId');
 
     if (!shouldUseSupabase()) {
-      const store = getFallbackStore();
-      const filtered = ownerId
-        ? store.filter((w) => !w.ownerId || w.ownerId === ownerId)
-        : store;
-      return NextResponse.json(filtered);
+      return NextResponse.json(filterWorkspaces(getFallbackStore(), ownerId, agencyId));
     }
 
     const { rows, error } = await fetchWorkspacesFromDb();
     if (error) {
       console.warn('GET /api/workspaces Supabase error, using fallback:', error.message || error);
-      return NextResponse.json(getFallbackStore());
+      return NextResponse.json(filterWorkspaces(getFallbackStore(), ownerId, agencyId));
     }
 
-    if (rows.length === 0) {
-      const primary = createDefaultPrimaryWorkspace();
-      const { error: seedError } = await supabase
-        .from('workspaces')
-        .upsert(mapWorkspaceToDbRow(primary), { onConflict: 'id' });
-
-      if (seedError) {
-        console.warn('GET /api/workspaces seed error:', seedError.message);
-      }
-      return NextResponse.json([primary]);
-    }
-
-    const filtered = ownerId
-      ? rows.filter((w) => !w.ownerId || w.ownerId === ownerId)
-      : rows;
-    return NextResponse.json(filtered);
+    return NextResponse.json(filterWorkspaces(rows, ownerId, agencyId));
   } catch (err: unknown) {
     console.warn('GET /api/workspaces unexpected error, using fallback:', getErrorMessage(err));
     return NextResponse.json(getFallbackStore());
@@ -194,12 +187,17 @@ export async function POST(req: NextRequest) {
     const plan = normalizePlan(body.plan);
     const planConfig = SAAS_PLANS[plan];
     const nowIso = new Date().toISOString();
+    const agencyId =
+      typeof body.agencyId === 'string' && body.agencyId.trim()
+        ? body.agencyId.trim()
+        : `ag-${uuidv4().slice(0, 8)}`;
 
     const newWorkspace: Workspace = {
       id: body.id || `ws-${uuidv4()}`,
       name: (body.name || body.clientName || 'Nuevo Workspace').trim(),
       clientName: (body.clientName || 'Internal').trim(),
       credits: Number.isFinite(Number(body.credits)) ? Number(body.credits) : planConfig.credits,
+      agencyId,
       ownerId: body.ownerId || undefined,
       ownerEmail: body.ownerEmail || undefined,
       plan,
@@ -212,21 +210,16 @@ export async function POST(req: NextRequest) {
       updatedAt: nowIso,
     };
 
+    const store = getFallbackStore();
+    setFallbackStore([...store.filter((w) => w.id !== newWorkspace.id), newWorkspace]);
+
     if (!shouldUseSupabase()) {
-      const store = getFallbackStore();
-      setFallbackStore([...store, newWorkspace]);
       return NextResponse.json(newWorkspace, { status: 201 });
     }
 
-    const { error } = await supabase
-      .from('workspaces')
-      .upsert(mapWorkspaceToDbRow(newWorkspace), { onConflict: 'id' });
-
+    const { error } = await upsertWorkspaceToSupabase(newWorkspace);
     if (error) {
-      console.warn('POST /api/workspaces Supabase error, storing in fallback:', error.message);
-      const store = getFallbackStore();
-      setFallbackStore([...store, newWorkspace]);
-      return NextResponse.json(newWorkspace, { status: 201 });
+      console.warn('POST /api/workspaces Supabase error, stored in fallback:', error.message);
     }
 
     return NextResponse.json(newWorkspace, { status: 201 });
@@ -253,7 +246,7 @@ export async function PUT(req: NextRequest) {
     }
 
     if (!existing) {
-      existing = store.find((w) => w.id === id) || (id === 'ws-primary' ? createDefaultPrimaryWorkspace() : undefined);
+      existing = store.find((w) => w.id === id);
     }
 
     const base: Workspace = existing || {
@@ -277,6 +270,7 @@ export async function PUT(req: NextRequest) {
       ...base,
       name: body.name !== undefined ? String(body.name).trim() || base.name : base.name,
       clientName: body.clientName !== undefined ? String(body.clientName).trim() || base.clientName : base.clientName,
+      agencyId: body.agencyId !== undefined ? body.agencyId : base.agencyId,
       plan: nextPlan,
       subscriptionStatus: (body.subscriptionStatus ?? base.subscriptionStatus ?? 'trialing') as SubscriptionStatus,
       trialEndsAt: body.trialEndsAt ?? base.trialEndsAt,
@@ -306,17 +300,13 @@ export async function PUT(req: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
 
-    // Always keep fallback store synchronized for local/dev consistency
     const nextStore = store.some((w) => w.id === id)
       ? store.map((w) => (w.id === id ? updatedWorkspace : w))
       : [...store, updatedWorkspace];
     setFallbackStore(nextStore);
 
     if (shouldUseSupabase()) {
-      const { error } = await supabase
-        .from('workspaces')
-        .upsert(mapWorkspaceToDbRow(updatedWorkspace), { onConflict: 'id' });
-
+      const { error } = await upsertWorkspaceToSupabase(updatedWorkspace);
       if (error) {
         console.warn('PUT /api/workspaces Supabase error:', error.message);
       }
@@ -335,10 +325,6 @@ export async function DELETE(req: NextRequest) {
 
     if (!id) {
       return NextResponse.json({ error: 'Workspace id is required' }, { status: 400 });
-    }
-
-    if (id === 'ws-primary') {
-      return NextResponse.json({ error: 'Cannot delete primary workspace' }, { status: 400 });
     }
 
     const store = getFallbackStore();

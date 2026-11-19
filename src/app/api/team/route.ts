@@ -30,7 +30,7 @@ export function normalizeAllowedWorkspaceIds(raw: unknown, primaryWorkspaceId: s
   const primary =
     typeof primaryWorkspaceId === 'string' && primaryWorkspaceId.trim()
       ? primaryWorkspaceId.trim()
-      : 'ws-primary';
+      : 'ws-founder';
   const seen = new Set<string>([primary]);
 
   if (Array.isArray(raw)) {
@@ -55,49 +55,14 @@ export function createDefaultTeamMembers(): TeamMember[] {
   return [
     {
       id: 'admin-default',
-      workspaceId: 'ws-primary',
-      allowedWorkspaceIds: ['ws-primary'],
+      workspaceId: 'ws-founder',
+      allowedWorkspaceIds: ['ws-founder'],
+      agencyId: 'ag-founder',
       fullName: 'Marco Iparraguirre',
       email: 'marcos@vectrasystems.com.ar',
       company: 'Vectra Systems',
       roleId: 'super_admin',
       roleName: ROLE_PERMISSIONS.super_admin.labelEs,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    },
-    {
-      id: 'agency-admin-1',
-      workspaceId: 'ws-primary',
-      allowedWorkspaceIds: ['ws-primary'],
-      fullName: 'Sofía Méndez',
-      email: 'sofia@agenciab2b.com',
-      company: 'Agencia Growth B2B',
-      roleId: 'admin',
-      roleName: ROLE_PERMISSIONS.admin.labelEs,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    },
-    {
-      id: 'sdr-manager-1',
-      workspaceId: 'ws-primary',
-      allowedWorkspaceIds: ['ws-primary'],
-      fullName: 'Lucas Gómez',
-      email: 'lucas@agenciab2b.com',
-      company: 'Agencia Growth B2B',
-      roleId: 'campaign_manager',
-      roleName: ROLE_PERMISSIONS.campaign_manager.labelEs,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    },
-    {
-      id: 'client-viewer-1',
-      workspaceId: 'ws-primary',
-      allowedWorkspaceIds: ['ws-primary'],
-      fullName: 'Martín Ruiz',
-      email: 'martin@clientefinal.com',
-      company: 'Cliente Inmobiliaria',
-      roleId: 'viewer',
-      roleName: ROLE_PERMISSIONS.viewer.labelEs,
       createdAt: nowIso,
       updatedAt: nowIso,
     },
@@ -142,16 +107,20 @@ function mapDbRowToMember(row: Record<string, unknown>): TeamMember {
   const roleId: UserRole = normalizeRole(
     typeof (row.role_id ?? row.roleId) === 'string' ? String(row.role_id ?? row.roleId) : undefined
   );
-  const workspaceId = String(row.workspace_id ?? row.workspaceId ?? 'ws-primary');
+  const workspaceId = String(row.workspace_id ?? row.workspaceId ?? 'ws-founder');
   const allowedWorkspaceIds = normalizeAllowedWorkspaceIds(
     row.allowed_workspace_ids ?? row.allowedWorkspaceIds,
     workspaceId
   );
+  const rawAgencyId = row.agency_id ?? row.agencyId;
+  const rawAccessCode = row.access_code ?? row.accessCode;
 
   return {
     id: String(row.id),
     workspaceId,
     allowedWorkspaceIds,
+    agencyId: typeof rawAgencyId === 'string' && rawAgencyId.trim() ? rawAgencyId.trim() : undefined,
+    accessCode: typeof rawAccessCode === 'string' && rawAccessCode.trim() ? rawAccessCode.trim() : undefined,
     fullName: String(row.full_name ?? row.fullName ?? 'Usuario'),
     email: String(row.email ?? '').toLowerCase(),
     company: typeof row.company === 'string' ? row.company : '',
@@ -163,8 +132,8 @@ function mapDbRowToMember(row: Record<string, unknown>): TeamMember {
 }
 
 function mapMemberToDbRow(member: TeamMember): Record<string, unknown> {
-  const workspaceId = member.workspaceId || 'ws-primary';
-  return {
+  const workspaceId = member.workspaceId || 'ws-founder';
+  const row: Record<string, unknown> = {
     id: member.id,
     workspace_id: workspaceId,
     allowed_workspace_ids: normalizeAllowedWorkspaceIds(member.allowedWorkspaceIds, workspaceId),
@@ -174,12 +143,21 @@ function mapMemberToDbRow(member: TeamMember): Record<string, unknown> {
     role_id: member.roleId,
     updated_at: member.updatedAt || new Date().toISOString(),
   };
+  if (member.agencyId !== undefined) {
+    row.agency_id = member.agencyId || null;
+  }
+  if (member.accessCode !== undefined) {
+    row.access_code = member.accessCode || null;
+  }
+  return row;
 }
 
-function isAllowedWorkspaceIdsColumnError(error: { message?: string } | null | undefined): boolean {
+function isOptionalColumnError(error: { message?: string } | null | undefined): boolean {
   const msg = (error?.message || '').toLowerCase();
   return (
-    msg.includes('allowed_workspace_ids') &&
+    (msg.includes('allowed_workspace_ids') ||
+      msg.includes('agency_id') ||
+      msg.includes('access_code')) &&
     (msg.includes('column') ||
       msg.includes('schema') ||
       msg.includes('cache') ||
@@ -194,9 +172,11 @@ async function upsertMemberToSupabase(
 ): Promise<{ error?: { message?: string } | null }> {
   const dbRow = mapMemberToDbRow(member);
   const { error } = await table.upsert(dbRow, { onConflict: 'id' });
-  if (error && isAllowedWorkspaceIdsColumnError(error)) {
+  if (error && isOptionalColumnError(error)) {
     const legacyRow = { ...dbRow };
     delete legacyRow.allowed_workspace_ids;
+    delete legacyRow.agency_id;
+    delete legacyRow.access_code;
     return await table.upsert(legacyRow, { onConflict: 'id' });
   }
   return { error };
@@ -222,8 +202,16 @@ async function fetchTeamFromDb(): Promise<{ rows: TeamMember[]; error: { message
   return { rows, error: null };
 }
 
-function filterMembers(members: TeamMember[], workspaceId: string | null, email: string | null): TeamMember[] {
+function filterMembers(
+  members: TeamMember[],
+  workspaceId: string | null,
+  email: string | null,
+  agencyId: string | null
+): TeamMember[] {
   let result = members;
+  if (agencyId) {
+    result = result.filter((m) => m.agencyId === agencyId);
+  }
   if (workspaceId) {
     result = result.filter(
       (m) => m.workspaceId === workspaceId || Boolean(m.allowedWorkspaceIds?.includes(workspaceId))
@@ -241,16 +229,17 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspaceId');
     const email = searchParams.get('email');
+    const agencyId = searchParams.get('agencyId');
 
     if (!shouldUseSupabase()) {
       const store = getFallbackStore();
-      return NextResponse.json(filterMembers(store, workspaceId, email));
+      return NextResponse.json(filterMembers(store, workspaceId, email, agencyId));
     }
 
     const { rows, error } = await fetchTeamFromDb();
     if (error) {
       console.warn('GET /api/team Supabase error, using fallback:', error.message || error);
-      return NextResponse.json(filterMembers(getFallbackStore(), workspaceId, email));
+      return NextResponse.json(filterMembers(getFallbackStore(), workspaceId, email, agencyId));
     }
 
     if (rows.length === 0) {
@@ -262,15 +251,20 @@ export async function GET(req: NextRequest) {
         }
       }
       setFallbackStore(defaults);
-      return NextResponse.json(filterMembers(defaults, workspaceId, email));
+      return NextResponse.json(filterMembers(defaults, workspaceId, email, agencyId));
     }
 
-    return NextResponse.json(filterMembers(rows, workspaceId, email));
+    return NextResponse.json(filterMembers(rows, workspaceId, email, agencyId));
   } catch (err: unknown) {
     console.warn('GET /api/team unexpected error, using fallback:', getErrorMessage(err));
     const { searchParams } = new URL(req.url);
     return NextResponse.json(
-      filterMembers(getFallbackStore(), searchParams.get('workspaceId'), searchParams.get('email'))
+      filterMembers(
+        getFallbackStore(),
+        searchParams.get('workspaceId'),
+        searchParams.get('email'),
+        searchParams.get('agencyId')
+      )
     );
   }
 }
@@ -293,13 +287,21 @@ export async function POST(req: NextRequest) {
     const workspaceId =
       typeof body.workspaceId === 'string' && body.workspaceId.trim()
         ? body.workspaceId.trim()
-        : 'ws-primary';
+        : 'ws-founder';
     const allowedWorkspaceIds = normalizeAllowedWorkspaceIds(body.allowedWorkspaceIds, workspaceId);
+    const agencyId =
+      typeof body.agencyId === 'string' && body.agencyId.trim() ? body.agencyId.trim() : undefined;
+    const accessCode =
+      typeof body.accessCode === 'string' && body.accessCode.trim()
+        ? body.accessCode.trim()
+        : undefined;
 
     const newMember: TeamMember = {
       id: body.id || `usr-${uuidv4()}`,
       workspaceId,
       allowedWorkspaceIds,
+      ...(agencyId !== undefined ? { agencyId } : {}),
+      ...(accessCode !== undefined ? { accessCode } : {}),
       fullName,
       email,
       company: typeof body.company === 'string' ? body.company.trim() : '',
@@ -388,6 +390,8 @@ export async function PUT(req: NextRequest) {
       company: body.company !== undefined ? String(body.company).trim() : existing.company,
       workspaceId: nextWorkspaceId,
       allowedWorkspaceIds: nextAllowedWorkspaceIds,
+      ...(body.agencyId !== undefined ? { agencyId: String(body.agencyId).trim() || undefined } : {}),
+      ...(body.accessCode !== undefined ? { accessCode: String(body.accessCode).trim() || undefined } : {}),
       roleId: nextRole,
       roleName: ROLE_PERMISSIONS[nextRole].labelEs,
       updatedAt: new Date().toISOString(),

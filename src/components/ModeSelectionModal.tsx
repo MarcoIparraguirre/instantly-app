@@ -12,14 +12,18 @@ import {
 } from 'lucide-react';
 import { useViewMode } from '@/context/ViewModeContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
+import { normalizeRole } from '@/types';
 
 export default function ModeSelectionModal() {
   const { isModePickerOpen, closeModePicker, setMode, mode } = useViewMode();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const isEs = language === 'es';
+  const isSuperAdmin = normalizeRole(user?.role) === 'super_admin';
 
   useEffect(() => {
-    if (!isModePickerOpen) return;
+    if (!isModePickerOpen || !user || isSuperAdmin) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -28,9 +32,9 @@ export default function ModeSelectionModal() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isModePickerOpen, closeModePicker]);
+  }, [isModePickerOpen, closeModePicker, user, isSuperAdmin]);
 
-  if (!isModePickerOpen) return null;
+  if (!user || isSuperAdmin || !isModePickerOpen) return null;
 
   return (
     <div

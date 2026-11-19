@@ -2,7 +2,6 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { EmailThread } from '@/types';
 import { IThreadRepository } from '../../interfaces/storage';
 import { supabase as defaultClient } from '../../supabase/client';
-import { initialUniboxThreads } from '../mockData';
 
 export class SupabaseThreadRepository implements IThreadRepository {
   private client: SupabaseClient;
@@ -25,9 +24,6 @@ export class SupabaseThreadRepository implements IThreadRepository {
 
     if (error || !data || data.length === 0) {
       if (error) console.error('SupabaseThreadRepository getThreads error:', error);
-      if (!workspaceId || workspaceId === 'ws-primary') {
-        return initialUniboxThreads;
-      }
       return [];
     }
 

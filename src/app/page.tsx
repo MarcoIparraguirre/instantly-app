@@ -31,6 +31,7 @@ import {
   UserRole,
   ROLE_PERMISSIONS,
   canAccessTab,
+  getDefaultTabForRole,
   normalizeRole,
 } from '@/types';
 import { useViewMode } from '@/context/ViewModeContext';
@@ -48,12 +49,14 @@ function HomeContent() {
     switchWorkspace,
     updateWorkspaces,
     refreshWorkspaces,
+    openAuthModal,
   } = useAuth();
   const [currentTab, setCurrentTab] = useState<string>('campaigns');
 
   const userRole: UserRole = normalizeRole(user?.role);
   const rolePerms = ROLE_PERMISSIONS[userRole];
-  const effectiveTab = canAccessTab(userRole, currentTab) ? currentTab : 'campaigns';
+  const defaultTab = getDefaultTabForRole(userRole);
+  const effectiveTab = canAccessTab(userRole, currentTab) ? currentTab : defaultTab;
   const [campaignViewMode, setCampaignViewMode] = useState<'list' | 'detail'>('list');
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [allCampaigns, setAllCampaigns] = useState<Campaign[]>([]);
@@ -70,6 +73,16 @@ function HomeContent() {
 
   const fetchInitialData = useCallback(async () => {
     const targetWsId = currentWorkspace.id;
+    if (!targetWsId || userRole === 'super_admin') {
+      setAllCampaigns([]);
+      setCampaign(null);
+      setLeads([]);
+      setAccounts([]);
+      setLoadedWorkspaceId(targetWsId);
+      setLoading(false);
+      return;
+    }
+
     const wsId = encodeURIComponent(targetWsId);
     try {
       const [campRes, leadsRes, accRes] = await Promise.all([
@@ -89,7 +102,7 @@ function HomeContent() {
       if (Array.isArray(campData) && campData.length > 0) {
         setAllCampaigns(campData);
         setCampaign((prev) => {
-          if (prev && (prev.workspaceId || 'ws-primary') === targetWsId) {
+          if (prev && prev.workspaceId === targetWsId) {
             const match = campData.find((c: Campaign) => c.id === prev.id);
             if (match) return match;
           }
@@ -110,7 +123,7 @@ function HomeContent() {
         setLoading(false);
       }
     }
-  }, [currentWorkspace.id]);
+  }, [currentWorkspace.id, userRole]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -128,17 +141,22 @@ function HomeContent() {
   useEffect(() => {
     currentWorkspaceIdRef.current = currentWorkspace.id;
     const timer = setTimeout(() => {
-      setLoading(true);
+      const skipLoadingMask = !currentWorkspace.id || userRole === 'super_admin';
+      setLoading(!skipLoadingMask);
       setAllCampaigns([]);
       setCampaign(null);
       setLeads([]);
       setAccounts([]);
       setUniboxUnreadCount(0);
       setCampaignViewMode('list');
-      void fetchInitialData();
+      if (skipLoadingMask) {
+        setLoadedWorkspaceId(currentWorkspace.id);
+      } else {
+        void fetchInitialData();
+      }
     }, 0);
     return () => clearTimeout(timer);
-  }, [currentWorkspace.id, fetchInitialData]);
+  }, [currentWorkspace.id, userRole, fetchInitialData]);
 
   // Listen to global custom event to open the interactive Guided Tour
   useEffect(() => {
@@ -151,6 +169,9 @@ function HomeContent() {
   useEffect(() => {
     if (!hasMountedTabSync.current) {
       hasMountedTabSync.current = true;
+      return;
+    }
+    if (!currentWorkspace.id || userRole === 'super_admin') {
       return;
     }
     let active = true;
@@ -166,7 +187,7 @@ function HomeContent() {
     return () => {
       active = false;
     };
-  }, [currentTab, currentWorkspace.id]);
+  }, [currentTab, currentWorkspace.id, userRole]);
 
   const handleCampaignUpdated = (updated: Campaign) => {
     setCampaign(updated);
@@ -175,6 +196,7 @@ function HomeContent() {
 
   const handleLeadsUpdated = async () => {
     const targetWsId = currentWorkspace.id;
+    if (!targetWsId) return;
     try {
       const res = await fetch(`/api/leads?workspaceId=${encodeURIComponent(targetWsId)}`);
       const data = await res.json();
@@ -186,7 +208,7 @@ function HomeContent() {
 
   // Background Auto-Scheduler: checks active campaigns every 25s and dispatches when inside scheduled window
   useEffect(() => {
-    if (!user || rolePerms.isReadOnly) return;
+    if (!user || rolePerms.isReadOnly || !currentWorkspace.id || userRole === 'super_admin') return;
     const timer = setInterval(async () => {
       const activeCamps = allCampaigns.filter(c => c.status === 'active');
       if (activeCamps.length === 0) return;
@@ -216,24 +238,24 @@ function HomeContent() {
     }, 25000);
 
     return () => clearInterval(timer);
-  }, [user, rolePerms.isReadOnly, allCampaigns, leads, fetchInitialData]);
+  }, [user, userRole, rolePerms.isReadOnly, currentWorkspace.id, allCampaigns, leads, fetchInitialData]);
 
   const handleNavigateTab = useCallback(
     (tab: AppTab) => {
       if (canAccessTab(userRole, tab)) {
         setCurrentTab(tab);
       } else {
-        setCurrentTab('campaigns');
+        setCurrentTab(getDefaultTabForRole(userRole));
       }
     },
     [userRole]
   );
 
-  // Automatically redirect to 'campaigns' if active role loses access to currentTab
+  // Automatically redirect to the role's default tab if active role loses access to currentTab
   useEffect(() => {
     if (!canAccessTab(userRole, currentTab)) {
       const timer = setTimeout(() => {
-        setCurrentTab('campaigns');
+        setCurrentTab(getDefaultTabForRole(userRole));
       }, 0);
       return () => clearTimeout(timer);
     }
@@ -251,13 +273,18 @@ function HomeContent() {
     return <LoginGateView />;
   }
 
-  const isWorkspaceSwitching = loadedWorkspaceId !== null && loadedWorkspaceId !== currentWorkspace.id;
-  const isWorkspaceLoading = loading || isWorkspaceSwitching;
+  const isOperationalRole = userRole !== 'super_admin';
+  const isWorkspaceSwitching =
+    isOperationalRole &&
+    Boolean(currentWorkspace.id) &&
+    loadedWorkspaceId !== null &&
+    loadedWorkspaceId !== currentWorkspace.id;
+  const isWorkspaceLoading = isOperationalRole && (loading || isWorkspaceSwitching);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#F4F7F5] text-[#14213D] font-sans">
-      {/* Onboarding Mode Selection Modal (First-time user or on-demand switch) */}
-      <ModeSelectionModal />
+      {/* Onboarding Mode Selection Modal (Operational roles only) */}
+      {isOperationalRole && <ModeSelectionModal />}
 
       {/* Interactive 7-Station Guided Tour Modal */}
       {isTourOpen && (
@@ -329,6 +356,42 @@ function HomeContent() {
           {isWorkspaceLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="w-8 h-8 border-4 border-[#14213D] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : isOperationalRole && !currentWorkspace.id ? (
+            <div className="flex-1 flex items-center justify-center p-8 bg-[#F4F7F5] text-[#14213D]">
+              <div className="max-w-md w-full bg-white border border-[#DCE3DF] shadow-sm rounded-2xl p-6 text-center space-y-4">
+                <div className="w-12 h-12 rounded-xl bg-[#D5ECD4] border border-[#C3DAC3] text-[#14213D] flex items-center justify-center mx-auto font-bold">
+                  <Plus className="w-6 h-6" />
+                </div>
+                <div className="space-y-1.5">
+                  <h2 className="text-base font-bold text-[#14213D]">
+                    {language === 'es'
+                      ? 'Todavía no tienes un Workspace asignado'
+                      : 'No Workspace assigned yet'}
+                  </h2>
+                  <p className="text-xs text-[#5C6F68] leading-relaxed">
+                    {rolePerms.canManageWorkspaces
+                      ? language === 'es'
+                        ? 'Crea el primer Workspace de cliente para tu agencia y comienza a conectar casillas, importar leads y lanzar campañas.'
+                        : 'Create your agency first client workspace to start connecting mailboxes, importing leads, and launching campaigns.'
+                      : language === 'es'
+                        ? 'Solicita al Administrador de tu Agencia que te asigne visibilidad a al menos un Workspace.'
+                        : 'Ask your Agency Admin to grant you visibility to at least one Workspace.'}
+                  </p>
+                </div>
+                {rolePerms.canManageWorkspaces && (
+                  <button
+                    type="button"
+                    onClick={() => openAuthModal('workspace')}
+                    className="inline-flex items-center justify-center gap-2 bg-[#14213D] hover:bg-[#1E3158] text-white font-semibold px-5 py-2.5 rounded-lg text-xs transition cursor-pointer shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>
+                      {language === 'es' ? 'Crear Primer Workspace' : 'Create First Workspace'}
+                    </span>
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <>

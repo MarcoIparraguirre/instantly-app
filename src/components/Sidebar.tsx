@@ -55,6 +55,7 @@ export default function Sidebar({
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const userRole = normalizeRole(user?.role);
+  const isSuperAdmin = userRole === 'super_admin';
 
   useEffect(() => {
     Promise.resolve().then(() => {
@@ -337,23 +338,25 @@ export default function Sidebar({
         </nav>
       </div>
 
-      {/* Footer Area: Copilot, Engine Health & Sign Out */}
+      {/* Footer Area: Copilot (Operational roles), Engine Health & Sign Out */}
       <div className={`${isCollapsed ? 'p-2' : 'p-3'} border-t border-white/10 space-y-2 shrink-0`}>
         {isCollapsed ? (
           <div className="flex flex-col items-center space-y-2">
-            {/* Collapsed Copilot */}
-            <button
-              type="button"
-              onClick={openCopilot}
-              className={`w-10 h-10 rounded-lg flex items-center justify-center border transition cursor-pointer ${
-                isCopilotOpen
-                  ? 'bg-[#D5ECD4] text-[#14213D] border-[#C3DAC3]'
-                  : 'bg-white/10 hover:bg-white/15 text-[#D5ECD4] border-white/15'
-              }`}
-              title={t('nav.copilot')}
-            >
-              <Bot className="w-4 h-4" />
-            </button>
+            {/* Collapsed Copilot (Operational roles only) */}
+            {!isSuperAdmin && (
+              <button
+                type="button"
+                onClick={openCopilot}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center border transition cursor-pointer ${
+                  isCopilotOpen
+                    ? 'bg-[#D5ECD4] text-[#14213D] border-[#C3DAC3]'
+                    : 'bg-white/10 hover:bg-white/15 text-[#D5ECD4] border-white/15'
+                }`}
+                title={t('nav.copilot')}
+              >
+                <Bot className="w-4 h-4" />
+              </button>
+            )}
 
             {/* Pulse dot for health */}
             <div
@@ -377,33 +380,45 @@ export default function Sidebar({
           </div>
         ) : (
           <>
-            <button
-              type="button"
-              onClick={openCopilot}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition border cursor-pointer ${
-                isCopilotOpen
-                  ? 'bg-white/15 text-white border-[#D5ECD4]/40'
-                  : 'bg-white/10 hover:bg-white/15 text-[#D5ECD4] border-white/15'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Bot className="w-4 h-4 text-[#D5ECD4]" />
-                <span>{t('nav.copilot')}</span>
-              </div>
-              <span className="text-[10px] bg-[#D5ECD4] text-[#14213D] border border-[#C3DAC3] px-1.5 py-0.5 rounded-lg font-mono font-bold">
-                AI
-              </span>
-            </button>
+            {!isSuperAdmin && (
+              <button
+                type="button"
+                onClick={openCopilot}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition border cursor-pointer ${
+                  isCopilotOpen
+                    ? 'bg-white/15 text-white border-[#D5ECD4]/40'
+                    : 'bg-white/10 hover:bg-white/15 text-[#D5ECD4] border-white/15'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Bot className="w-4 h-4 text-[#D5ECD4]" />
+                  <span>{t('nav.copilot')}</span>
+                </div>
+                <span className="text-[10px] bg-[#D5ECD4] text-[#14213D] border border-[#C3DAC3] px-1.5 py-0.5 rounded-lg font-mono font-bold">
+                  AI
+                </span>
+              </button>
+            )}
 
             {/* System Health Badge */}
             <div className="bg-white/5 rounded-xl p-2.5 border border-white/10 text-left">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#D5ECD4] animate-pulse" />
                 <span className="text-[11px] font-semibold text-white">
-                  {t('common.engineActive')}
+                  {isSuperAdmin
+                    ? language === 'es'
+                      ? 'Backoffice SaaS Activo'
+                      : 'SaaS Backoffice Active'
+                    : t('common.engineActive')}
                 </span>
               </div>
-              <p className="text-[10px] text-[#A1B0AB] mt-0.5">{t('common.engineDesc')}</p>
+              <p className="text-[10px] text-[#A1B0AB] mt-0.5">
+                {isSuperAdmin
+                  ? language === 'es'
+                    ? 'Control de agencias y usuarios'
+                    : 'Agencies & user provisioning'
+                  : t('common.engineDesc')}
+              </p>
             </div>
 
             {/* Bottom Sign Out */}

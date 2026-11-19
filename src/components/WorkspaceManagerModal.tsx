@@ -135,17 +135,6 @@ export default function WorkspaceManagerModal({
       return;
     }
 
-    if (wsId === 'ws-primary') {
-      showToast({
-        title: isEs ? 'Espacio protegido' : 'Protected workspace',
-        description: isEs
-          ? 'No se puede eliminar el espacio de trabajo principal.'
-          : 'The primary workspace cannot be deleted.',
-        variant: 'warning',
-      });
-      return;
-    }
-
     const target = workspaces.find((w) => w.id === wsId);
     const confirmed = await confirm({
       title: isEs ? 'Eliminar espacio de trabajo' : 'Delete workspace',
@@ -215,7 +204,14 @@ export default function WorkspaceManagerModal({
 
         {/* Workspace List */}
         <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
-          {workspaces.map((ws) => {
+          {workspaces.length === 0 ? (
+            <div className="p-4 rounded-xl border border-dashed border-[#A1B0AB] bg-[#F4F7F5] text-center text-xs text-[#5C6F68]">
+              {isEs
+                ? 'Todavía no tienes espacios de trabajo. Crea el primero abajo.'
+                : 'No workspaces yet. Create the first one below.'}
+            </div>
+          ) : (
+            workspaces.map((ws) => {
             const isActive = currentWorkspace.id === ws.id;
             const isEditing = editingId === ws.id;
             const planCfg = SAAS_PLANS[normalizePlan(ws.plan)];
@@ -327,7 +323,7 @@ export default function WorkspaceManagerModal({
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
 
-                  {workspaces.length > 1 && ws.id !== 'ws-primary' && (
+                  {workspaces.length > 1 && (
                     <button
                       type="button"
                       onClick={() => handleDelete(ws.id)}
@@ -340,7 +336,8 @@ export default function WorkspaceManagerModal({
                 </div>
               </div>
             );
-          })}
+          })
+          )}
         </div>
 
         {/* Create New Workspace Accordion */}
