@@ -281,7 +281,7 @@ function UniboxViewContent({
     if (isBounce) {
       return {
         label: language === 'es' ? 'Rebote (No entregado)' : 'Bounced',
-        color: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+        color: 'bg-rose-50 text-rose-700 border-rose-200',
         isAlert: true
       };
     }
@@ -289,37 +289,37 @@ function UniboxViewContent({
       case 'interested':
         return {
           label: t('unibox.filterInterested'),
-          color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+          color: 'bg-[#D5ECD4] text-[#14213D] border-[#C3DAC3]',
           isAlert: false
         };
       case 'meeting-booked':
         return {
           label: t('unibox.filterMeeting'),
-          color: 'bg-sky-500/10 text-sky-400 border-sky-500/30',
+          color: 'bg-sky-50 text-sky-800 border-sky-200',
           isAlert: false
         };
       case 'not-interested':
         return {
           label: t('unibox.filterNotInterested'),
-          color: 'bg-[#171B26] text-[#949EB0] border-[#232938]',
+          color: 'bg-[#EEF3F0] text-[#5C6F68] border-[#DCE3DF]',
           isAlert: false
         };
       case 'out-of-office':
         return {
           label: t('unibox.filterOoo'),
-          color: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+          color: 'bg-amber-50 text-amber-800 border-amber-200',
           isAlert: false
         };
       case 'wrong-person':
         return {
           label: language === 'es' ? 'Rebote / Casilla Inválida' : 'Bounce / Wrong Address',
-          color: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+          color: 'bg-rose-50 text-rose-700 border-rose-200',
           isAlert: true
         };
       default:
         return {
           label: sentiment,
-          color: 'bg-[#171B26] text-[#949EB0] border-[#232938]',
+          color: 'bg-[#EEF3F0] text-[#5C6F68] border-[#DCE3DF]',
           isAlert: false
         };
     }
@@ -369,20 +369,20 @@ function UniboxViewContent({
   };
 
   return (
-    <div className="flex-1 flex min-h-0 overflow-hidden bg-[#0A0C10] text-[#F3F5F8]">
+    <div className="flex-1 flex min-h-0 overflow-hidden bg-[#F4F7F5] text-[#14213D]">
       {/* COLUMN 1: Inbox Filters & AI Sentiments */}
-      <div className="w-64 bg-[#11141C] border-r border-[#1D2330] p-4 space-y-4 shrink-0 overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-[#1D2330] pb-3">
+      <div className="w-64 bg-white border-r border-[#DCE3DF] p-4 space-y-4 shrink-0 overflow-y-auto">
+        <div className="flex items-center justify-between border-b border-[#DCE3DF] pb-3">
           <div className="flex items-center gap-2">
-            <Inbox className="w-4 h-4 text-[#E85D2A]" />
-            <h2 className="text-xs font-bold text-[#F3F5F8] uppercase tracking-wider">Unibox</h2>
+            <Inbox className="w-4 h-4 text-[#14213D]" />
+            <h2 className="text-xs font-bold text-[#14213D] uppercase tracking-wider">Unibox</h2>
           </div>
 
           <button
             type="button"
             onClick={handleSyncInbox}
             disabled={isSyncingImap}
-            className="flex items-center gap-1.5 text-[11px] font-semibold bg-[#171B26] hover:bg-[#1D2330] text-[#F3F5F8] border border-[#232938] hover:border-[#E85D2A]/50 px-2.5 py-1 rounded-lg transition cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 text-[11px] font-semibold bg-[#EEF3F0] hover:bg-[#D5ECD4] text-[#14213D] border border-[#DCE3DF] hover:border-[#C3DAC3] px-2.5 py-1 rounded-lg transition cursor-pointer disabled:opacity-50"
             title={
               isReadOnly
                 ? language === 'es'
@@ -393,14 +393,14 @@ function UniboxViewContent({
                 : 'Sync replies & bounces from Gmail'
             }
           >
-            <RefreshCw className={`w-3 h-3 text-[#E85D2A] ${isSyncingImap ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3 h-3 text-[#14213D] ${isSyncingImap ? 'animate-spin' : ''}`} />
             <span>{language === 'es' ? 'Sincronizar' : 'Sync'}</span>
           </button>
         </div>
 
         {syncNotice && (
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-[10px] text-emerald-300 leading-relaxed flex items-start gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="p-2.5 rounded-xl bg-[#D5ECD4] border border-[#C3DAC3] text-[10px] text-[#14213D] leading-relaxed flex items-start gap-1.5 font-medium">
+            <CheckCircle2 className="w-3.5 h-3.5 text-[#14213D] shrink-0 mt-0.5" />
             <span>{syncNotice}</span>
           </div>
         )}
@@ -411,16 +411,16 @@ function UniboxViewContent({
             onClick={() => setActiveFilter('all')}
             className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition cursor-pointer ${
               activeFilter === 'all'
-                ? 'bg-[#E85D2A] text-white'
-                : 'text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26]'
+                ? 'bg-[#14213D] text-white'
+                : 'text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0]'
             }`}
           >
             <span>{t('unibox.filterAll')}</span>
             <span
               className={`text-[10px] px-1.5 py-0.5 rounded-lg font-mono tabular-nums ${
                 activeFilter === 'all'
-                  ? 'bg-black/25 text-white'
-                  : 'bg-[#0A0C10] text-[#949EB0] border border-[#1D2330]'
+                  ? 'bg-white/15 text-white'
+                  : 'bg-[#EEF3F0] text-[#5C6F68] border border-[#DCE3DF]'
               }`}
             >
               {threads.length}
@@ -432,16 +432,16 @@ function UniboxViewContent({
             onClick={() => setActiveFilter('unread')}
             className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition cursor-pointer ${
               activeFilter === 'unread'
-                ? 'bg-[#E85D2A] text-white'
-                : 'text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26]'
+                ? 'bg-[#14213D] text-white'
+                : 'text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0]'
             }`}
           >
             <span>{t('unibox.filterUnread')}</span>
             <span
               className={`text-[10px] px-1.5 py-0.5 rounded-lg font-bold font-mono tabular-nums border ${
                 activeFilter === 'unread'
-                  ? 'bg-black/25 text-white border-white/20'
-                  : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                  ? 'bg-white/15 text-white border-white/20'
+                  : 'bg-[#D5ECD4] text-[#14213D] border-[#C3DAC3]'
               }`}
             >
               {threads.filter((th) => th.unread).length}
@@ -450,9 +450,9 @@ function UniboxViewContent({
         </div>
 
         {/* AI Sentiment & Bounce Filters */}
-        <div className="pt-3 border-t border-[#1D2330] space-y-1">
-          <div className="px-3 py-1 text-[10px] font-semibold text-[#949EB0] uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-3 h-3 text-[#E85D2A]" />
+        <div className="pt-3 border-t border-[#DCE3DF] space-y-1">
+          <div className="px-3 py-1 text-[10px] font-semibold text-[#5C6F68] uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-3 h-3 text-[#14213D]" />
             <span>{language === 'es' ? 'Clasificación y Rebotes' : 'Sentiment & Bounces'}</span>
           </div>
 
@@ -461,31 +461,31 @@ function UniboxViewContent({
               {
                 id: 'interested',
                 label: t('unibox.filterInterested'),
-                color: 'text-emerald-400',
+                color: 'text-emerald-700',
                 isBounce: false
               },
               {
                 id: 'meeting-booked',
                 label: t('unibox.filterMeeting'),
-                color: 'text-sky-400',
+                color: 'text-sky-700',
                 isBounce: false
               },
               {
                 id: 'not-interested',
                 label: t('unibox.filterNotInterested'),
-                color: 'text-[#949EB0]',
+                color: 'text-[#5C6F68]',
                 isBounce: false
               },
               {
                 id: 'out-of-office',
                 label: t('unibox.filterOoo'),
-                color: 'text-amber-400',
+                color: 'text-amber-700',
                 isBounce: false
               },
               {
                 id: 'wrong-person',
                 label: language === 'es' ? 'Rebotados (Bounces)' : 'Bounced Emails',
-                color: 'text-rose-400',
+                color: 'text-rose-700',
                 isBounce: true
               }
             ] as const
@@ -499,15 +499,21 @@ function UniboxViewContent({
                 onClick={() => setActiveFilter(tag.id)}
                 className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition cursor-pointer ${
                   active
-                    ? 'bg-[#171B26] text-[#F3F5F8] border border-[#232938]'
-                    : 'text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26]/70'
+                    ? 'bg-[#D5ECD4] text-[#14213D] border border-[#C3DAC3]'
+                    : 'text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0]'
                 }`}
               >
-                <span className={`flex items-center gap-1.5 truncate ${active ? 'text-[#F3F5F8]' : tag.color}`}>
-                  {tag.isBounce && <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />}
+                <span className={`flex items-center gap-1.5 truncate ${active ? 'text-[#14213D]' : tag.color}`}>
+                  {tag.isBounce && <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />}
                   <span className="truncate">{tag.label}</span>
                 </span>
-                <span className="text-[10px] bg-[#0A0C10] border border-[#1D2330] px-1.5 py-0.5 rounded-lg font-mono tabular-nums text-[#949EB0] shrink-0">
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded-lg font-mono tabular-nums shrink-0 border ${
+                    active
+                      ? 'bg-white text-[#14213D] border-[#C3DAC3]'
+                      : 'bg-[#EEF3F0] border-[#DCE3DF] text-[#5C6F68]'
+                  }`}
+                >
                   {count}
                 </span>
               </button>
@@ -517,19 +523,19 @@ function UniboxViewContent({
       </div>
 
       {/* COLUMN 2: Thread Cards List */}
-      <div className="w-80 bg-[#0A0C10] border-r border-[#1D2330] flex flex-col shrink-0 overflow-hidden">
-        <div className="h-14 px-4 border-b border-[#1D2330] bg-[#11141C] flex items-center justify-between shrink-0">
-          <div className="text-xs font-bold text-[#F3F5F8] flex items-center gap-2">
+      <div className="w-80 bg-[#F4F7F5] border-r border-[#DCE3DF] flex flex-col shrink-0 overflow-hidden">
+        <div className="h-14 px-4 border-b border-[#DCE3DF] bg-white flex items-center justify-between shrink-0">
+          <div className="text-xs font-bold text-[#14213D] flex items-center gap-2">
             <span>{t('unibox.threadListTitle')}</span>
-            <span className="text-[10px] bg-[#171B26] border border-[#232938] text-[#949EB0] px-2 py-0.5 rounded-lg font-mono tabular-nums">
+            <span className="text-[10px] bg-[#EEF3F0] border border-[#DCE3DF] text-[#5C6F68] px-2 py-0.5 rounded-lg font-mono tabular-nums">
               {filteredThreads.length}
             </span>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-[#1D2330]">
+        <div className="flex-1 overflow-y-auto divide-y divide-[#DCE3DF]">
           {filteredThreads.length === 0 ? (
-            <div className="p-6 text-center text-xs text-[#949EB0]">
+            <div className="p-6 text-center text-xs text-[#5C6F68]">
               {isSyncingImap
                 ? language === 'es'
                   ? 'Buscando respuestas y rebotes en Gmail...'
@@ -554,15 +560,15 @@ function UniboxViewContent({
                   }}
                   className={`p-4 cursor-pointer transition space-y-1.5 ${
                     isSelected
-                      ? 'bg-[#E85D2A]/10 border-l-2 border-[#E85D2A]'
-                      : 'hover:bg-[#11141C]'
+                      ? 'bg-[#D5ECD4]/55 border-l-4 border-[#14213D]'
+                      : 'bg-white hover:bg-[#EEF3F0]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-xs text-[#F3F5F8] truncate max-w-[170px]">
+                    <span className="font-semibold text-xs text-[#14213D] truncate max-w-[170px]">
                       {thread.leadName}
                     </span>
-                    <span className="text-[10px] text-[#949EB0] font-mono tabular-nums shrink-0">
+                    <span className="text-[10px] text-[#5C6F68] font-mono tabular-nums shrink-0">
                       {new Date(thread.lastActivityAt).toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit'
@@ -570,9 +576,9 @@ function UniboxViewContent({
                     </span>
                   </div>
 
-                  <div className="text-[11px] text-[#949EB0] truncate">{thread.companyName}</div>
+                  <div className="text-[11px] text-[#5C6F68] truncate">{thread.companyName}</div>
 
-                  <p className="text-[11px] text-[#F3F5F8]/80 line-clamp-2 leading-relaxed">
+                  <p className="text-[11px] text-[#14213D]/80 line-clamp-2 leading-relaxed">
                     {thread.lastMessageSnippet}
                   </p>
 
@@ -585,7 +591,7 @@ function UniboxViewContent({
                     </span>
 
                     {thread.unread && (
-                      <span className="w-2 h-2 rounded-full bg-[#E85D2A]" />
+                      <span className="w-2 h-2 rounded-full bg-[#14213D]" />
                     )}
                   </div>
                 </div>
@@ -599,18 +605,18 @@ function UniboxViewContent({
       {selectedThread ? (
         <div className="flex-1 flex min-w-0 overflow-hidden">
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <div className="h-14 px-6 border-b border-[#1D2330] flex items-center justify-between bg-[#11141C] shrink-0">
+            <div className="h-14 px-6 border-b border-[#DCE3DF] flex items-center justify-between bg-white shrink-0">
               <div className="min-w-0">
-                <h3 className="text-xs font-bold text-[#F3F5F8] flex items-center gap-2 truncate">
+                <h3 className="text-xs font-bold text-[#14213D] flex items-center gap-2 truncate">
                   <span>{selectedThread.leadName}</span>
-                  <span className="text-[#949EB0] font-normal font-mono">
+                  <span className="text-[#5C6F68] font-normal font-mono">
                     ({selectedThread.leadEmail})
                   </span>
                 </h3>
-                <div className="text-[10px] text-[#949EB0] flex items-center gap-2 mt-0.5">
+                <div className="text-[10px] text-[#5C6F68] flex items-center gap-2 mt-0.5">
                   <span>
                     {t('unibox.originalMailbox')}{' '}
-                    <span className="text-sky-400 font-mono">
+                    <span className="text-[#14213D] font-semibold font-mono">
                       {selectedThread.messages[0]?.recipient}
                     </span>
                   </span>
@@ -621,31 +627,31 @@ function UniboxViewContent({
                 <button
                   type="button"
                   onClick={() => onPromoteToCrm(selectedThread)}
-                  className="flex items-center gap-1.5 bg-[#171B26] hover:bg-[#1D2330] text-[#F3F5F8] border border-[#232938] hover:border-[#E85D2A]/50 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer shrink-0"
+                  className="flex items-center gap-1.5 bg-[#D5ECD4] hover:bg-[#C3DAC3] text-[#14213D] border border-[#A1B0AB]/50 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer shrink-0"
                 >
-                  <ArrowUpRight className="w-3.5 h-3.5 text-[#E85D2A]" />
+                  <ArrowUpRight className="w-3.5 h-3.5 text-[#14213D]" />
                   <span>{t('unibox.moveToCrm')}</span>
                 </button>
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#F4F7F5]">
               {selectedThread.messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`p-4 rounded-xl border space-y-2 text-xs leading-relaxed max-w-2xl ${
+                  className={`p-4 rounded-xl border space-y-2 text-xs leading-relaxed max-w-2xl shadow-sm ${
                     selectedThread.id.startsWith('bounce-')
-                      ? 'bg-rose-950/20 border-rose-500/30 text-rose-100'
+                      ? 'bg-rose-50 border-rose-200 text-rose-900'
                       : msg.isIncoming
-                      ? 'bg-[#11141C] border-[#1D2330] mr-auto text-[#F3F5F8]'
-                      : 'bg-[#171B26] border-[#232938] ml-auto text-[#F3F5F8]'
+                      ? 'bg-white border-[#DCE3DF] mr-auto text-[#14213D]'
+                      : 'bg-[#EEF3F0] border-[#C3DAC3] ml-auto text-[#14213D]'
                   }`}
                 >
-                  <div className="flex items-center justify-between border-b border-[#1D2330] pb-2 gap-4">
-                    <span className="font-semibold text-[#F3F5F8]">
+                  <div className="flex items-center justify-between border-b border-[#DCE3DF] pb-2 gap-4">
+                    <span className="font-semibold text-[#14213D]">
                       {msg.isIncoming ? selectedThread.leadName : profile.name}
                     </span>
-                    <span className="text-[10px] text-[#949EB0] font-mono tabular-nums">
+                    <span className="text-[10px] text-[#5C6F68] font-mono tabular-nums">
                       {new Date(msg.timestamp).toLocaleString([], {
                         dateStyle: 'short',
                         timeStyle: 'short'
@@ -653,20 +659,20 @@ function UniboxViewContent({
                     </span>
                   </div>
 
-                  <div className="text-[11px] font-semibold text-[#949EB0]">
+                  <div className="text-[11px] font-semibold text-[#5C6F68]">
                     Subject: {msg.subject}
                   </div>
 
-                  <p className="whitespace-pre-wrap text-[#F3F5F8]/90">{msg.body}</p>
+                  <p className="whitespace-pre-wrap text-[#14213D]/90">{msg.body}</p>
                 </div>
               ))}
             </div>
 
             {!selectedThread.id.startsWith('bounce-') && (
-              <div className="p-4 border-t border-[#1D2330] bg-[#11141C] space-y-2.5 shrink-0">
+              <div className="p-4 border-t border-[#DCE3DF] bg-white space-y-2.5 shrink-0">
                 {isReadOnly && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#171B26] border border-[#232938] text-[11px] text-[#949EB0]">
-                    <Eye className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-800">
+                    <Eye className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                     <span>
                       {language === 'es'
                         ? 'Modo Solo Lectura: tu agencia gestiona las respuestas activas.'
@@ -681,12 +687,12 @@ function UniboxViewContent({
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder={t('unibox.replyBoxPlaceholder')}
-                  className="w-full bg-[#171B26] border border-[#232938] rounded-lg p-3 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none focus:border-[#E85D2A] disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  className="w-full bg-[#F4F7F5] border border-[#DCE3DF] rounded-lg p-3 text-xs text-[#14213D] placeholder-[#5C6F68]/60 focus:outline-none focus:border-[#14213D] disabled:opacity-50 disabled:cursor-not-allowed transition"
                 />
 
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] text-[#949EB0]">
+                    <span className="text-[10px] text-[#5C6F68]">
                       {language === 'es'
                         ? 'Las respuestas se envían desde la cuenta remitente original.'
                         : 'Replies are dispatched from original mailbox.'}
@@ -695,10 +701,10 @@ function UniboxViewContent({
                       type="button"
                       onClick={handleSuggestAiReply}
                       disabled={isReadOnly || isGeneratingSuggestion}
-                      className="flex items-center gap-1.5 text-[11px] text-[#F3F5F8] bg-[#171B26] hover:bg-[#1D2330] disabled:opacity-40 disabled:cursor-not-allowed border border-[#232938] hover:border-[#E85D2A]/50 px-2.5 py-1.5 rounded-lg transition cursor-pointer"
+                      className="flex items-center gap-1.5 text-[11px] font-semibold text-[#14213D] bg-[#D5ECD4] hover:bg-[#C3DAC3] disabled:opacity-40 disabled:cursor-not-allowed border border-[#A1B0AB]/50 px-2.5 py-1.5 rounded-lg transition cursor-pointer"
                     >
                       <Sparkles
-                        className={`w-3 h-3 text-[#E85D2A] ${isGeneratingSuggestion ? 'animate-spin' : ''}`}
+                        className={`w-3 h-3 text-[#14213D] ${isGeneratingSuggestion ? 'animate-spin' : ''}`}
                       />
                       <span>
                         {isGeneratingSuggestion
@@ -716,7 +722,7 @@ function UniboxViewContent({
                     type="button"
                     onClick={handleSendReply}
                     disabled={isReadOnly || isSendingReply || !replyText.trim()}
-                    className="bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold px-4 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
+                    className="bg-[#14213D] hover:bg-[#1E3158] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold px-4 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-sm"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>{t('unibox.sendReply')}</span>
@@ -727,27 +733,27 @@ function UniboxViewContent({
           </div>
 
           {/* Right Context Panel */}
-          <div className="w-64 bg-[#11141C] border-l border-[#1D2330] p-5 space-y-4 shrink-0 text-xs">
-            <div className="flex items-center gap-2 border-b border-[#1D2330] pb-3">
-              <User className="w-4 h-4 text-[#E85D2A]" />
-              <h4 className="font-bold text-[#F3F5F8] uppercase tracking-wider text-[11px]">
+          <div className="w-64 bg-white border-l border-[#DCE3DF] p-5 space-y-4 shrink-0 text-xs">
+            <div className="flex items-center gap-2 border-b border-[#DCE3DF] pb-3">
+              <User className="w-4 h-4 text-[#14213D]" />
+              <h4 className="font-bold text-[#14213D] uppercase tracking-wider text-[11px]">
                 {t('unibox.leadProfileTitle')}
               </h4>
             </div>
 
             <div className="space-y-3">
               <div>
-                <span className="text-[10px] text-[#949EB0] uppercase">
+                <span className="text-[10px] text-[#5C6F68] uppercase">
                   {t('unibox.leadCompany')}
                 </span>
-                <div className="font-semibold text-[#F3F5F8] flex items-center gap-1.5 mt-0.5">
-                  <Building2 className="w-3.5 h-3.5 text-[#949EB0]" />
+                <div className="font-semibold text-[#14213D] flex items-center gap-1.5 mt-0.5">
+                  <Building2 className="w-3.5 h-3.5 text-[#5C6F68]" />
                   {selectedThread.companyName}
                 </div>
               </div>
 
               <div>
-                <span className="text-[10px] text-[#949EB0] uppercase">
+                <span className="text-[10px] text-[#5C6F68] uppercase">
                   {t('unibox.markedAsSentiment')}
                 </span>
                 <div className="mt-1">
@@ -771,14 +777,14 @@ function UniboxViewContent({
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#0A0C10]">
-          <div className="w-16 h-16 rounded-xl bg-[#11141C] border border-[#232938] flex items-center justify-center mb-4 text-[#E85D2A]">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#F4F7F5]">
+          <div className="w-16 h-16 rounded-xl bg-white border border-[#DCE3DF] shadow-sm flex items-center justify-center mb-4 text-[#14213D]">
             <Inbox className="w-8 h-8" />
           </div>
-          <h3 className="text-base font-bold text-[#F3F5F8] mb-2">
+          <h3 className="text-base font-bold text-[#14213D] mb-2">
             {language === 'es' ? 'Bandeja Unibox Sincronizada' : 'Unibox is Synced'}
           </h3>
-          <p className="text-xs text-[#949EB0] max-w-md leading-relaxed mb-4">
+          <p className="text-xs text-[#5C6F68] max-w-md leading-relaxed mb-4">
             {language === 'es'
               ? 'Aquí aparecerán automáticamente las respuestas que tus leads envíen a tu correo y los avisos de rebote (Mailer-Daemon) leídos directamente desde tu Gmail vía IMAP.'
               : 'All replies from your leads and bounce notifications (Mailer-Daemon) read from your Gmail via IMAP appear here.'}
@@ -787,7 +793,7 @@ function UniboxViewContent({
             type="button"
             onClick={handleSyncInbox}
             disabled={isSyncingImap}
-            className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-50 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition cursor-pointer"
+            className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] disabled:opacity-50 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition cursor-pointer shadow-sm"
           >
             <RefreshCw className={`w-4 h-4 ${isSyncingImap ? 'animate-spin' : ''}`} />
             <span>

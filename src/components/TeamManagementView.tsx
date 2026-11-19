@@ -114,13 +114,13 @@ function TeamManagementContent({
 
   if (!canManageTeam) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8 bg-[#0A0C10]">
-        <div className="max-w-md w-full bg-[#11141C] border border-[#232938] rounded-xl p-6 text-center space-y-3">
-          <Lock className="w-10 h-10 text-amber-400 mx-auto" />
-          <h2 className="text-base font-bold text-[#F3F5F8]">
+      <div className="flex-1 flex items-center justify-center p-8 bg-[#F4F7F5] text-[#14213D]">
+        <div className="max-w-md w-full bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-6 text-center space-y-3">
+          <Lock className="w-10 h-10 text-amber-600 mx-auto" />
+          <h2 className="text-base font-bold text-[#14213D]">
             {isEs ? 'Gestión de Equipo Reservada' : 'Team Management Restricted'}
           </h2>
-          <p className="text-xs text-[#949EB0]">
+          <p className="text-xs text-[#5C6F68]">
             {isEs
               ? 'Solo el Administrador de la Agencia puede invitar usuarios o cambiar permisos.'
               : 'Only Agency Admins can invite team members or change role permissions.'}
@@ -377,8 +377,8 @@ function TeamManagementContent({
     {
       role: 'admin' as UserRole,
       icon: Building2,
-      iconClass: 'text-[#E85D2A]',
-      badgeClass: 'border-[#E85D2A]/30 bg-[#E85D2A]/10 text-[#E85D2A]',
+      iconClass: 'text-[#14213D]',
+      badgeClass: 'border-[#C3DAC3] bg-[#D5ECD4] text-[#14213D]',
       title: isEs ? 'Administrador de Agencia (admin)' : 'Agency Admin (admin)',
       desc: isEs
         ? 'Control total de su agencia: crea Workspaces para clientes, invita usuarios en Mi Equipo y administra Facturación.'
@@ -387,8 +387,8 @@ function TeamManagementContent({
     {
       role: 'campaign_manager' as UserRole,
       icon: UserCog,
-      iconClass: 'text-emerald-400',
-      badgeClass: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
+      iconClass: 'text-[#14213D]',
+      badgeClass: 'border-[#A1B0AB]/60 bg-[#EEF3F0] text-[#14213D]',
       title: isEs ? 'Gestor de Campañas / SDR (campaign_manager)' : 'Campaign Manager / SDR',
       desc: isEs
         ? 'Operador diario: conecta casillas, sube leads, redacta campañas y responde en Unibox. No ve Facturación ni Mi Equipo.'
@@ -397,8 +397,8 @@ function TeamManagementContent({
     {
       role: 'viewer' as UserRole,
       icon: Eye,
-      iconClass: 'text-[#949EB0]',
-      badgeClass: 'border-[#232938] bg-[#171B26] text-[#949EB0]',
+      iconClass: 'text-[#5C6F68]',
+      badgeClass: 'border-[#DCE3DF] bg-[#F4F7F5] text-[#5C6F68]',
       title: isEs ? 'Cliente Final / Solo Lectura (viewer)' : 'End Client / Read-Only (viewer)',
       desc: isEs
         ? 'Acceso transparente para tu cliente: solo visualiza campañas, Unibox, CRM y analíticas sin poder editar ni romper configuraciones.'
@@ -407,23 +407,23 @@ function TeamManagementContent({
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#0A0C10]">
+    <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#F4F7F5] text-[#14213D]">
       {/* Header */}
-      <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start gap-4">
-          <div className="w-11 h-11 rounded-xl bg-[#171B26] border border-[#232938] flex items-center justify-center text-[#E85D2A] shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-[#D5ECD4] border border-[#C3DAC3] flex items-center justify-center text-[#14213D] shrink-0">
             <Users className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl font-extrabold text-[#F3F5F8] tracking-tight">
+              <h1 className="text-xl font-extrabold text-[#14213D] tracking-tight">
                 {isEs ? 'Mi Equipo y Permisos por Rol' : 'My Team & Role Permissions'}
               </h1>
-              <span className="text-[11px] font-mono tabular-nums px-2.5 py-0.5 rounded-lg bg-[#171B26] text-[#F3F5F8] border border-[#232938]">
+              <span className="text-[11px] font-mono tabular-nums px-2.5 py-0.5 rounded-lg bg-[#EEF3F0] text-[#14213D] border border-[#DCE3DF]">
                 Workspace: {currentWorkspace.name}
               </span>
             </div>
-            <p className="text-xs text-[#949EB0] mt-1 max-w-2xl leading-relaxed">
+            <p className="text-xs text-[#5C6F68] mt-1 max-w-2xl leading-relaxed">
               {isEs
                 ? 'Administra usuarios por rol y controla exactamente qué Workspaces de clientes puede visualizar cada miembro de tu agencia.'
                 : 'Manage workspace users by role and control exactly which client Workspaces each agency member can access.'}
@@ -439,15 +439,15 @@ function TeamManagementContent({
           return (
             <div
               key={card.role}
-              className="rounded-xl border border-[#1D2330] bg-[#11141C] p-4 space-y-2.5"
+              className="rounded-xl border border-[#DCE3DF] bg-white shadow-sm p-4 space-y-2.5"
             >
-              <div className="flex items-center gap-2 font-bold text-xs text-[#F3F5F8]">
+              <div className="flex items-center gap-2 font-bold text-xs text-[#14213D]">
                 <span className={`w-6 h-6 rounded-lg border flex items-center justify-center shrink-0 ${card.badgeClass}`}>
                   <Icon className={`w-3.5 h-3.5 ${card.iconClass}`} />
                 </span>
                 <span>{card.title}</span>
               </div>
-              <p className="text-[11px] text-[#949EB0] leading-relaxed">{card.desc}</p>
+              <p className="text-[11px] text-[#5C6F68] leading-relaxed">{card.desc}</p>
             </div>
           );
         })}
@@ -456,19 +456,19 @@ function TeamManagementContent({
       {/* Add User Form */}
       <form
         onSubmit={handleAddMember}
-        className="bg-[#11141C] border border-[#1D2330] rounded-xl p-6 space-y-5"
+        className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-6 space-y-5"
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h2 className="text-sm font-bold text-[#F3F5F8] flex items-center gap-2">
-              <UserPlus className="w-4 h-4 text-[#E85D2A]" />
+            <h2 className="text-sm font-bold text-[#14213D] flex items-center gap-2">
+              <UserPlus className="w-4 h-4 text-[#14213D]" />
               <span>
                 {isEs
                   ? 'Dar de Alta Usuario y Visibilidad de Workspaces'
                   : 'Add User & Workspace Visibility'}
               </span>
             </h2>
-            <p className="text-xs text-[#949EB0] mt-0.5">
+            <p className="text-xs text-[#5C6F68] mt-0.5">
               {isEs
                 ? 'Selecciona uno o varios Workspaces visibles para el nuevo miembro.'
                 : 'Select one or more visible Workspaces for the new member.'}
@@ -479,7 +479,7 @@ function TeamManagementContent({
             <button
               type="button"
               onClick={() => void handleCopyInvite(lastCreatedMember)}
-              className="inline-flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 bg-[#D5ECD4] hover:bg-[#C3DAC3] border border-[#C3DAC3] text-[#14213D] px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer"
             >
               {copiedInviteId === lastCreatedMember.id ? (
                 <Check className="w-3.5 h-3.5" />
@@ -500,15 +500,15 @@ function TeamManagementContent({
         </div>
 
         {errorMsg && (
-          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           <div>
-            <label className="block text-xs font-semibold text-[#949EB0] mb-1.5">
+            <label className="block text-xs font-semibold text-[#5C6F68] mb-1.5">
               {isEs ? 'Nombre Completo *' : 'Full Name *'}
             </label>
             <input
@@ -517,12 +517,12 @@ function TeamManagementContent({
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Ej: Lucas Gómez"
-              className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/50 focus:outline-none transition"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3.5 py-2 text-xs text-[#14213D] placeholder-[#5C6F68]/60 focus:outline-none transition"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#949EB0] mb-1.5">
+            <label className="block text-xs font-semibold text-[#5C6F68] mb-1.5">
               {isEs ? 'Email del Usuario *' : 'User Email *'}
             </label>
             <input
@@ -531,18 +531,18 @@ function TeamManagementContent({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="lucas@tuagencia.com"
-              className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/50 focus:outline-none transition"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3.5 py-2 text-xs font-mono text-[#14213D] placeholder-[#5C6F68]/60 focus:outline-none transition"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#949EB0] mb-1.5">
+            <label className="block text-xs font-semibold text-[#5C6F68] mb-1.5">
               {isEs ? 'Rol y Permisos' : 'Role & Permissions'}
             </label>
             <select
               value={roleId}
               onChange={(e) => setRoleId(e.target.value as UserRole)}
-              className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-xs text-[#F3F5F8] focus:outline-none cursor-pointer transition"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3 py-2 text-xs text-[#14213D] focus:outline-none cursor-pointer transition"
             >
               <option value="campaign_manager">
                 {isEs ? 'Gestor de Campañas (SDR)' : 'Campaign Manager (SDR)'}
@@ -557,7 +557,7 @@ function TeamManagementContent({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#949EB0] mb-1.5">
+            <label className="block text-xs font-semibold text-[#5C6F68] mb-1.5">
               {isEs ? 'Cargo / Empresa' : 'Role / Company'}
             </label>
             <input
@@ -565,19 +565,19 @@ function TeamManagementContent({
               value={company}
               onChange={(e) => setCompany(e.target.value)}
               placeholder="SDR Outbound"
-              className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/50 focus:outline-none transition"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3.5 py-2 text-xs text-[#14213D] placeholder-[#5C6F68]/60 focus:outline-none transition"
             />
           </div>
         </div>
 
         {/* Agency-Assigned Workspace Visibility Chip Selector */}
-        <div className="bg-[#0A0C10] border border-[#1D2330] rounded-xl p-4 space-y-2.5">
+        <div className="bg-[#F4F7F5] border border-[#DCE3DF] rounded-xl p-4 space-y-2.5">
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 text-xs font-semibold text-[#F3F5F8]">
-              <Layers className="w-3.5 h-3.5 text-[#E85D2A]" />
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#14213D]">
+              <Layers className="w-3.5 h-3.5 text-[#14213D]" />
               <span>{isEs ? 'Visibilidad de Workspaces' : 'Workspace Visibility'}</span>
             </div>
-            <span className="text-[11px] font-mono tabular-nums text-[#949EB0]">
+            <span className="text-[11px] font-mono tabular-nums text-[#5C6F68]">
               {assignedWorkspaceIds.length}/{availableWorkspaces.length}{' '}
               {isEs ? 'seleccionados' : 'selected'}
             </span>
@@ -594,22 +594,22 @@ function TeamManagementContent({
                   aria-pressed={selected}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition cursor-pointer ${
                     selected
-                      ? 'bg-[#E85D2A]/15 border-[#E85D2A]/60 text-[#F3F5F8]'
-                      : 'bg-[#171B26] border-[#232938] text-[#949EB0] hover:text-[#F3F5F8] hover:border-[#343D52]'
+                      ? 'bg-[#D5ECD4] border-[#14213D] text-[#14213D]'
+                      : 'bg-white border-[#DCE3DF] text-[#5C6F68] hover:text-[#14213D] hover:border-[#A1B0AB]'
                   }`}
                 >
                   <span
                     className={`w-3.5 h-3.5 rounded flex items-center justify-center border ${
                       selected
-                        ? 'bg-[#E85D2A] border-[#E85D2A] text-white'
-                        : 'bg-[#0A0C10] border-[#232938]'
+                        ? 'bg-[#14213D] border-[#14213D] text-white'
+                        : 'bg-[#F4F7F5] border-[#A1B0AB]'
                     }`}
                   >
                     {selected && <Check className="w-2.5 h-2.5" />}
                   </span>
                   <span>{ws.name}</span>
                   {ws.clientName && ws.clientName !== ws.name && (
-                    <span className="text-[10px] text-[#949EB0]">({ws.clientName})</span>
+                    <span className="text-[10px] text-[#5C6F68]">({ws.clientName})</span>
                   )}
                 </button>
               );
@@ -620,7 +620,7 @@ function TeamManagementContent({
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white font-semibold px-5 py-2.5 rounded-lg text-xs transition cursor-pointer disabled:opacity-50"
+          className="inline-flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] text-white font-semibold px-5 py-2.5 rounded-lg text-xs transition cursor-pointer disabled:opacity-50 shadow-sm"
         >
           <UserPlus className="w-3.5 h-3.5" />
           <span>
@@ -636,25 +636,25 @@ function TeamManagementContent({
       </form>
 
       {/* Members Table */}
-      <div className="bg-[#11141C] border border-[#1D2330] rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#1D2330] flex items-center justify-between">
+      <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#DCE3DF] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-[#E85D2A]" />
-            <h2 className="text-sm font-bold text-[#F3F5F8]">
+            <ShieldCheck className="w-4 h-4 text-[#14213D]" />
+            <h2 className="text-sm font-bold text-[#14213D]">
               {isEs ? 'Usuarios Activos del Workspace' : 'Workspace Team Members'}
             </h2>
           </div>
-          <span className="text-xs font-mono tabular-nums text-[#949EB0]">
+          <span className="text-xs font-mono tabular-nums text-[#5C6F68]">
             {members.length} {isEs ? 'miembros' : 'members'}
           </span>
         </div>
 
         {loading ? (
-          <div className="p-8 text-center text-xs text-[#949EB0]">
+          <div className="p-8 text-center text-xs text-[#5C6F68]">
             {isEs ? 'Cargando miembros...' : 'Loading team members...'}
           </div>
         ) : members.length === 0 ? (
-          <div className="p-8 text-center text-xs text-[#949EB0]">
+          <div className="p-8 text-center text-xs text-[#5C6F68]">
             {isEs
               ? 'Todavía no hay usuarios asignados a este Workspace. Crea el primero arriba.'
               : 'No users assigned to this workspace yet. Create the first one above.'}
@@ -663,7 +663,7 @@ function TeamManagementContent({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-[#1D2330] text-[11px] uppercase tracking-wider text-[#949EB0] bg-[#171B26]/60">
+                <tr className="border-b border-[#DCE3DF] text-[11px] uppercase tracking-wider text-[#5C6F68] bg-[#EEF3F0]">
                   <th className="py-3 px-4">{isEs ? 'Usuario' : 'User'}</th>
                   <th className="py-3 px-4">{isEs ? 'Empresa / Cargo' : 'Company'}</th>
                   <th className="py-3 px-4">{isEs ? 'Rol Activo' : 'Active Role'}</th>
@@ -671,7 +671,7 @@ function TeamManagementContent({
                   <th className="py-3 px-4 text-right">{isEs ? 'Acciones' : 'Actions'}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1D2330] text-xs">
+              <tbody className="divide-y divide-[#DCE3DF] text-xs">
                 {members.map((member) => {
                   const isPrimaryFounder = member.id === 'admin-default';
                   const isBusy = updatingId === member.id;
@@ -682,26 +682,26 @@ function TeamManagementContent({
                       : [member.workspaceId];
 
                   return (
-                    <tr key={member.id} className="hover:bg-[#171B26]/50 transition">
+                    <tr key={member.id} className="hover:bg-[#F4F7F5] transition">
                       <td className="py-3.5 px-4">
-                        <div className="font-bold text-[#F3F5F8] flex items-center gap-2">
+                        <div className="font-bold text-[#14213D] flex items-center gap-2">
                           <span>{member.fullName}</span>
                           {user?.email?.toLowerCase() === member.email.toLowerCase() && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-lg bg-[#E85D2A]/15 text-[#E85D2A] border border-[#E85D2A]/30">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-lg bg-[#D5ECD4] text-[#14213D] border border-[#C3DAC3]">
                               {isEs ? 'Tú' : 'You'}
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-[#949EB0] font-mono">{member.email}</div>
+                        <div className="text-[11px] text-[#5C6F68] font-mono">{member.email}</div>
                       </td>
 
-                      <td className="py-3.5 px-4 text-[#949EB0]">
+                      <td className="py-3.5 px-4 text-[#5C6F68]">
                         {member.company || currentWorkspace.clientName || '—'}
                       </td>
 
                       <td className="py-3.5 px-4">
                         {isPrimaryFounder ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                             <ShieldCheck className="w-3.5 h-3.5" />
                             <span>{isEs ? roleCfg.labelEs : roleCfg.labelEn}</span>
                           </span>
@@ -712,7 +712,7 @@ function TeamManagementContent({
                             onChange={(e) =>
                               void handleChangeRole(member, e.target.value as UserRole)
                             }
-                            className="bg-[#171B26] border border-[#232938] hover:border-[#E85D2A] rounded-lg px-2.5 py-1 text-xs text-[#F3F5F8] focus:outline-none cursor-pointer disabled:opacity-50 transition"
+                            className="bg-[#F4F7F5] border border-[#DCE3DF] hover:border-[#14213D] rounded-lg px-2.5 py-1 text-xs text-[#14213D] focus:outline-none cursor-pointer disabled:opacity-50 transition"
                           >
                             {userRole === 'super_admin' && (
                               <option value="super_admin">Super Admin</option>
@@ -733,7 +733,7 @@ function TeamManagementContent({
                       <td className="py-3.5 px-4">
                         {isPrimaryFounder ? (
                           <div className="flex flex-wrap gap-1.5 max-w-[260px]">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
                               <Lock className="w-2.5 h-2.5" />
                               <span>{isEs ? 'Acceso Global' : 'Global Access'}</span>
                             </span>
@@ -759,11 +759,11 @@ function TeamManagementContent({
                                   }
                                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium border transition cursor-pointer disabled:opacity-50 ${
                                     hasAccess
-                                      ? 'bg-[#E85D2A]/15 text-[#F3F5F8] border-[#E85D2A]/50 hover:bg-[#E85D2A]/25'
-                                      : 'bg-[#171B26] text-[#949EB0] border-[#232938] opacity-65 hover:opacity-100 hover:border-[#343D52]'
+                                      ? 'bg-[#D5ECD4] text-[#14213D] border-[#C3DAC3] hover:bg-[#C3DAC3]'
+                                      : 'bg-[#F4F7F5] text-[#5C6F68] border-[#DCE3DF] opacity-75 hover:opacity-100 hover:border-[#A1B0AB] hover:text-[#14213D]'
                                   }`}
                                 >
-                                  {hasAccess && <Check className="w-2.5 h-2.5 text-[#E85D2A]" />}
+                                  {hasAccess && <Check className="w-2.5 h-2.5 text-[#14213D]" />}
                                   <span className="truncate max-w-[120px]">{ws.name}</span>
                                 </button>
                               );
@@ -778,12 +778,12 @@ function TeamManagementContent({
                             type="button"
                             onClick={() => void handleCopyInvite(member)}
                             title={isEs ? 'Copiar invitación' : 'Copy invite'}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] text-[#F3F5F8] transition cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#EEF3F0] hover:bg-[#DCE3DF] border border-[#DCE3DF] text-[#14213D] transition cursor-pointer"
                           >
                             {copiedInviteId === member.id ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <Check className="w-3.5 h-3.5 text-emerald-700" />
                             ) : (
-                              <Copy className="w-3.5 h-3.5 text-[#949EB0]" />
+                              <Copy className="w-3.5 h-3.5 text-[#5C6F68]" />
                             )}
                             <span className="hidden xl:inline">
                               {copiedInviteId === member.id
@@ -816,9 +816,9 @@ function TeamManagementContent({
                                 ? 'Simular cómo ve la app este usuario'
                                 : 'Preview app as this user'
                             }
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#171B26] hover:bg-[#1D2330] text-[#F3F5F8] border border-[#232938] hover:border-[#E85D2A]/60 transition cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#EEF3F0] hover:bg-[#14213D] text-[#14213D] hover:text-white border border-[#DCE3DF] hover:border-[#14213D] transition cursor-pointer group"
                           >
-                            <Play className="w-3 h-3 text-[#E85D2A]" />
+                            <Play className="w-3 h-3 text-[#14213D] group-hover:text-[#D5ECD4]" />
                             <span>{isEs ? 'Simular vista' : 'Preview View'}</span>
                           </button>
 
@@ -828,7 +828,7 @@ function TeamManagementContent({
                               disabled={isBusy}
                               onClick={() => void handleDeleteMember(member)}
                               title={isEs ? 'Quitar usuario' : 'Remove user'}
-                              className="p-1.5 rounded-lg text-[#949EB0] hover:text-rose-400 hover:bg-rose-500/10 transition cursor-pointer disabled:opacity-50"
+                              className="p-1.5 rounded-lg text-[#5C6F68] hover:text-rose-700 hover:bg-rose-50 transition cursor-pointer disabled:opacity-50"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>

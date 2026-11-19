@@ -125,38 +125,38 @@ function LeadFinderViewContent({
       case 'sent':
         return {
           label: language === 'es' ? 'Enviado' : 'Sent',
-          cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+          cls: 'bg-[#D5ECD4] text-[#14213D] border-[#C3DAC3]',
           Icon: CheckCircle2
         };
       case 'opened':
         return {
           label: language === 'es' ? 'Abierto' : 'Opened',
-          cls: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
+          cls: 'bg-sky-50 text-sky-800 border-sky-200',
           Icon: Eye
         };
       case 'replied':
         return {
           label: language === 'es' ? 'Respondido' : 'Replied',
-          cls: 'bg-[#E85D2A]/15 text-[#E85D2A] border-[#E85D2A]/30',
+          cls: 'bg-[#14213D] text-white border-[#14213D]',
           Icon: MessageSquare
         };
       case 'bounced':
         return {
           label: language === 'es' ? 'Rebotado' : 'Bounced',
-          cls: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+          cls: 'bg-rose-50 text-rose-700 border-rose-200',
           Icon: AlertTriangle
         };
       case 'completed':
         return {
           label: language === 'es' ? 'Secuencia Completa' : 'Completed',
-          cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25',
+          cls: 'bg-emerald-50 text-emerald-800 border-emerald-200',
           Icon: Flag
         };
       case 'pending':
       default:
         return {
           label: language === 'es' ? 'Pendiente' : 'Pending',
-          cls: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+          cls: 'bg-amber-50 text-amber-800 border-amber-200',
           Icon: Clock
         };
     }
@@ -263,19 +263,19 @@ function LeadFinderViewContent({
       : campaigns[0]?.id || 'campaign-1';
 
   return (
-    <div className="flex-1 flex min-h-0 overflow-hidden bg-[#0A0C10] text-[#F3F5F8]">
+    <div className="flex-1 flex min-h-0 overflow-hidden bg-[#F4F7F5] text-[#14213D]">
       {/* Left Sidebar: Lead Groups (By Campaign) & Status Filters */}
-      <div className="w-72 bg-[#11141C] border-r border-[#1D2330] p-5 overflow-y-auto space-y-6 shrink-0">
+      <div className="w-72 bg-white border-r border-[#DCE3DF] p-5 overflow-y-auto space-y-6 shrink-0">
         {/* Search Box */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-[#E85D2A]" />
-            <h2 className="text-xs font-bold text-[#F3F5F8] uppercase tracking-wider">
+            <Filter className="w-4 h-4 text-[#14213D]" />
+            <h2 className="text-xs font-bold text-[#14213D] uppercase tracking-wider">
               {language === 'es' ? 'Buscador y Grupos' : 'Search & Lead Groups'}
             </h2>
           </div>
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-[#949EB0] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-[#5C6F68] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
@@ -285,15 +285,15 @@ function LeadFinderViewContent({
                   ? 'Buscar email, dominio, variable...'
                   : 'Search email, domain, variable...'
               }
-              className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg pl-8 pr-3 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none"
+              className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg pl-8 pr-3 py-2 text-xs text-[#14213D] placeholder-[#5C6F68]/60 focus:outline-none"
             />
           </div>
         </div>
 
         {/* Groups by Campaign */}
-        <div className="space-y-1.5 border-t border-[#1D2330] pt-4">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-[#949EB0] flex items-center gap-1.5 mb-2">
-            <FolderKanban className="w-3.5 h-3.5 text-[#E85D2A]" />
+        <div className="space-y-1.5 border-t border-[#DCE3DF] pt-4">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#5C6F68] flex items-center gap-1.5 mb-2">
+            <FolderKanban className="w-3.5 h-3.5 text-[#14213D]" />
             <span>{language === 'es' ? 'Grupos por Campaña' : 'Groups by Campaign'}</span>
           </div>
 
@@ -302,8 +302,8 @@ function LeadFinderViewContent({
             onClick={() => setSelectedCampaignFilter('all')}
             className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition cursor-pointer ${
               selectedCampaignFilter === 'all'
-                ? 'bg-[#E85D2A] text-white'
-                : 'text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26]'
+                ? 'bg-[#14213D] text-white'
+                : 'text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0]'
             }`}
           >
             <span className="truncate">
@@ -312,8 +312,8 @@ function LeadFinderViewContent({
             <span
               className={`text-[10px] px-2 py-0.5 rounded-lg font-mono tabular-nums ${
                 selectedCampaignFilter === 'all'
-                  ? 'bg-black/25 text-white'
-                  : 'bg-[#0A0C10] border border-[#1D2330] text-[#949EB0]'
+                  ? 'bg-white/15 text-white'
+                  : 'bg-[#EEF3F0] border border-[#DCE3DF] text-[#5C6F68]'
               }`}
             >
               {allLeads.length}
@@ -330,16 +330,16 @@ function LeadFinderViewContent({
                 onClick={() => setSelectedCampaignFilter(camp.id)}
                 className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition cursor-pointer ${
                   active
-                    ? 'bg-[#E85D2A] text-white'
-                    : 'text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26]'
+                    ? 'bg-[#14213D] text-white'
+                    : 'text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0]'
                 }`}
               >
                 <span className="truncate pr-2">{camp.name}</span>
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-lg font-mono tabular-nums shrink-0 ${
                     active
-                      ? 'bg-black/25 text-white'
-                      : 'bg-[#0A0C10] border border-[#1D2330] text-[#949EB0]'
+                      ? 'bg-white/15 text-white'
+                      : 'bg-[#EEF3F0] border border-[#DCE3DF] text-[#5C6F68]'
                   }`}
                 >
                   {count}
@@ -350,8 +350,8 @@ function LeadFinderViewContent({
         </div>
 
         {/* Filter by Contact Status */}
-        <div className="space-y-1.5 border-t border-[#1D2330] pt-4">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-[#949EB0] mb-2">
+        <div className="space-y-1.5 border-t border-[#DCE3DF] pt-4">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#5C6F68] mb-2">
             {language === 'es' ? 'Filtrar por Estado de Envío' : 'Filter by Dispatch Status'}
           </div>
 
@@ -360,37 +360,37 @@ function LeadFinderViewContent({
               id: 'all',
               label: language === 'es' ? 'Todos los estados' : 'All statuses',
               icon: Users,
-              color: 'text-[#949EB0]'
+              color: 'text-[#5C6F68]'
             },
             {
               id: 'pending',
               label: language === 'es' ? 'Pendientes' : 'Pending',
               icon: Clock,
-              color: 'text-amber-400'
+              color: 'text-amber-600'
             },
             {
               id: 'sent',
               label: language === 'es' ? 'Enviados' : 'Sent',
               icon: CheckCircle2,
-              color: 'text-emerald-400'
+              color: 'text-emerald-700'
             },
             {
               id: 'opened',
               label: language === 'es' ? 'Abiertos' : 'Opened',
               icon: Eye,
-              color: 'text-sky-400'
+              color: 'text-sky-700'
             },
             {
               id: 'replied',
               label: language === 'es' ? 'Respondidos' : 'Replied',
               icon: MessageSquare,
-              color: 'text-[#E85D2A]'
+              color: 'text-[#14213D]'
             },
             {
               id: 'bounced',
               label: language === 'es' ? 'Rebotados' : 'Bounced',
               icon: AlertTriangle,
-              color: 'text-rose-400'
+              color: 'text-rose-600'
             }
           ].map((st) => {
             const StatusFilterIcon = st.icon;
@@ -409,15 +409,21 @@ function LeadFinderViewContent({
                 onClick={() => setSelectedStatusFilter(st.id)}
                 className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition cursor-pointer ${
                   active
-                    ? 'bg-[#171B26] text-[#F3F5F8] border border-[#232938]'
-                    : 'text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26]/60'
+                    ? 'bg-[#D5ECD4] text-[#14213D] border border-[#C3DAC3]'
+                    : 'text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0]'
                 }`}
               >
-                <span className={`flex items-center gap-2 truncate ${active ? 'text-[#F3F5F8]' : st.color}`}>
+                <span className={`flex items-center gap-2 truncate ${active ? 'text-[#14213D]' : st.color}`}>
                   <StatusFilterIcon className={`w-3.5 h-3.5 shrink-0 ${st.color}`} />
                   <span className="truncate">{st.label}</span>
                 </span>
-                <span className="text-[10px] bg-[#0A0C10] border border-[#1D2330] px-2 py-0.5 rounded-lg font-mono tabular-nums text-[#949EB0] shrink-0">
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-lg font-mono tabular-nums shrink-0 border ${
+                    active
+                      ? 'bg-white text-[#14213D] border-[#C3DAC3]'
+                      : 'bg-[#EEF3F0] border-[#DCE3DF] text-[#5C6F68]'
+                  }`}
+                >
                   {count}
                 </span>
               </button>
@@ -429,18 +435,18 @@ function LeadFinderViewContent({
       {/* Main Panel: Lead Group Table & Editor */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Action Bar */}
-        <div className="h-16 px-6 border-b border-[#1D2330] flex items-center justify-between bg-[#11141C] shrink-0">
+        <div className="h-16 px-6 border-b border-[#DCE3DF] flex items-center justify-between bg-white shrink-0">
           <div>
-            <h1 className="text-base font-bold text-[#F3F5F8] flex items-center gap-2">
-              <Users className="w-4 h-4 text-[#E85D2A]" />
+            <h1 className="text-base font-bold text-[#14213D] flex items-center gap-2">
+              <Users className="w-4 h-4 text-[#14213D]" />
               <span>
                 {language === 'es'
                   ? 'Visor y Editor de Grupos de Leads'
                   : 'Lead Groups Viewer & Editor'}
               </span>
             </h1>
-            <p className="text-[11px] text-[#949EB0] mt-0.5">
-              <span className="font-mono tabular-nums font-semibold text-[#F3F5F8]">
+            <p className="text-[11px] text-[#5C6F68] mt-0.5">
+              <span className="font-mono tabular-nums font-semibold text-[#14213D]">
                 {filteredLeads.length}
               </span>{' '}
               {language === 'es'
@@ -451,23 +457,23 @@ function LeadFinderViewContent({
 
           <div className="flex items-center gap-2.5">
             {!isReadOnly && selectedLeadIds.length > 0 && (
-              <div className="flex items-center gap-2 bg-[#171B26] border border-[#232938] px-3 py-1.5 rounded-lg text-xs">
-                <span className="text-[#F3F5F8] font-semibold font-mono tabular-nums">
+              <div className="flex items-center gap-2 bg-[#EEF3F0] border border-[#DCE3DF] px-3 py-1.5 rounded-lg text-xs">
+                <span className="text-[#14213D] font-semibold font-mono tabular-nums">
                   {selectedLeadIds.length}{' '}
                   {language === 'es' ? 'seleccionados:' : 'selected:'}
                 </span>
                 <button
                   type="button"
                   onClick={() => handleBulkStatusChange('pending')}
-                  className="text-amber-400 hover:underline font-semibold cursor-pointer"
+                  className="text-amber-700 hover:underline font-semibold cursor-pointer"
                 >
                   {language === 'es' ? 'Marcar Pendiente' : 'Mark Pending'}
                 </button>
-                <span className="text-[#232938]">|</span>
+                <span className="text-[#A1B0AB]">|</span>
                 <button
                   type="button"
                   onClick={() => handleBulkStatusChange('sent')}
-                  className="text-emerald-400 hover:underline font-semibold cursor-pointer"
+                  className="text-emerald-700 hover:underline font-semibold cursor-pointer"
                 >
                   {language === 'es' ? 'Marcar Enviado' : 'Mark Sent'}
                 </button>
@@ -477,17 +483,17 @@ function LeadFinderViewContent({
             <button
               type="button"
               onClick={refreshLeads}
-              className="p-2 rounded-lg bg-[#171B26] hover:bg-[#1D2330] text-[#949EB0] hover:text-[#F3F5F8] border border-[#232938] transition cursor-pointer"
+              className="p-2 rounded-lg bg-[#EEF3F0] hover:bg-[#DCE3DF] text-[#5C6F68] hover:text-[#14213D] border border-[#DCE3DF] transition cursor-pointer"
               title={language === 'es' ? 'Actualizar lista' : 'Refresh list'}
             >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#E85D2A]' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#14213D]' : ''}`} />
             </button>
 
             {!isReadOnly && (
               <button
                 type="button"
                 onClick={() => setIsImportModalOpen(true)}
-                className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white text-xs font-semibold px-4 py-2 rounded-lg transition cursor-pointer"
+                className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] text-white text-xs font-semibold px-4 py-2 rounded-lg transition cursor-pointer shadow-sm"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5" />
                 <span>
@@ -502,59 +508,59 @@ function LeadFinderViewContent({
 
         {/* Table Area */}
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="bg-[#11141C] border border-[#1D2330] rounded-xl overflow-hidden">
+          <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl overflow-hidden">
             <div className="overflow-x-auto w-full max-w-full">
               <table className="w-full text-left text-xs whitespace-nowrap min-w-max">
-                <thead className="bg-[#171B26] text-[#949EB0] uppercase tracking-wider text-[10px] border-b border-[#1D2330]">
+                <thead className="bg-[#EEF3F0] text-[#5C6F68] uppercase tracking-wider text-[10px] border-b border-[#DCE3DF]">
                   <tr>
-                    <th className="py-3.5 px-4 w-12 sticky left-0 z-20 bg-[#171B26]">
+                    <th className="py-3.5 px-4 w-12 sticky left-0 z-20 bg-[#EEF3F0]">
                       <button
                         type="button"
                         onClick={toggleSelectAll}
-                        className="text-[#949EB0] hover:text-[#F3F5F8] cursor-pointer"
+                        className="text-[#5C6F68] hover:text-[#14213D] cursor-pointer"
                       >
                         {selectedLeadIds.length > 0 &&
                         selectedLeadIds.length === filteredLeads.length ? (
-                          <CheckSquare className="w-4 h-4 text-[#E85D2A]" />
+                          <CheckSquare className="w-4 h-4 text-[#14213D]" />
                         ) : (
                           <Square className="w-4 h-4" />
                         )}
                       </button>
                     </th>
-                    <th className="py-3.5 px-4 font-bold text-[#F3F5F8] w-36 min-w-[144px] sticky left-12 z-20 bg-[#171B26]">
+                    <th className="py-3.5 px-4 font-bold text-[#14213D] w-36 min-w-[144px] sticky left-12 z-20 bg-[#EEF3F0]">
                       {language === 'es' ? 'Nombre' : 'Name'}
                     </th>
-                    <th className="py-3.5 px-4 font-bold text-[#F3F5F8] min-w-[200px] sticky left-[192px] z-20 bg-[#171B26] border-r border-[#232938] shadow-[2px_0_6px_rgba(0,0,0,0.4)]">
+                    <th className="py-3.5 px-4 font-bold text-[#14213D] min-w-[200px] sticky left-[192px] z-20 bg-[#EEF3F0] border-r border-[#DCE3DF] shadow-[2px_0_6px_rgba(20,33,61,0.06)]">
                       Email
                     </th>
-                    <th className="py-3.5 px-4 font-bold text-[#F3F5F8]">
+                    <th className="py-3.5 px-4 font-bold text-[#14213D]">
                       {language === 'es' ? 'Estado' : 'Status'}
                     </th>
-                    <th className="py-3.5 px-4 font-bold text-[#F3F5F8]">
+                    <th className="py-3.5 px-4 font-bold text-[#14213D]">
                       {language === 'es' ? 'Acción' : 'Action'}
                     </th>
-                    <th className="py-3.5 px-4 font-bold text-[#F3F5F8]">
+                    <th className="py-3.5 px-4 font-bold text-[#14213D]">
                       {language === 'es' ? 'Grupo / Campaña' : 'Group / Campaign'}
                     </th>
-                    <th className="py-3.5 px-4 font-bold text-[#F3F5F8]">
+                    <th className="py-3.5 px-4 font-bold text-[#14213D]">
                       {language === 'es' ? 'Último Envío' : 'Last Contacted'}
                     </th>
                     {dynamicColumns.map((col) => (
                       <th
                         key={col}
-                        className="py-3.5 px-4 text-sky-400 bg-sky-500/10 border-l border-[#1D2330] font-mono font-bold"
+                        className="py-3.5 px-4 text-[#14213D] bg-[#D5ECD4]/60 border-l border-[#DCE3DF] font-mono font-bold"
                       >
                         {`{{${col}}}`}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1D2330] text-[#F3F5F8]">
+                <tbody className="divide-y divide-[#DCE3DF] text-[#14213D]">
                   {filteredLeads.length === 0 ? (
                     <tr>
                       <td
                         colSpan={7 + dynamicColumns.length}
-                        className="py-12 text-center text-[#949EB0]"
+                        className="py-12 text-center text-[#5C6F68]"
                       >
                         {language === 'es'
                           ? 'No hay contactos que coincidan con este filtro.'
@@ -567,13 +573,13 @@ function LeadFinderViewContent({
                       const badge = getStatusBadge(lead.status);
                       const StatusIcon = badge.Icon;
                       const stickyBg = isSelected
-                        ? 'bg-[#1D2330]'
-                        : 'bg-[#11141C] group-hover:bg-[#171B26]';
+                        ? 'bg-[#EBF5EB]'
+                        : 'bg-white group-hover:bg-[#F4F7F5]';
                       return (
                         <tr
                           key={lead.id}
                           className={`group transition ${
-                            isSelected ? 'bg-[#E85D2A]/10' : 'hover:bg-[#171B26]/70'
+                            isSelected ? 'bg-[#EBF5EB]' : 'bg-white hover:bg-[#F4F7F5]'
                           }`}
                         >
                           <td className={`py-3 px-4 w-12 sticky left-0 z-10 ${stickyBg}`}>
@@ -583,19 +589,19 @@ function LeadFinderViewContent({
                               className="cursor-pointer"
                             >
                               {isSelected ? (
-                                <CheckSquare className="w-4 h-4 text-[#E85D2A]" />
+                                <CheckSquare className="w-4 h-4 text-[#14213D]" />
                               ) : (
-                                <Square className="w-4 h-4 text-[#949EB0]" />
+                                <Square className="w-4 h-4 text-[#A1B0AB]" />
                               )}
                             </button>
                           </td>
                           <td
-                            className={`py-3 px-4 text-[#F3F5F8]/90 w-36 min-w-[144px] max-w-[144px] truncate sticky left-12 z-10 ${stickyBg}`}
+                            className={`py-3 px-4 text-[#14213D] w-36 min-w-[144px] max-w-[144px] truncate sticky left-12 z-10 ${stickyBg}`}
                           >
                             {[lead.firstName, lead.lastName].filter(Boolean).join(' ') || '-'}
                           </td>
                           <td
-                            className={`py-3 px-4 font-mono text-[#F3F5F8] font-semibold min-w-[200px] sticky left-[192px] z-10 border-r border-[#232938] shadow-[2px_0_6px_rgba(0,0,0,0.4)] ${stickyBg}`}
+                            className={`py-3 px-4 font-mono text-[#14213D] font-semibold min-w-[200px] sticky left-[192px] z-10 border-r border-[#DCE3DF] shadow-[2px_0_6px_rgba(20,33,61,0.06)] ${stickyBg}`}
                           >
                             {lead.email}
                           </td>
@@ -612,18 +618,18 @@ function LeadFinderViewContent({
                               type="button"
                               disabled={isReadOnly}
                               onClick={() => setEditingLead(lead)}
-                              className="flex items-center gap-1.5 bg-[#171B26] hover:bg-[#E85D2A] text-[#F3F5F8] hover:text-white px-2.5 py-1 rounded-lg border border-[#232938] hover:border-[#E85D2A] text-[11px] font-semibold transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="flex items-center gap-1.5 bg-[#EEF3F0] hover:bg-[#14213D] text-[#14213D] hover:text-white px-2.5 py-1 rounded-lg border border-[#DCE3DF] hover:border-[#14213D] text-[11px] font-semibold transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               <Edit3 className="w-3 h-3" />
                               <span>{language === 'es' ? 'Editar' : 'Edit'}</span>
                             </button>
                           </td>
-                          <td className="py-3 px-4 text-[#949EB0]">
-                            <span className="bg-[#171B26] border border-[#232938] px-2 py-0.5 rounded-lg text-[11px] text-[#F3F5F8]">
+                          <td className="py-3 px-4 text-[#5C6F68]">
+                            <span className="bg-[#EEF3F0] border border-[#DCE3DF] px-2 py-0.5 rounded-lg text-[11px] text-[#14213D]">
                               {getCampaignName(lead.campaignId)}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-[11px] text-[#949EB0] font-mono tabular-nums">
+                          <td className="py-3 px-4 text-[11px] text-[#5C6F68] font-mono tabular-nums">
                             {lead.lastContactedAt
                               ? new Date(lead.lastContactedAt).toLocaleString([], {
                                   dateStyle: 'short',
@@ -634,7 +640,7 @@ function LeadFinderViewContent({
                           {dynamicColumns.map((col) => (
                             <td
                               key={col}
-                              className="py-3 px-4 font-mono text-[#949EB0] border-l border-[#1D2330] bg-[#0A0C10]/30 max-w-xs truncate"
+                              className="py-3 px-4 font-mono text-[#5C6F68] border-l border-[#DCE3DF] bg-[#F4F7F5]/60 max-w-xs truncate"
                               title={String(lead.customVariables?.[col] ?? '')}
                             >
                               {lead.customVariables?.[col] !== undefined

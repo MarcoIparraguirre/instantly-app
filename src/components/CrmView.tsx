@@ -108,11 +108,11 @@ function CrmViewContent({
 
   const stages: { id: DealStage; label: string; dotColor: string }[] = useMemo(
     () => [
-      { id: 'positive', label: t('crm.stagePositive'), dotColor: 'bg-sky-400' },
-      { id: 'demo', label: t('crm.stageDemo'), dotColor: 'bg-[#E85D2A]' },
-      { id: 'proposal', label: t('crm.stageProposal'), dotColor: 'bg-amber-400' },
-      { id: 'won', label: t('crm.stageWon'), dotColor: 'bg-emerald-400' },
-      { id: 'lost', label: t('crm.stageLost'), dotColor: 'bg-[#949EB0]' }
+      { id: 'positive', label: t('crm.stagePositive'), dotColor: 'bg-sky-600' },
+      { id: 'demo', label: t('crm.stageDemo'), dotColor: 'bg-[#14213D]' },
+      { id: 'proposal', label: t('crm.stageProposal'), dotColor: 'bg-amber-500' },
+      { id: 'won', label: t('crm.stageWon'), dotColor: 'bg-emerald-600' },
+      { id: 'lost', label: t('crm.stageLost'), dotColor: 'bg-[#A1B0AB]' }
     ],
     [t]
   );
@@ -244,30 +244,30 @@ function CrmViewContent({
     .reduce((sum, d) => sum + d.value, 0);
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-[#0A0C10] text-[#F3F5F8]">
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-[#F4F7F5] text-[#14213D]">
       {/* Header */}
-      <div className="h-16 px-8 border-b border-[#1D2330] flex items-center justify-between bg-[#11141C] shrink-0">
+      <div className="h-16 px-8 border-b border-[#DCE3DF] flex items-center justify-between bg-white shrink-0">
         <div>
-          <h1 className="text-base font-bold text-[#F3F5F8] flex items-center gap-2.5">
-            <Kanban className="w-5 h-5 text-[#E85D2A]" />
+          <h1 className="text-base font-bold text-[#14213D] flex items-center gap-2.5">
+            <Kanban className="w-5 h-5 text-[#14213D]" />
             <span>{t('crm.title')}</span>
             {isReadOnly && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#171B26] border border-[#232938] text-[10px] font-semibold text-amber-400">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 border border-amber-200 text-[10px] font-semibold text-amber-800">
                 <Eye className="w-3 h-3" />
                 <span>{language === 'es' ? 'Solo Lectura' : 'Read Only'}</span>
               </span>
             )}
           </h1>
-          <p className="text-xs text-[#949EB0] mt-0.5">{t('crm.subtitle')}</p>
+          <p className="text-xs text-[#5C6F68] mt-0.5">{t('crm.subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-[#171B26] border border-[#232938] text-[#F3F5F8] px-3 py-1.5 rounded-xl text-xs font-bold">
-            <DollarSign className="w-4 h-4 text-emerald-400" />
-            <span className="font-mono tabular-nums text-emerald-400">
+          <div className="flex items-center gap-2 bg-[#D5ECD4] border border-[#C3DAC3] text-[#14213D] px-3 py-1.5 rounded-xl text-xs font-bold">
+            <DollarSign className="w-4 h-4 text-[#14213D]" />
+            <span className="font-mono tabular-nums text-[#14213D]">
               ${totalValue.toLocaleString()} USD
             </span>
-            <span className="text-[10px] text-[#949EB0] font-normal">
+            <span className="text-[10px] text-[#5C6F68] font-normal">
               {language === 'es' ? 'Pipeline Activo' : 'Active Pipeline'}
             </span>
           </div>
@@ -276,7 +276,7 @@ function CrmViewContent({
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-1.5 bg-[#E85D2A] hover:bg-[#F26B3A] text-white text-xs font-semibold px-4 py-2 rounded-lg transition cursor-pointer"
+              className="flex items-center gap-1.5 bg-[#14213D] hover:bg-[#1E3158] text-white text-xs font-semibold px-4 py-2 rounded-lg transition cursor-pointer shadow-sm"
             >
               <Plus className="w-4 h-4" />
               <span>{t('crm.addDealBtn')}</span>
@@ -318,22 +318,22 @@ function CrmViewContent({
                   void handleDropDeal(dealId, stage.id);
                 }
               }}
-              className={`w-72 bg-[#11141C] border rounded-xl flex flex-col shrink-0 min-h-0 overflow-hidden transition ${
+              className={`w-72 bg-[#EEF3F0] border rounded-xl flex flex-col shrink-0 min-h-0 overflow-hidden transition ${
                 isDragTarget
-                  ? 'border-[#E85D2A] ring-2 ring-[#E85D2A]/25 bg-[#E85D2A]/5'
-                  : 'border-[#1D2330]'
+                  ? 'border-[#14213D] ring-2 ring-[#14213D]/20 bg-[#D5ECD4]/40'
+                  : 'border-[#DCE3DF]'
               }`}
             >
               {/* Column Header */}
-              <div className="p-3.5 border-b border-[#1D2330] flex items-center justify-between bg-[#171B26]/70 shrink-0">
+              <div className="p-3.5 border-b border-[#DCE3DF] flex items-center justify-between bg-white shrink-0">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className={`w-2 h-2 rounded-full shrink-0 ${stage.dotColor}`} />
-                  <span className="font-bold text-xs text-[#F3F5F8] truncate">{stage.label}</span>
-                  <span className="text-[10px] bg-[#0A0C10] border border-[#232938] text-[#949EB0] px-1.5 py-0.5 rounded-lg font-mono tabular-nums">
+                  <span className="font-bold text-xs text-[#14213D] truncate">{stage.label}</span>
+                  <span className="text-[10px] bg-[#EEF3F0] border border-[#DCE3DF] text-[#5C6F68] px-1.5 py-0.5 rounded-lg font-mono tabular-nums">
                     {stageDeals.length}
                   </span>
                 </div>
-                <span className="text-[11px] font-mono tabular-nums font-bold text-[#F3F5F8]">
+                <span className="text-[11px] font-mono tabular-nums font-bold text-[#14213D]">
                   ${stageTotal.toLocaleString()}
                 </span>
               </div>
@@ -341,13 +341,13 @@ function CrmViewContent({
               {/* Column Deal Cards */}
               <div className="flex-1 min-h-0 p-3 overflow-y-auto space-y-3">
                 {isLoading ? (
-                  <div className="h-24 rounded-xl bg-[#171B26]/50 border border-[#1D2330] animate-pulse" />
+                  <div className="h-24 rounded-xl bg-white/80 border border-[#DCE3DF] animate-pulse" />
                 ) : stageDeals.length === 0 ? (
                   <div
                     className={`h-28 border border-dashed rounded-xl flex items-center justify-center text-[11px] transition ${
                       isDragTarget
-                        ? 'border-[#E85D2A]/60 text-[#E85D2A] bg-[#E85D2A]/5'
-                        : 'border-[#232938] text-[#949EB0]/60'
+                        ? 'border-[#14213D] text-[#14213D] bg-[#D5ECD4]/50'
+                        : 'border-[#A1B0AB]/60 text-[#5C6F68]'
                     }`}
                   >
                     {isReadOnly
@@ -373,44 +373,44 @@ function CrmViewContent({
                           e.dataTransfer.setData('text/plain', deal.id);
                           e.dataTransfer.effectAllowed = 'move';
                         }}
-                        className={`p-3.5 rounded-xl border space-y-2.5 transition ${
+                        className={`p-3.5 rounded-xl border space-y-2.5 shadow-sm transition ${
                           isReadOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
                         } ${
                           isInactive
-                            ? 'bg-rose-950/20 border-rose-500/40 hover:border-rose-400'
-                            : 'bg-[#171B26] border-[#232938] hover:border-[#343D52]'
+                            ? 'bg-rose-50 border-rose-200 hover:border-rose-300'
+                            : 'bg-white border-[#DCE3DF] hover:border-[#A1B0AB]'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <div className="font-bold text-xs text-[#F3F5F8] leading-snug">
+                            <div className="font-bold text-xs text-[#14213D] leading-snug">
                               {deal.title}
                             </div>
-                            <div className="text-[11px] text-[#949EB0] flex items-center gap-1 mt-0.5 truncate">
-                              <Building2 className="w-3 h-3 text-[#949EB0] shrink-0" />
+                            <div className="text-[11px] text-[#5C6F68] flex items-center gap-1 mt-0.5 truncate">
+                              <Building2 className="w-3 h-3 text-[#5C6F68] shrink-0" />
                               <span className="truncate">{deal.companyName}</span>
                             </div>
                           </div>
 
-                          <span className="text-xs font-mono tabular-nums font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/25 shrink-0">
+                          <span className="text-xs font-mono tabular-nums font-bold text-[#14213D] bg-[#D5ECD4] px-2 py-0.5 rounded-lg border border-[#C3DAC3] shrink-0">
                             ${deal.value.toLocaleString()}
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-[#232938]">
-                          <span className="text-[#949EB0] truncate max-w-[130px]">
+                        <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-[#DCE3DF]">
+                          <span className="text-[#5C6F68] truncate max-w-[130px]">
                             {deal.contactName}
                           </span>
 
                           {isInactive ? (
-                            <span className="flex items-center gap-1 text-[10px] text-rose-400 font-semibold font-mono tabular-nums bg-rose-500/10 px-1.5 py-0.5 rounded-lg">
+                            <span className="flex items-center gap-1 text-[10px] text-rose-700 font-semibold font-mono tabular-nums bg-rose-100 border border-rose-200 px-1.5 py-0.5 rounded-lg">
                               <AlertTriangle className="w-3 h-3 shrink-0" />
                               <span>
                                 {deal.daysInactive}d {language === 'es' ? 'inactivo' : 'inactive'}
                               </span>
                             </span>
                           ) : (
-                            <span className="flex items-center gap-1 text-[10px] text-[#949EB0] font-mono tabular-nums">
+                            <span className="flex items-center gap-1 text-[10px] text-[#5C6F68] font-mono tabular-nums">
                               <Clock className="w-3 h-3" />
                               <span>{language === 'es' ? 'Activo' : 'Active'}</span>
                             </span>
@@ -421,7 +421,7 @@ function CrmViewContent({
                           <button
                             type="button"
                             onClick={() => moveDealNext(deal.id)}
-                            className="w-full mt-1 bg-[#11141C] hover:bg-[#E85D2A] hover:text-white hover:border-[#E85D2A] text-[#949EB0] text-[10px] font-semibold py-1.5 rounded-lg transition flex items-center justify-center gap-1 border border-[#232938] cursor-pointer"
+                            className="w-full mt-1 bg-[#F4F7F5] hover:bg-[#14213D] hover:text-white hover:border-[#14213D] text-[#14213D] text-[10px] font-semibold py-1.5 rounded-lg transition flex items-center justify-center gap-1 border border-[#DCE3DF] cursor-pointer"
                           >
                             <span>{language === 'es' ? 'Avanzar Etapa' : 'Advance Stage'}</span>
                             <ChevronRight className="w-3 h-3" />
@@ -447,18 +447,18 @@ function CrmViewContent({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-[#11141C] border border-[#232938] rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl"
+            className="bg-white border border-[#DCE3DF] rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl text-[#14213D]"
           >
-            <div className="flex items-center justify-between border-b border-[#1D2330] pb-3">
-              <h2 className="text-base font-bold text-[#F3F5F8] flex items-center gap-2">
-                <Plus className="w-4 h-4 text-[#E85D2A]" />
+            <div className="flex items-center justify-between border-b border-[#DCE3DF] pb-3">
+              <h2 className="text-base font-bold text-[#14213D] flex items-center gap-2">
+                <Plus className="w-4 h-4 text-[#14213D]" />
                 <span>{t('crm.modalAddTitle')}</span>
               </h2>
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
                 aria-label={t('common.close')}
-                className="p-1.5 rounded-lg text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26] transition cursor-pointer"
+                className="p-1.5 rounded-lg text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0] transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -466,7 +466,7 @@ function CrmViewContent({
 
             <form onSubmit={handleAddDeal} className="space-y-3">
               <div>
-                <label className="text-xs text-[#949EB0] font-medium">
+                <label className="text-xs text-[#5C6F68] font-medium">
                   {t('crm.contactNameLabel')}
                 </label>
                 <input
@@ -474,13 +474,13 @@ function CrmViewContent({
                   required
                   value={formData.contactName}
                   onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-                  className="w-full mt-1 bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-xs text-[#F3F5F8] focus:outline-none"
+                  className="w-full mt-1 bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3 py-2 text-xs text-[#14213D] placeholder-[#5C6F68]/60 focus:outline-none"
                   placeholder="e.g. John Doe"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-[#949EB0] font-medium">
+                <label className="text-xs text-[#5C6F68] font-medium">
                   {t('crm.companyLabel')}
                 </label>
                 <input
@@ -488,14 +488,14 @@ function CrmViewContent({
                   required
                   value={formData.companyName}
                   onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                  className="w-full mt-1 bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-xs text-[#F3F5F8] focus:outline-none"
+                  className="w-full mt-1 bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3 py-2 text-xs text-[#14213D] placeholder-[#5C6F68]/60 focus:outline-none"
                   placeholder="e.g. Acme Corp"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-[#949EB0] font-medium">
+                  <label className="text-xs text-[#5C6F68] font-medium">
                     {t('crm.dealValueLabel')}
                   </label>
                   <input
@@ -504,13 +504,13 @@ function CrmViewContent({
                     min="0"
                     value={formData.value}
                     onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                    className="w-full mt-1 bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-xs font-mono tabular-nums text-[#F3F5F8] focus:outline-none"
+                    className="w-full mt-1 bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3 py-2 text-xs font-mono tabular-nums text-[#14213D] focus:outline-none"
                     placeholder="5000"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-[#949EB0] font-medium">
+                  <label className="text-xs text-[#5C6F68] font-medium">
                     {t('crm.stageLabel')}
                   </label>
                   <select
@@ -518,7 +518,7 @@ function CrmViewContent({
                     onChange={(e) =>
                       setFormData({ ...formData, stage: e.target.value as DealStage })
                     }
-                    className="w-full mt-1 bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-xs text-[#F3F5F8] focus:outline-none"
+                    className="w-full mt-1 bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3 py-2 text-xs text-[#14213D] focus:outline-none"
                   >
                     {stages.map((st) => (
                       <option key={st.id} value={st.id}>
@@ -533,14 +533,14 @@ function CrmViewContent({
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] text-[#949EB0] hover:text-[#F3F5F8] text-xs font-semibold rounded-lg transition cursor-pointer"
+                  className="px-4 py-2 bg-[#EEF3F0] hover:bg-[#DCE3DF] border border-[#DCE3DF] text-[#14213D] text-xs font-semibold rounded-lg transition cursor-pointer"
                 >
                   {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingDeal}
-                  className="px-4 py-2 bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition cursor-pointer"
+                  className="px-4 py-2 bg-[#14213D] hover:bg-[#1E3158] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition cursor-pointer"
                 >
                   {isSavingDeal
                     ? language === 'es'

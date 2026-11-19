@@ -183,16 +183,16 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 overflow-y-auto bg-[#0A0C10] text-[#F3F5F8]">
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-y-auto bg-[#F4F7F5] text-[#14213D]">
       <div className="p-8 max-w-4xl mx-auto w-full space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#1D2330] pb-5 gap-4">
+        <div className="flex items-center justify-between border-b border-[#DCE3DF] pb-5 gap-4">
           <div>
-            <h1 className="text-base font-bold text-[#F3F5F8] flex items-center gap-2">
-              <Mail className="w-5 h-5 text-[#E85D2A]" />
+            <h1 className="text-base font-bold text-[#14213D] flex items-center gap-2">
+              <Mail className="w-5 h-5 text-[#14213D]" />
               <span>{language === 'es' ? 'Mis Cuentas de Correo' : 'My Email Accounts'}</span>
             </h1>
-            <p className="text-xs text-[#949EB0] mt-0.5">
+            <p className="text-xs text-[#5C6F68] mt-0.5">
               {language === 'es'
                 ? 'Tus casillas conectadas y su nivel de protección para llegar a la bandeja principal (Inbox).'
                 : 'Connected sender mailboxes and their health protection to ensure inbox placement.'}
@@ -202,7 +202,7 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
           <button
             type="button"
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white text-xs font-semibold px-4 py-2 rounded-lg transition cursor-pointer shrink-0"
+            className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] text-white text-xs font-semibold px-4 py-2 rounded-lg transition cursor-pointer shrink-0 shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>
@@ -214,20 +214,20 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
         {/* Friendly Accounts Traffic Light Cards */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="h-44 rounded-xl bg-[#11141C] border border-[#1D2330] animate-pulse" />
-            <div className="h-44 rounded-xl bg-[#11141C] border border-[#1D2330] animate-pulse" />
+            <div className="h-44 rounded-xl bg-white border border-[#DCE3DF] animate-pulse" />
+            <div className="h-44 rounded-xl bg-white border border-[#DCE3DF] animate-pulse" />
           </div>
         ) : accounts.length === 0 ? (
-          <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-10 text-center space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-[#171B26] border border-[#232938] flex items-center justify-center mx-auto text-[#E85D2A]">
+          <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-10 text-center space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-[#D5ECD4] border border-[#C3DAC3] flex items-center justify-center mx-auto text-[#14213D]">
               <Mail className="w-6 h-6" />
             </div>
-            <h3 className="text-sm font-bold text-[#F3F5F8]">
+            <h3 className="text-sm font-bold text-[#14213D]">
               {language === 'es'
                 ? 'Sin cuentas de correo conectadas'
                 : 'No email accounts connected'}
             </h3>
-            <p className="text-xs text-[#949EB0] max-w-md mx-auto">
+            <p className="text-xs text-[#5C6F68] max-w-md mx-auto">
               {language === 'es'
                 ? 'Conecta tu primera casilla en este workspace para comenzar a enviar campañas.'
                 : 'Connect your first sender mailbox in this workspace to start launching campaigns.'}
@@ -235,7 +235,7 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white text-xs font-semibold px-4 py-2 rounded-lg transition cursor-pointer"
+              className="inline-flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] text-white text-xs font-semibold px-4 py-2 rounded-lg transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>
@@ -251,16 +251,16 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
               return (
                 <div
                   key={acc.id}
-                  className="bg-[#11141C] border border-[#1D2330] hover:border-[#232938] rounded-xl p-5 space-y-4 transition"
+                  className="bg-white border border-[#DCE3DF] hover:border-[#A1B0AB] shadow-sm rounded-xl p-5 space-y-4 transition"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-[#171B26] border border-[#232938] flex items-center justify-center shrink-0">
-                        <Mail className="w-5 h-5 text-[#E85D2A]" />
+                      <div className="w-10 h-10 rounded-xl bg-[#D5ECD4] border border-[#C3DAC3] flex items-center justify-center shrink-0">
+                        <Mail className="w-5 h-5 text-[#14213D]" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-xs font-bold text-[#F3F5F8] truncate">{acc.name}</h3>
-                        <p className="text-[11px] text-[#949EB0] font-mono truncate">{acc.email}</p>
+                        <h3 className="text-xs font-bold text-[#14213D] truncate">{acc.name}</h3>
+                        <p className="text-[11px] text-[#5C6F68] font-mono truncate">{acc.email}</p>
                       </div>
                     </div>
 
@@ -268,13 +268,13 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
                       <span
                         className={`text-[10px] font-bold px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 border ${
                           isOptimal
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                            : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                            ? 'bg-[#D5ECD4] text-[#14213D] border-[#C3DAC3]'
+                            : 'bg-amber-50 text-amber-800 border-amber-200'
                         }`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
-                            isOptimal ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                            isOptimal ? 'bg-emerald-600 animate-pulse' : 'bg-amber-500'
                           }`}
                         />
                         <span>
@@ -290,7 +290,7 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
                       <button
                         type="button"
                         onClick={(e) => handleDeleteAccount(acc.id, e)}
-                        className="p-1 text-[#949EB0] hover:text-rose-400 transition cursor-pointer"
+                        className="p-1 rounded-lg text-[#5C6F68] hover:text-rose-700 hover:bg-rose-50 transition cursor-pointer"
                         title={language === 'es' ? 'Desconectar cuenta' : 'Disconnect mailbox'}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -299,27 +299,27 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
                   </div>
 
                   {/* Friendly Health Diagnostic */}
-                  <div className="bg-[#171B26] rounded-xl p-3 border border-[#232938] space-y-2">
+                  <div className="bg-[#F4F7F5] rounded-xl p-3 border border-[#DCE3DF] space-y-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#949EB0]">
+                      <span className="text-[#5C6F68]">
                         {language === 'es'
                           ? 'Salud de Entrega (Inbox Placement):'
                           : 'Inbox Placement Health:'}
                       </span>
-                      <span className="font-bold text-emerald-400 font-mono tabular-nums">
+                      <span className="font-bold text-[#14213D] font-mono tabular-nums">
                         {health}%
                       </span>
                     </div>
-                    <div className="w-full bg-[#0A0C10] h-1.5 rounded-full overflow-hidden border border-[#1D2330]">
+                    <div className="w-full bg-[#EEF3F0] h-1.5 rounded-full overflow-hidden border border-[#DCE3DF]">
                       <div
-                        className="bg-emerald-500 h-full rounded-full"
+                        className={`${isOptimal ? 'bg-[#14213D]' : 'bg-amber-500'} h-full rounded-full`}
                         style={{ width: `${health}%` }}
                       />
                     </div>
-                    <p className="text-[11px] text-[#949EB0] pt-1 flex items-start gap-1.5">
+                    <p className="text-[11px] text-[#5C6F68] pt-1 flex items-start gap-1.5">
                       {isOptimal ? (
                         <>
-                          <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
                           <span>
                             {language === 'es'
                               ? 'Autenticación correcta (SPF/DKIM). Tus correos no caen en SPAM.'
@@ -328,7 +328,7 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
                         </>
                       ) : (
                         <>
-                          <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                          <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
                           <span>
                             {language === 'es'
                               ? 'El sistema está aumentando su reputación progresivamente.'
@@ -340,14 +340,14 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
                   </div>
 
                   {/* Status footer */}
-                  <div className="flex items-center justify-between text-[11px] text-[#949EB0] pt-1 border-t border-[#1D2330]">
+                  <div className="flex items-center justify-between text-[11px] text-[#5C6F68] pt-1 border-t border-[#DCE3DF]">
                     <div className="flex items-center gap-1.5">
-                      <Flame className="w-3.5 h-3.5 text-amber-400" />
+                      <Flame className="w-3.5 h-3.5 text-amber-600" />
                       <span>
                         {language === 'es' ? 'Protección Activa' : 'Warmup Guard Active'}
                       </span>
                     </div>
-                    <div className="font-mono tabular-nums text-[#F3F5F8]">
+                    <div className="font-mono tabular-nums font-semibold text-[#14213D]">
                       {acc.sentToday} / {acc.dailyLimit} {language === 'es' ? 'hoy' : 'today'}
                     </div>
                   </div>
@@ -368,12 +368,12 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-[#11141C] border border-[#232938] rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl"
+            className="bg-white border border-[#DCE3DF] rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl text-[#14213D]"
           >
-            <div className="flex items-center justify-between border-b border-[#1D2330] pb-3">
+            <div className="flex items-center justify-between border-b border-[#DCE3DF] pb-3">
               <div className="flex items-center gap-2">
-                <Mail className="w-5 h-5 text-[#E85D2A]" />
-                <h3 className="font-bold text-[#F3F5F8] text-sm">
+                <Mail className="w-5 h-5 text-[#14213D]" />
+                <h3 className="font-bold text-[#14213D] text-sm">
                   {language === 'es'
                     ? 'Conectar Cuenta de Correo (Gmail / SMTP)'
                     : 'Connect Email Account'}
@@ -383,7 +383,7 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
                 type="button"
                 onClick={() => setShowAddModal(false)}
                 aria-label={t('common.close')}
-                className="p-1.5 rounded-lg text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26] transition cursor-pointer"
+                className="p-1.5 rounded-lg text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0] transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -391,7 +391,7 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
 
             <form onSubmit={handleAddAccount} className="space-y-3">
               <div>
-                <label className="text-xs text-[#949EB0] font-medium">
+                <label className="text-xs text-[#5C6F68] font-medium">
                   {language === 'es' ? 'Nombre o Identificador' : 'Mailbox Nickname'}
                 </label>
                 <input
@@ -399,13 +399,13 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full mt-1 bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-xs text-[#F3F5F8] focus:outline-none"
+                  className="w-full mt-1 bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3 py-2 text-xs text-[#14213D] placeholder-[#5C6F68]/60 focus:outline-none"
                   placeholder="Ej: Ventas Gmail"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-[#949EB0] font-medium">
+                <label className="text-xs text-[#5C6F68] font-medium">
                   {language === 'es' ? 'Correo Electrónico' : 'Email Address'}
                 </label>
                 <input
@@ -415,13 +415,13 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value, smtpUser: e.target.value })
                   }
-                  className="w-full mt-1 bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-xs text-[#F3F5F8] focus:outline-none"
+                  className="w-full mt-1 bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3 py-2 text-xs font-mono text-[#14213D] placeholder-[#5C6F68]/60 focus:outline-none"
                   placeholder="tunombre@gmail.com o empresa.com"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-[#949EB0] font-medium">
+                <label className="text-xs text-[#5C6F68] font-medium">
                   {language === 'es' ? 'Contraseña de Aplicación' : 'App Password'}
                 </label>
                 <input
@@ -429,7 +429,7 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
                   required
                   value={formData.smtpPass}
                   onChange={(e) => setFormData({ ...formData, smtpPass: e.target.value })}
-                  className="w-full mt-1 bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-xs text-[#F3F5F8] focus:outline-none"
+                  className="w-full mt-1 bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3 py-2 text-xs text-[#14213D] placeholder-[#5C6F68]/60 focus:outline-none"
                   placeholder={
                     language === 'es'
                       ? 'Contraseña de 16 letras generada en Google'
@@ -439,10 +439,10 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
               </div>
 
               {/* Google App Password Tip */}
-              <div className="bg-[#171B26] border border-[#232938] rounded-xl p-3 text-[11px] text-[#F3F5F8] space-y-1">
+              <div className="bg-[#EEF3F0] border border-[#DCE3DF] rounded-xl p-3 text-[11px] text-[#14213D] space-y-1">
                 <div className="font-semibold flex items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5">
-                    <Lightbulb className="w-3.5 h-3.5 text-[#E85D2A] shrink-0" />
+                    <Lightbulb className="w-3.5 h-3.5 text-[#14213D] shrink-0" />
                     <span>
                       {language === 'es' ? 'Para cuentas de Gmail:' : 'For Gmail accounts:'}
                     </span>
@@ -451,7 +451,7 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
                     href="https://myaccount.google.com/apppasswords"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sky-400 hover:underline flex items-center gap-1 font-normal text-[10px]"
+                    className="text-[#14213D] font-semibold hover:underline flex items-center gap-1 text-[10px]"
                   >
                     <span>
                       {language === 'es' ? 'Crear Contraseña' : 'Create Password'}
@@ -459,7 +459,7 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
                     <ExternalLink className="w-2.5 h-2.5" />
                   </a>
                 </div>
-                <p className="text-[#949EB0] leading-relaxed text-[10px]">
+                <p className="text-[#5C6F68] leading-relaxed text-[10px]">
                   {language === 'es'
                     ? 'No uses tu contraseña normal. Google requiere una "Contraseña de Aplicación" de 16 caracteres desde Cuenta de Google > Seguridad.'
                     : 'Google requires a 16-character App Password generated under Google Account > Security.'}
@@ -470,14 +470,14 @@ function SimpleAccountsViewContent({ workspaceId }: { workspaceId: string }) {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] text-[#949EB0] hover:text-[#F3F5F8] text-xs font-semibold rounded-lg transition cursor-pointer"
+                  className="px-4 py-2 bg-[#EEF3F0] hover:bg-[#DCE3DF] border border-[#DCE3DF] text-[#14213D] text-xs font-semibold rounded-lg transition cursor-pointer"
                 >
                   {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-4 py-2 bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition cursor-pointer"
+                  className="px-4 py-2 bg-[#14213D] hover:bg-[#1E3158] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition cursor-pointer"
                 >
                   {isSaving
                     ? language === 'es'

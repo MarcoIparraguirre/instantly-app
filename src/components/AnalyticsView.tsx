@@ -167,15 +167,15 @@ function AnalyticsViewContent({
   const bounceRate = stats.sent > 0 ? ((stats.bounced / stats.sent) * 100).toFixed(1) : '0.0';
 
   return (
-    <div className="flex-1 min-h-0 p-8 space-y-6 overflow-y-auto bg-[#0A0C10] text-[#F3F5F8]">
+    <div className="flex-1 min-h-0 p-8 space-y-6 overflow-y-auto bg-[#F4F7F5] text-[#14213D]">
       {/* Header */}
-      <div className="border-b border-[#1D2330] pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="border-b border-[#DCE3DF] pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-base font-bold text-[#F3F5F8] flex items-center gap-2.5">
-            <BarChart3 className="w-5 h-5 text-[#E85D2A]" />
+          <h1 className="text-base font-bold text-[#14213D] flex items-center gap-2.5">
+            <BarChart3 className="w-5 h-5 text-[#14213D]" />
             <span>{t('analytics.title')}</span>
           </h1>
-          <p className="text-xs text-[#949EB0] mt-0.5">
+          <p className="text-xs text-[#5C6F68] mt-0.5">
             {t('analytics.subtitle')}{' '}
             {campaign
               ? `"${campaign.name}"`
@@ -191,7 +191,7 @@ function AnalyticsViewContent({
             type="button"
             onClick={handleSyncImapAnalytics}
             disabled={isSyncing}
-            className="flex items-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded-lg transition cursor-pointer"
+            className="flex items-center gap-2 bg-[#14213D] hover:bg-[#1E3158] disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded-lg transition cursor-pointer shadow-sm"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
             <span>
@@ -212,91 +212,97 @@ function AnalyticsViewContent({
       </div>
 
       {syncMessage && (
-        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-3.5 rounded-xl bg-[#D5ECD4] border border-[#C3DAC3] text-xs text-[#14213D] flex items-center gap-2 font-medium">
+          <CheckCircle2 className="w-4 h-4 text-[#14213D] shrink-0" />
           <span>{syncMessage}</span>
         </div>
       )}
 
-      {/* KPI Cards Row */}
+      {/* Signature 4-Tone KPI Cards Row (NexaVerse Palette) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-5 space-y-2">
-          <div className="flex items-center justify-between text-[#949EB0]">
-            <span className="text-xs font-semibold uppercase">{t('analytics.emailsSent')}</span>
-            <Mail className="w-4 h-4 text-[#E85D2A]" />
+        <div className="bg-[#D5ECD4] border border-[#C3DAC3] text-[#14213D] rounded-xl p-5 space-y-2 shadow-sm">
+          <div className="flex items-center justify-between text-[#14213D]/80">
+            <span className="text-xs font-semibold uppercase tracking-wide">
+              {t('analytics.emailsSent')}
+            </span>
+            <Mail className="w-4 h-4 text-[#14213D]" />
           </div>
-          <div className="text-2xl font-bold text-[#F3F5F8] font-mono tabular-nums">
+          <div className="text-2xl font-bold text-[#14213D] font-mono tabular-nums">
             {stats.sent.toLocaleString()}
           </div>
-          <div className="text-[11px] text-[#949EB0] font-mono tabular-nums">
+          <div className="text-[11px] text-[#5C6F68] font-mono tabular-nums">
             {relevantLeads.filter((l) => l.status === 'pending').length}{' '}
             {language === 'es' ? 'pendientes en cola' : 'pending in queue'}
           </div>
         </div>
 
-        <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-5 space-y-2">
-          <div className="flex items-center justify-between text-[#949EB0]">
-            <span className="text-xs font-semibold uppercase">{t('analytics.openRate')}</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="bg-[#C3DAC3] border border-[#A1B0AB]/50 text-[#14213D] rounded-xl p-5 space-y-2 shadow-sm">
+          <div className="flex items-center justify-between text-[#14213D]/80">
+            <span className="text-xs font-semibold uppercase tracking-wide">
+              {t('analytics.openRate')}
+            </span>
+            <CheckCircle2 className="w-4 h-4 text-[#14213D]" />
           </div>
-          <div className="text-2xl font-bold text-[#F3F5F8] font-mono tabular-nums">
+          <div className="text-2xl font-bold text-[#14213D] font-mono tabular-nums">
             {openRate}%
           </div>
-          <div className="text-[11px] text-[#949EB0] font-mono tabular-nums">
+          <div className="text-[11px] text-[#14213D]/75 font-mono tabular-nums">
             {stats.opened.toLocaleString()} {t('analytics.totalOpens')}
           </div>
         </div>
 
-        <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-5 space-y-2">
-          <div className="flex items-center justify-between text-[#949EB0]">
-            <span className="text-xs font-semibold uppercase">{t('analytics.replyRate')}</span>
-            <MessageSquare className="w-4 h-4 text-sky-400" />
+        <div className="bg-[#A1B0AB] border border-[#5C6F68]/30 text-[#14213D] rounded-xl p-5 space-y-2 shadow-sm">
+          <div className="flex items-center justify-between text-[#14213D]/85">
+            <span className="text-xs font-semibold uppercase tracking-wide">
+              {t('analytics.replyRate')}
+            </span>
+            <MessageSquare className="w-4 h-4 text-[#14213D]" />
           </div>
-          <div className="text-2xl font-bold text-[#F3F5F8] font-mono tabular-nums">
+          <div className="text-2xl font-bold text-[#14213D] font-mono tabular-nums">
             {replyRate}%
           </div>
-          <div className="text-[11px] text-[#949EB0] font-mono tabular-nums">
+          <div className="text-[11px] text-[#14213D]/80 font-mono tabular-nums">
             {stats.replied} {t('analytics.prospectsEngaged')}
           </div>
         </div>
 
-        <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-5 space-y-2">
-          <div className="flex items-center justify-between text-[#949EB0]">
-            <span className="text-xs font-semibold uppercase">
+        <div className="bg-[#5C6F68] border border-[#5C6F68] text-white rounded-xl p-5 space-y-2 shadow-sm">
+          <div className="flex items-center justify-between text-white/85">
+            <span className="text-xs font-semibold uppercase tracking-wide">
               {language === 'es' ? 'Correos Rebotados' : 'Bounced Emails'}
             </span>
-            <AlertTriangle className="w-4 h-4 text-rose-400" />
+            <AlertTriangle className="w-4 h-4 text-white" />
           </div>
-          <div className="text-2xl font-bold text-rose-400 font-mono tabular-nums">
+          <div className="text-2xl font-bold text-white font-mono tabular-nums">
             {stats.bounced}
           </div>
-          <div className="text-[11px] text-[#949EB0] font-mono tabular-nums">
+          <div className="text-[11px] text-[#D5ECD4] font-mono tabular-nums">
             {bounceRate}% {language === 'es' ? 'tasa de rebote' : 'bounce rate'}
           </div>
         </div>
       </div>
 
       {/* Telemetry Tracking Explanation (production-safe; local tip only when isLocalhost is true) */}
-      <div className="bg-[#11141C] border border-[#232938] rounded-xl p-4 flex items-start gap-3 text-xs text-[#949EB0]">
-        <Info className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+      <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-4 flex items-start gap-3 text-xs text-[#5C6F68]">
+        <Info className="w-4 h-4 text-[#14213D] shrink-0 mt-0.5" />
         <div className="space-y-1.5 leading-relaxed">
-          <div className="font-bold text-[#F3F5F8]">
+          <div className="font-bold text-[#14213D]">
             {language === 'es'
               ? '¿Cómo funcionan las detecciones de Rebotes, Respuestas y Aperturas?'
               : 'How do Bounce, Reply, and Open tracking work?'}
           </div>
-          <p className="text-[11px] text-[#949EB0]">
+          <p className="text-[11px] text-[#5C6F68]">
             {language === 'es'
               ? '• Respuestas y Rebotes (IMAP): Se sincronizan automáticamente desde las casillas conectadas del workspace al ejecutar la sincronización IMAP o abrir Unibox, actualizando el estado del contacto a "Respondido" o "Rebotado".'
               : '• Replies & Bounces (IMAP): Synced directly from your workspace mailboxes during IMAP sync or Unibox visits, automatically updating contact statuses to "Replied" or "Bounced".'}
           </p>
-          <p className="text-[11px] text-[#949EB0]">
+          <p className="text-[11px] text-[#5C6F68]">
             {language === 'es'
               ? '• Aperturas (Píxel de seguimiento): Cada correo HTML inserta un píxel transparente (/api/track/open) que registra la lectura en tiempo real cuando el cliente de correo del destinatario carga las imágenes.'
               : '• Opens (Tracking Pixel): Outbound HTML emails include a lightweight tracking pixel (/api/track/open) that logs opens in real time when the recipient email client loads images.'}
           </p>
           {isLocalhost && (
-            <p className="text-[11px] text-amber-300/90 pt-0.5">
+            <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 pt-1">
               {language === 'es'
                 ? '• Diagnóstico en entorno local (localhost): Al enviar desde tu propia PC sin un dominio público en internet, los servidores externos del destinatario no pueden conectarse a localhost para notificar la apertura; el píxel operará automáticamente en tu dominio público desplegado.'
                 : '• Local environment notice (localhost): External recipient mail servers cannot connect back to localhost to trigger /api/track/open; open tracking operates automatically once deployed on a public HTTPS domain.'}
@@ -306,57 +312,78 @@ function AnalyticsViewContent({
       </div>
 
       {/* Outbound Conversion Funnel */}
-      <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-6 space-y-4">
-        <h3 className="text-sm font-bold text-[#F3F5F8] flex items-center gap-2">
-          <ArrowUpRight className="w-4 h-4 text-[#E85D2A]" />
+      <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-6 space-y-4">
+        <h3 className="text-sm font-bold text-[#14213D] flex items-center gap-2">
+          <ArrowUpRight className="w-4 h-4 text-[#14213D]" />
           <span>{t('analytics.funnelTitle')}</span>
         </h3>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-          <div className="bg-[#171B26] p-4 rounded-xl border border-[#232938] space-y-1">
-            <div className="text-xs text-[#949EB0] uppercase font-semibold">
+          <div className="bg-[#EEF3F0] p-4 rounded-xl border border-[#DCE3DF] space-y-1.5">
+            <div className="text-xs text-[#5C6F68] uppercase font-semibold">
               {t('analytics.stepSent')}
             </div>
-            <div className="text-xl font-bold text-[#F3F5F8] font-mono tabular-nums">
+            <div className="text-xl font-bold text-[#14213D] font-mono tabular-nums">
               {stats.sent.toLocaleString()}
             </div>
-            <div className="text-[10px] text-[#949EB0] font-mono tabular-nums">
+            <div className="w-full h-1.5 bg-white rounded-full overflow-hidden">
+              <div className="h-full bg-[#14213D] rounded-full" style={{ width: '100%' }} />
+            </div>
+            <div className="text-[10px] text-[#5C6F68] font-mono tabular-nums">
               100% {language === 'es' ? 'Enviados' : 'Sent'}
             </div>
           </div>
 
-          <div className="bg-[#171B26] p-4 rounded-xl border border-[#232938] space-y-1">
-            <div className="text-xs text-[#949EB0] uppercase font-semibold">
+          <div className="bg-[#D5ECD4]/50 p-4 rounded-xl border border-[#C3DAC3] space-y-1.5">
+            <div className="text-xs text-[#5C6F68] uppercase font-semibold">
               {t('analytics.stepOpened')}
             </div>
-            <div className="text-xl font-bold text-emerald-400 font-mono tabular-nums">
+            <div className="text-xl font-bold text-[#14213D] font-mono tabular-nums">
               {stats.opened.toLocaleString()}
             </div>
-            <div className="text-[10px] text-emerald-400 font-semibold font-mono tabular-nums">
+            <div className="w-full h-1.5 bg-white rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#5C6F68] rounded-full"
+                style={{ width: `${Math.min(100, Number(openRate))}%` }}
+              />
+            </div>
+            <div className="text-[10px] text-[#14213D] font-semibold font-mono tabular-nums">
               {openRate}%
             </div>
           </div>
 
-          <div className="bg-[#171B26] p-4 rounded-xl border border-[#232938] space-y-1">
-            <div className="text-xs text-[#949EB0] uppercase font-semibold">
+          <div className="bg-[#C3DAC3]/35 p-4 rounded-xl border border-[#A1B0AB]/50 space-y-1.5">
+            <div className="text-xs text-[#5C6F68] uppercase font-semibold">
               {t('analytics.stepReplied')}
             </div>
-            <div className="text-xl font-bold text-sky-400 font-mono tabular-nums">
+            <div className="text-xl font-bold text-[#14213D] font-mono tabular-nums">
               {stats.replied.toLocaleString()}
             </div>
-            <div className="text-[10px] text-sky-400 font-semibold font-mono tabular-nums">
+            <div className="w-full h-1.5 bg-white rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#14213D] rounded-full"
+                style={{ width: `${Math.min(100, Number(replyRate))}%` }}
+              />
+            </div>
+            <div className="text-[10px] text-[#14213D] font-semibold font-mono tabular-nums">
               {replyRate}%
             </div>
           </div>
 
-          <div className="bg-[#171B26] p-4 rounded-xl border border-[#232938] space-y-1">
-            <div className="text-xs text-[#949EB0] uppercase font-semibold">
+          <div className="bg-rose-50 p-4 rounded-xl border border-rose-200 space-y-1.5">
+            <div className="text-xs text-rose-700 uppercase font-semibold">
               {language === 'es' ? 'Rebotados' : 'Bounced'}
             </div>
-            <div className="text-xl font-bold text-rose-400 font-mono tabular-nums">
+            <div className="text-xl font-bold text-rose-700 font-mono tabular-nums">
               {stats.bounced.toLocaleString()}
             </div>
-            <div className="text-[10px] text-rose-400 font-semibold font-mono tabular-nums">
+            <div className="w-full h-1.5 bg-white rounded-full overflow-hidden">
+              <div
+                className="h-full bg-rose-600 rounded-full"
+                style={{ width: `${Math.min(100, Number(bounceRate))}%` }}
+              />
+            </div>
+            <div className="text-[10px] text-rose-700 font-semibold font-mono tabular-nums">
               {bounceRate}%
             </div>
           </div>
@@ -364,15 +391,15 @@ function AnalyticsViewContent({
       </div>
 
       {/* Mailbox Breakdown Table */}
-      <div className="bg-[#11141C] border border-[#1D2330] rounded-xl overflow-hidden p-5 space-y-3">
-        <h3 className="text-sm font-bold text-[#F3F5F8] flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+      <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl overflow-hidden p-5 space-y-3">
+        <h3 className="text-sm font-bold text-[#14213D] flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-[#14213D]" />
           <span>{t('analytics.accountBreakdownTitle')}</span>
         </h3>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#171B26] text-[#949EB0] uppercase tracking-wider text-[10px] border-b border-[#1D2330]">
+            <thead className="bg-[#EEF3F0] text-[#5C6F68] uppercase tracking-wider text-[10px] border-b border-[#DCE3DF]">
               <tr>
                 <th className="py-2.5 px-4">{t('analytics.colMailbox')}</th>
                 <th className="py-2.5 px-4">{t('analytics.colDailyLimit')}</th>
@@ -381,10 +408,10 @@ function AnalyticsViewContent({
                 <th className="py-2.5 px-4">{t('analytics.colHealth')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1D2330] text-[#F3F5F8]">
+            <tbody className="divide-y divide-[#DCE3DF] text-[#14213D]">
               {accounts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-[#949EB0]">
+                  <td colSpan={5} className="py-8 text-center text-[#5C6F68]">
                     {language === 'es'
                       ? 'No hay casillas conectadas en este workspace todavía.'
                       : 'No mailboxes connected in this workspace yet.'}
@@ -395,27 +422,29 @@ function AnalyticsViewContent({
                   const health = acc.healthScore ?? 98;
                   const isHealthy = health >= 90;
                   return (
-                    <tr key={acc.id} className="hover:bg-[#171B26]/60 transition">
-                      <td className="py-3 px-4 font-mono text-[#F3F5F8]">{acc.email}</td>
-                      <td className="py-3 px-4 font-mono tabular-nums text-[#949EB0]">
+                    <tr key={acc.id} className="hover:bg-[#F4F7F5] transition">
+                      <td className="py-3 px-4 font-mono text-[#14213D] font-medium">
+                        {acc.email}
+                      </td>
+                      <td className="py-3 px-4 font-mono tabular-nums text-[#5C6F68]">
                         {acc.dailyLimit} / {language === 'es' ? 'día' : 'day'}
                       </td>
-                      <td className="py-3 px-4 font-mono tabular-nums text-[#F3F5F8]">
+                      <td className="py-3 px-4 font-mono tabular-nums text-[#14213D]">
                         {acc.sentToday} {language === 'es' ? 'enviados' : 'sent'}
                       </td>
-                      <td className="py-3 px-4 font-mono tabular-nums text-emerald-400">
+                      <td className="py-3 px-4 font-mono tabular-nums text-[#5C6F68]">
                         {bounceRate}%
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <span
                             className={`w-2 h-2 rounded-full ${
-                              isHealthy ? 'bg-emerald-400' : 'bg-amber-400'
+                              isHealthy ? 'bg-emerald-600' : 'bg-amber-500'
                             }`}
                           />
                           <span
                             className={`font-bold font-mono tabular-nums ${
-                              isHealthy ? 'text-emerald-400' : 'text-amber-400'
+                              isHealthy ? 'text-emerald-700' : 'text-amber-700'
                             }`}
                           >
                             {health}% {isHealthy ? (language === 'es' ? 'Óptimo' : 'Optimal') : ''}
