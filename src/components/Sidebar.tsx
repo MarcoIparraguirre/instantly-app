@@ -184,6 +184,7 @@ export default function Sidebar({
                 : 'text-[#A1B0AB] hover:text-white hover:bg-white/8'
             }`}
             title={item.label}
+            aria-label={item.label}
           >
             <Icon className="w-4 h-4" />
             {item.count !== undefined && item.count > 0 && (
@@ -201,11 +202,6 @@ export default function Sidebar({
               />
             )}
           </button>
-
-          {/* Tooltip on Hover */}
-          <div className="absolute left-full ml-2 px-2.5 py-1 bg-[#0E182E] text-white text-[11px] font-semibold rounded-lg shadow-xl border border-white/15 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-            {item.label}
-          </div>
         </div>
       );
     }
@@ -313,7 +309,7 @@ export default function Sidebar({
         </div>
 
         {/* Dynamic Navigation Items */}
-        <nav className="p-2.5 space-y-3 overflow-y-auto flex-1">
+        <nav className="p-2.5 space-y-3 overflow-y-auto overflow-x-hidden flex-1">
           {operationsItems.length > 0 && (
             <div className="space-y-1">
               {!isCollapsed && (
