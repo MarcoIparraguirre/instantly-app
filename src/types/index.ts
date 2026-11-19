@@ -22,6 +22,7 @@ export type AppTab =
 export interface TeamMember {
   id: string;
   workspaceId: string;
+  allowedWorkspaceIds?: string[];
   fullName: string;
   email: string;
   company?: string;
@@ -216,6 +217,7 @@ export interface CampaignOptions {
 
 export interface Campaign {
   id: string;
+  workspaceId?: string;
   name: string;
   status: 'draft' | 'active' | 'paused' | 'completed';
   steps: SequenceStep[];
@@ -233,6 +235,7 @@ export type LeadStatus = 'pending' | 'sent' | 'opened' | 'replied' | 'bounced' |
 
 export interface Lead {
   id: string;
+  workspaceId?: string;
   campaignId: string;
   email: string;
   firstName: string;
@@ -256,6 +259,7 @@ export interface DnsCheckItem {
 
 export interface SenderAccount {
   id: string;
+  workspaceId?: string;
   name: string;
   email: string;
   provider?: 'google' | 'microsoft' | 'smtp';
@@ -294,6 +298,7 @@ export interface EmailMessage {
 
 export interface EmailThread {
   id: string;
+  workspaceId?: string;
   campaignId: string;
   leadId: string;
   leadName: string;
@@ -311,6 +316,7 @@ export type DealStage = 'positive' | 'demo' | 'proposal' | 'won' | 'lost';
 
 export interface Deal {
   id: string;
+  workspaceId?: string;
   leadId: string;
   contactName: string;
   contactEmail: string;

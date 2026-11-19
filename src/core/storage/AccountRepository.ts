@@ -13,8 +13,11 @@ export class AccountRepository implements IAccountRepository {
     this.driver = driver;
   }
 
-  getAccounts(): SenderAccount[] {
-    return this.driver.read<SenderAccount[]>(this.filename, initialAccountsSeed);
+  getAccounts(workspaceId?: string): SenderAccount[] {
+    const accounts = this.driver.read<SenderAccount[]>(this.filename, initialAccountsSeed);
+    return workspaceId
+      ? accounts.filter(a => (a.workspaceId || 'ws-primary') === workspaceId)
+      : accounts;
   }
 
   getAccountById(id: string): SenderAccount | undefined {
@@ -23,7 +26,11 @@ export class AccountRepository implements IAccountRepository {
   }
 
   saveAccounts(accounts: SenderAccount[]): void {
-    this.driver.write(this.filename, accounts);
+    const normalized = accounts.map(a => ({
+      ...a,
+      workspaceId: a.workspaceId || 'ws-primary'
+    }));
+    this.driver.write(this.filename, normalized);
   }
 
   saveAccount(account: SenderAccount): void {
@@ -34,8 +41,10 @@ export class AccountRepository implements IAccountRepository {
       if (toSave.smtpPass === '••••••••' || toSave.smtpPass === '********') {
         toSave.smtpPass = existing[idx].smtpPass;
       }
+      toSave.workspaceId = toSave.workspaceId || existing[idx].workspaceId || 'ws-primary';
       existing[idx] = toSave;
     } else {
+      toSave.workspaceId = toSave.workspaceId || 'ws-primary';
       existing.push(toSave);
     }
     this.saveAccounts(existing);

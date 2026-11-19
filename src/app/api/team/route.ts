@@ -26,12 +26,37 @@ function getErrorMessage(err: unknown): string {
   return String(err);
 }
 
+export function normalizeAllowedWorkspaceIds(raw: unknown, primaryWorkspaceId: string): string[] {
+  const primary =
+    typeof primaryWorkspaceId === 'string' && primaryWorkspaceId.trim()
+      ? primaryWorkspaceId.trim()
+      : 'ws-primary';
+  const seen = new Set<string>([primary]);
+
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      if (typeof item === 'string') {
+        const trimmed = item.trim();
+        if (trimmed) seen.add(trimmed);
+      }
+    }
+  } else if (typeof raw === 'string') {
+    for (const item of raw.split(',')) {
+      const trimmed = item.trim();
+      if (trimmed) seen.add(trimmed);
+    }
+  }
+
+  return Array.from(seen);
+}
+
 export function createDefaultTeamMembers(): TeamMember[] {
   const nowIso = new Date().toISOString();
   return [
     {
       id: 'admin-default',
       workspaceId: 'ws-primary',
+      allowedWorkspaceIds: ['ws-primary'],
       fullName: 'Marco Iparraguirre',
       email: 'marcos@vectrasystems.com.ar',
       company: 'Vectra Systems',
@@ -43,6 +68,7 @@ export function createDefaultTeamMembers(): TeamMember[] {
     {
       id: 'agency-admin-1',
       workspaceId: 'ws-primary',
+      allowedWorkspaceIds: ['ws-primary'],
       fullName: 'Sofía Méndez',
       email: 'sofia@agenciab2b.com',
       company: 'Agencia Growth B2B',
@@ -54,6 +80,7 @@ export function createDefaultTeamMembers(): TeamMember[] {
     {
       id: 'sdr-manager-1',
       workspaceId: 'ws-primary',
+      allowedWorkspaceIds: ['ws-primary'],
       fullName: 'Lucas Gómez',
       email: 'lucas@agenciab2b.com',
       company: 'Agencia Growth B2B',
@@ -65,6 +92,7 @@ export function createDefaultTeamMembers(): TeamMember[] {
     {
       id: 'client-viewer-1',
       workspaceId: 'ws-primary',
+      allowedWorkspaceIds: ['ws-primary'],
       fullName: 'Martín Ruiz',
       email: 'martin@clientefinal.com',
       company: 'Cliente Inmobiliaria',
@@ -114,9 +142,16 @@ function mapDbRowToMember(row: Record<string, unknown>): TeamMember {
   const roleId: UserRole = normalizeRole(
     typeof (row.role_id ?? row.roleId) === 'string' ? String(row.role_id ?? row.roleId) : undefined
   );
+  const workspaceId = String(row.workspace_id ?? row.workspaceId ?? 'ws-primary');
+  const allowedWorkspaceIds = normalizeAllowedWorkspaceIds(
+    row.allowed_workspace_ids ?? row.allowedWorkspaceIds,
+    workspaceId
+  );
+
   return {
     id: String(row.id),
-    workspaceId: String(row.workspace_id ?? row.workspaceId ?? 'ws-primary'),
+    workspaceId,
+    allowedWorkspaceIds,
     fullName: String(row.full_name ?? row.fullName ?? 'Usuario'),
     email: String(row.email ?? '').toLowerCase(),
     company: typeof row.company === 'string' ? row.company : '',
@@ -128,15 +163,43 @@ function mapDbRowToMember(row: Record<string, unknown>): TeamMember {
 }
 
 function mapMemberToDbRow(member: TeamMember): Record<string, unknown> {
+  const workspaceId = member.workspaceId || 'ws-primary';
   return {
     id: member.id,
-    workspace_id: member.workspaceId || 'ws-primary',
+    workspace_id: workspaceId,
+    allowed_workspace_ids: normalizeAllowedWorkspaceIds(member.allowedWorkspaceIds, workspaceId),
     full_name: member.fullName,
     email: member.email.toLowerCase(),
     company: member.company || '',
     role_id: member.roleId,
     updated_at: member.updatedAt || new Date().toISOString(),
   };
+}
+
+function isAllowedWorkspaceIdsColumnError(error: { message?: string } | null | undefined): boolean {
+  const msg = (error?.message || '').toLowerCase();
+  return (
+    msg.includes('allowed_workspace_ids') &&
+    (msg.includes('column') ||
+      msg.includes('schema') ||
+      msg.includes('cache') ||
+      msg.includes('does not exist') ||
+      msg.includes('could not find'))
+  );
+}
+
+async function upsertMemberToSupabase(
+  table: UserProfilesTableLike,
+  member: TeamMember
+): Promise<{ error?: { message?: string } | null }> {
+  const dbRow = mapMemberToDbRow(member);
+  const { error } = await table.upsert(dbRow, { onConflict: 'id' });
+  if (error && isAllowedWorkspaceIdsColumnError(error)) {
+    const legacyRow = { ...dbRow };
+    delete legacyRow.allowed_workspace_ids;
+    return await table.upsert(legacyRow, { onConflict: 'id' });
+  }
+  return { error };
 }
 
 async function fetchTeamFromDb(): Promise<{ rows: TeamMember[]; error: { message?: string } | null }> {
@@ -162,7 +225,9 @@ async function fetchTeamFromDb(): Promise<{ rows: TeamMember[]; error: { message
 function filterMembers(members: TeamMember[], workspaceId: string | null, email: string | null): TeamMember[] {
   let result = members;
   if (workspaceId) {
-    result = result.filter((m) => m.workspaceId === workspaceId);
+    result = result.filter(
+      (m) => m.workspaceId === workspaceId || Boolean(m.allowedWorkspaceIds?.includes(workspaceId))
+    );
   }
   if (email) {
     const cleanEmail = email.trim().toLowerCase();
@@ -193,7 +258,7 @@ export async function GET(req: NextRequest) {
       const table = supabase.from('user_profiles') as unknown as UserProfilesTableLike;
       if (typeof table.upsert === 'function') {
         for (const member of defaults) {
-          await table.upsert(mapMemberToDbRow(member), { onConflict: 'id' });
+          await upsertMemberToSupabase(table, member);
         }
       }
       setFallbackStore(defaults);
@@ -229,10 +294,12 @@ export async function POST(req: NextRequest) {
       typeof body.workspaceId === 'string' && body.workspaceId.trim()
         ? body.workspaceId.trim()
         : 'ws-primary';
+    const allowedWorkspaceIds = normalizeAllowedWorkspaceIds(body.allowedWorkspaceIds, workspaceId);
 
     const newMember: TeamMember = {
       id: body.id || `usr-${uuidv4()}`,
       workspaceId,
+      allowedWorkspaceIds,
       fullName,
       email,
       company: typeof body.company === 'string' ? body.company.trim() : '',
@@ -247,10 +314,20 @@ export async function POST(req: NextRequest) {
       (m) => m.id === newMember.id || (m.email.toLowerCase() === email && m.workspaceId === workspaceId)
     );
     if (existingIdx >= 0) {
-      const updatedExisting = { ...store[existingIdx], ...newMember, id: store[existingIdx].id };
+      const mergedAllowed =
+        body.allowedWorkspaceIds !== undefined
+          ? allowedWorkspaceIds
+          : normalizeAllowedWorkspaceIds(store[existingIdx].allowedWorkspaceIds, workspaceId);
+      const updatedExisting = {
+        ...store[existingIdx],
+        ...newMember,
+        allowedWorkspaceIds: mergedAllowed,
+        id: store[existingIdx].id,
+      };
       const nextStore = store.map((m, idx) => (idx === existingIdx ? updatedExisting : m));
       setFallbackStore(nextStore);
       newMember.id = updatedExisting.id;
+      newMember.allowedWorkspaceIds = mergedAllowed;
     } else {
       setFallbackStore([...store, newMember]);
     }
@@ -258,7 +335,7 @@ export async function POST(req: NextRequest) {
     if (shouldUseSupabase()) {
       const table = supabase.from('user_profiles') as unknown as UserProfilesTableLike;
       if (typeof table.upsert === 'function') {
-        const { error } = await table.upsert(mapMemberToDbRow(newMember), { onConflict: 'id' });
+        const { error } = await upsertMemberToSupabase(table, newMember);
         if (error) {
           console.warn('POST /api/team Supabase error, kept in fallback:', error.message);
         }
@@ -297,13 +374,20 @@ export async function PUT(req: NextRequest) {
     }
 
     const nextRole = body.roleId !== undefined ? normalizeRole(body.roleId) : existing.roleId;
+    const nextWorkspaceId =
+      body.workspaceId !== undefined ? String(body.workspaceId).trim() || existing.workspaceId : existing.workspaceId;
+    const nextAllowedWorkspaceIds =
+      body.allowedWorkspaceIds !== undefined
+        ? normalizeAllowedWorkspaceIds(body.allowedWorkspaceIds, nextWorkspaceId)
+        : normalizeAllowedWorkspaceIds(existing.allowedWorkspaceIds, nextWorkspaceId);
+
     const updatedMember: TeamMember = {
       ...existing,
       fullName: body.fullName !== undefined ? String(body.fullName).trim() || existing.fullName : existing.fullName,
       email: body.email !== undefined ? String(body.email).trim().toLowerCase() || existing.email : existing.email,
       company: body.company !== undefined ? String(body.company).trim() : existing.company,
-      workspaceId:
-        body.workspaceId !== undefined ? String(body.workspaceId).trim() || existing.workspaceId : existing.workspaceId,
+      workspaceId: nextWorkspaceId,
+      allowedWorkspaceIds: nextAllowedWorkspaceIds,
       roleId: nextRole,
       roleName: ROLE_PERMISSIONS[nextRole].labelEs,
       updatedAt: new Date().toISOString(),
@@ -317,7 +401,7 @@ export async function PUT(req: NextRequest) {
     if (shouldUseSupabase()) {
       const table = supabase.from('user_profiles') as unknown as UserProfilesTableLike;
       if (typeof table.upsert === 'function') {
-        const { error } = await table.upsert(mapMemberToDbRow(updatedMember), { onConflict: 'id' });
+        const { error } = await upsertMemberToSupabase(table, updatedMember);
         if (error) {
           console.warn('PUT /api/team Supabase error:', error.message);
         }

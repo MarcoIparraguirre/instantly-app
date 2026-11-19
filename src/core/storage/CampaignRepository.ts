@@ -65,8 +65,11 @@ export class CampaignRepository implements ICampaignRepository {
     this.driver = driver;
   }
 
-  getCampaigns(): Campaign[] {
-    return this.driver.read<Campaign[]>(this.filename, initialCampaignsSeed);
+  getCampaigns(workspaceId?: string): Campaign[] {
+    const campaigns = this.driver.read<Campaign[]>(this.filename, initialCampaignsSeed);
+    return workspaceId
+      ? campaigns.filter(c => (c.workspaceId || 'ws-primary') === workspaceId)
+      : campaigns;
   }
 
   getCampaignById(id: string): Campaign | undefined {
@@ -75,17 +78,23 @@ export class CampaignRepository implements ICampaignRepository {
   }
 
   saveCampaigns(campaigns: Campaign[]): void {
-    this.driver.write(this.filename, campaigns);
+    const normalized = campaigns.map(c => ({
+      ...c,
+      workspaceId: c.workspaceId || 'ws-primary'
+    }));
+    this.driver.write(this.filename, normalized);
   }
 
   saveCampaign(campaign: Campaign): void {
     const campaigns = this.getCampaigns();
     const index = campaigns.findIndex(c => c.id === campaign.id);
     if (index >= 0) {
-      campaigns[index] = { ...campaign, updatedAt: new Date().toISOString() };
+      const workspaceId = campaign.workspaceId || campaigns[index].workspaceId || 'ws-primary';
+      campaigns[index] = { ...campaign, workspaceId, updatedAt: new Date().toISOString() };
     } else {
       campaigns.push({
         ...campaign,
+        workspaceId: campaign.workspaceId || 'ws-primary',
         createdAt: campaign.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });

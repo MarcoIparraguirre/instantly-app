@@ -4,8 +4,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { SenderAccount } from '@/types';
 import { maskCredential } from '@/core/security/crypto';
 
-export async function GET() {
-  const accounts = await container.accountRepo.getAccounts();
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const workspaceId = searchParams.get('workspaceId') || undefined;
+  const accounts = await container.accountRepo.getAccounts(workspaceId);
   const safeAccounts = accounts.map(a => ({
     ...a,
     smtpPass: maskCredential(a.smtpPass)
@@ -27,6 +29,7 @@ export async function POST(req: NextRequest) {
 
     const newAccount: SenderAccount = {
       id: body.id || uuidv4(),
+      workspaceId: body.workspaceId || 'ws-primary',
       name: body.name || (isGoogle ? 'Gmail Mailbox' : 'Outbound Mailbox'),
       email: body.email.trim(),
       provider,

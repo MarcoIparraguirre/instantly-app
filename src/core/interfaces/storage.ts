@@ -3,7 +3,7 @@ import { Campaign, Lead, SenderAccount, CopilotMessage, Deal, BlocklistItem, Web
 // Interface Segregation Principle (ISP): Split Read and Write interfaces
 // Compatible with both asynchronous (Supabase, PostgreSQL) and synchronous (JSON, memory) drivers
 export interface ICampaignReader {
-  getCampaigns(): Promise<Campaign[]> | Campaign[];
+  getCampaigns(workspaceId?: string): Promise<Campaign[]> | Campaign[];
   getCampaignById(id: string): Promise<Campaign | undefined> | (Campaign | undefined);
 }
 
@@ -16,7 +16,7 @@ export interface ICampaignWriter {
 export interface ICampaignRepository extends ICampaignReader, ICampaignWriter {}
 
 export interface ILeadReader {
-  getLeads(campaignId?: string): Promise<Lead[]> | Lead[];
+  getLeads(campaignId?: string, workspaceId?: string): Promise<Lead[]> | Lead[];
   getLeadById(id: string): Promise<Lead | undefined> | (Lead | undefined);
 }
 
@@ -30,7 +30,7 @@ export interface ILeadWriter {
 export interface ILeadRepository extends ILeadReader, ILeadWriter {}
 
 export interface IAccountReader {
-  getAccounts(): Promise<SenderAccount[]> | SenderAccount[];
+  getAccounts(workspaceId?: string): Promise<SenderAccount[]> | SenderAccount[];
   getAccountById(id: string): Promise<SenderAccount | undefined> | (SenderAccount | undefined);
 }
 
@@ -49,7 +49,7 @@ export interface ICopilotRepository {
 }
 
 export interface IDealRepository {
-  getDeals(): Promise<Deal[]>;
+  getDeals(workspaceId?: string): Promise<Deal[]>;
   getDealById(id: string): Promise<Deal | undefined>;
   saveDeal(deal: Deal): Promise<void>;
   updateDeal(deal: Deal): Promise<void>;
@@ -75,7 +75,7 @@ export interface IWarmupRepository {
 }
 
 export interface IThreadRepository {
-  getThreads(): Promise<EmailThread[]>;
+  getThreads(workspaceId?: string): Promise<EmailThread[]>;
   saveThreads(threads: EmailThread[]): Promise<void>;
   upsertThread(thread: EmailThread): Promise<void>;
 }

@@ -11,15 +11,24 @@ export class SupabaseThreadRepository implements IThreadRepository {
     this.client = client;
   }
 
-  async getThreads(): Promise<EmailThread[]> {
-    const { data, error } = await this.client
+  async getThreads(workspaceId?: string): Promise<EmailThread[]> {
+    let query = this.client
       .from('email_threads')
       .select('*')
       .order('updated_at', { ascending: false });
 
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+
+    const { data, error } = await query;
+
     if (error || !data || data.length === 0) {
       if (error) console.error('SupabaseThreadRepository getThreads error:', error);
-      return initialUniboxThreads;
+      if (!workspaceId || workspaceId === 'ws-primary') {
+        return initialUniboxThreads;
+      }
+      return [];
     }
 
     return data.map(this.mapToDomain);
@@ -53,6 +62,7 @@ export class SupabaseThreadRepository implements IThreadRepository {
   private mapToDomain(row: any): EmailThread {
     return {
       id: row.id,
+      workspaceId: row.workspace_id || 'ws-primary',
       campaignId: row.campaign_id || '',
       leadId: row.lead_id || '',
       leadEmail: row.lead_email,
@@ -70,6 +80,7 @@ export class SupabaseThreadRepository implements IThreadRepository {
   private mapToDb(domain: EmailThread): any {
     return {
       id: domain.id,
+      workspace_id: domain.workspaceId || 'ws-primary',
       campaign_id: domain.campaignId,
       lead_id: domain.leadId,
       lead_email: domain.leadEmail,

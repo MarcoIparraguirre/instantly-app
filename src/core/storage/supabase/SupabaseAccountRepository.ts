@@ -11,11 +11,17 @@ export class SupabaseAccountRepository implements IAccountRepository {
     this.client = client;
   }
 
-  async getAccounts(): Promise<SenderAccount[]> {
-    const { data, error } = await this.client
+  async getAccounts(workspaceId?: string): Promise<SenderAccount[]> {
+    let query = this.client
       .from('sender_accounts')
       .select('*')
       .order('created_at', { ascending: true });
+
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('SupabaseAccountRepository getAccounts error:', error);
@@ -50,14 +56,16 @@ export class SupabaseAccountRepository implements IAccountRepository {
 
   async saveAccount(account: SenderAccount): Promise<void> {
     let passToStore = account.smtpPass;
+    let resolvedWorkspaceId = account.workspaceId;
     if (passToStore === '••••••••' || passToStore === '********') {
       const existing = await this.getAccountById(account.id);
       if (existing) {
         passToStore = existing.smtpPass;
+        resolvedWorkspaceId = resolvedWorkspaceId || existing.workspaceId;
       }
     }
 
-    const payload = this.mapToDb({ ...account, smtpPass: passToStore });
+    const payload = this.mapToDb({ ...account, workspaceId: resolvedWorkspaceId, smtpPass: passToStore });
     const { error } = await this.client
       .from('sender_accounts')
       .upsert(payload, { onConflict: 'id' });
@@ -83,6 +91,7 @@ export class SupabaseAccountRepository implements IAccountRepository {
   private mapToDomain(row: any): SenderAccount {
     return {
       id: row.id,
+      workspaceId: row.workspace_id || 'ws-primary',
       name: row.name,
       email: row.email,
       provider: row.provider || 'smtp',
@@ -105,6 +114,7 @@ export class SupabaseAccountRepository implements IAccountRepository {
   private mapToDb(account: SenderAccount): any {
     return {
       id: account.id,
+      workspace_id: account.workspaceId || 'ws-primary',
       name: account.name,
       email: account.email,
       provider: account.provider || 'smtp',

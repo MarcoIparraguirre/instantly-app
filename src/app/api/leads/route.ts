@@ -6,17 +6,24 @@ import { Lead } from '@/types';
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const campaignId = searchParams.get('campaignId') || undefined;
-  const leads = await container.leadRepo.getLeads(campaignId);
+  const workspaceId = searchParams.get('workspaceId') || undefined;
+  const leads = await container.leadRepo.getLeads(campaignId, workspaceId);
   return NextResponse.json(leads);
 }
 
 export async function POST(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
     const body = await req.json();
     const items = Array.isArray(body) ? body : [body];
 
     const newLeads: Lead[] = items.map(item => ({
       id: item.id || uuidv4(),
+      workspaceId:
+        item.workspaceId ||
+        (!Array.isArray(body) ? body?.workspaceId : undefined) ||
+        searchParams.get('workspaceId') ||
+        'ws-primary',
       campaignId: item.campaignId || 'campaign-1',
       email: item.email,
       firstName: item.firstName || '',
@@ -56,10 +63,11 @@ export async function PUT(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const campaignId = searchParams.get('campaignId') || undefined;
+    const workspaceId = searchParams.get('workspaceId') || undefined;
     const body = await req.json();
 
     if (body.action === 'reset_status') {
-      const leads = await container.leadRepo.getLeads(campaignId);
+      const leads = await container.leadRepo.getLeads(campaignId, workspaceId || body.workspaceId || undefined);
       const updated = leads.map(l => {
         const nextCustomVars = l.customVariables ? { ...l.customVariables } : {};
         if ('ESTADO' in nextCustomVars) nextCustomVars.ESTADO = 'Pendiente';
@@ -71,12 +79,20 @@ export async function PUT(req: NextRequest) {
           customVariables: nextCustomVars
         };
       });
-      await container.leadRepo.saveLeads(updated);
+      await container.leadRepo.addLeads(updated);
       return NextResponse.json({ success: true, count: updated.length });
     }
 
     if (body.action === 'update_lead' && body.lead) {
-      const updatedLead: Lead = body.lead;
+      let leadWorkspaceId = body.lead.workspaceId || workspaceId || body.workspaceId;
+      if (!leadWorkspaceId && typeof container.leadRepo.getLeadById === 'function') {
+        const existing = await container.leadRepo.getLeadById(body.lead.id);
+        leadWorkspaceId = existing?.workspaceId;
+      }
+      const updatedLead: Lead = {
+        ...body.lead,
+        workspaceId: leadWorkspaceId || 'ws-primary'
+      };
       await container.leadRepo.updateLead(updatedLead);
       return NextResponse.json({ success: true, lead: updatedLead });
     }

@@ -3,21 +3,35 @@ import { container } from '@/core/container';
 import { ImapInboxService } from '@/core/services/ImapInboxService';
 import { EmailThread } from '@/types';
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const threads = await container.threadRepo.getThreads();
+    const { searchParams } = new URL(req.url);
+    const workspaceId = searchParams.get('workspaceId') || undefined;
+    const threads = await container.threadRepo.getThreads(workspaceId);
     return NextResponse.json({ success: true, threads });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Error fetching threads' }, { status: 500 });
   }
 }
 
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    let bodyWorkspaceId: string | undefined;
+    try {
+      const body = await req.json();
+      if (body && typeof body.workspaceId === 'string' && body.workspaceId.trim()) {
+        bodyWorkspaceId = body.workspaceId.trim();
+      }
+    } catch {
+      // Empty or non-JSON request body is allowed
+    }
+    const workspaceId = searchParams.get('workspaceId') || bodyWorkspaceId || undefined;
+
     const [accounts, leads, campaigns] = await Promise.all([
-      container.accountRepo.getAccounts(),
-      container.leadRepo.getLeads(),
-      container.campaignRepo.getCampaigns()
+      container.accountRepo.getAccounts(workspaceId),
+      container.leadRepo.getLeads(undefined, workspaceId),
+      container.campaignRepo.getCampaigns(workspaceId)
     ]);
 
     const imapService = new ImapInboxService();
@@ -128,10 +142,20 @@ export async function POST(_req: NextRequest) {
       }
     }
 
-    // Deduplicate threads by id
+    // Deduplicate threads by id while preserving workspaceId
     const uniqueThreadsMap = new Map<string, EmailThread>();
     for (const th of allThreads) {
-      uniqueThreadsMap.set(th.id, th);
+      const matchingCampaign = campaigns.find(c => c.id === th.campaignId);
+      const matchingAccount = accounts.find(a => a.id === th.senderAccountId);
+      uniqueThreadsMap.set(th.id, {
+        ...th,
+        workspaceId:
+          th.workspaceId ||
+          matchingCampaign?.workspaceId ||
+          matchingAccount?.workspaceId ||
+          workspaceId ||
+          'ws-primary'
+      });
     }
 
     let finalThreads = Array.from(uniqueThreadsMap.values()).sort(
@@ -143,7 +167,7 @@ export async function POST(_req: NextRequest) {
         console.error('Failed to persist threads:', err);
       });
     } else {
-      finalThreads = await container.threadRepo.getThreads();
+      finalThreads = await container.threadRepo.getThreads(workspaceId);
     }
 
     return NextResponse.json({

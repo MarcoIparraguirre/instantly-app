@@ -276,10 +276,17 @@ export async function POST(req: NextRequest) {
 
     const { dnsChecks, healthScore } = buildDnsChecks(audit, defaults);
 
+    const workspaceId =
+      typeof body.workspaceId === 'string' && body.workspaceId.trim()
+        ? body.workspaceId.trim()
+        : undefined;
+
     let existingId: string | undefined;
     if (typeof container.accountRepo?.getAccounts === 'function') {
       try {
-        const existingAccounts = await container.accountRepo.getAccounts();
+        const existingAccounts = workspaceId
+          ? await container.accountRepo.getAccounts(workspaceId)
+          : await container.accountRepo.getAccounts();
         existingId = existingAccounts.find(
           (a) => a.email.toLowerCase() === cleanEmail
         )?.id;
@@ -297,6 +304,7 @@ export async function POST(req: NextRequest) {
 
     const newAccount: SenderAccount = {
       id: existingId || requestedId || uuidv4(),
+      workspaceId: workspaceId || 'ws-primary',
       name: cleanName,
       email: cleanEmail,
       provider,

@@ -3,9 +3,11 @@ import { container } from '@/core/container';
 import { v4 as uuidv4 } from 'uuid';
 import { Deal } from '@/types';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const deals = await container.dealRepo.getDeals();
+    const { searchParams } = new URL(req.url);
+    const workspaceId = searchParams.get('workspaceId') || undefined;
+    const deals = await container.dealRepo.getDeals(workspaceId);
     return NextResponse.json(deals);
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Error fetching deals' }, { status: 500 });
@@ -17,6 +19,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const deal: Deal = {
       id: body.id || `deal-${uuidv4()}`,
+      workspaceId: body.workspaceId || 'ws-primary',
       leadId: body.leadId || '',
       contactName: body.contactName,
       contactEmail: body.contactEmail,
@@ -41,8 +44,17 @@ export async function PUT(req: NextRequest) {
     if (!body.id) {
       return NextResponse.json({ error: 'Deal id is required' }, { status: 400 });
     }
-    await container.dealRepo.updateDeal(body);
-    return NextResponse.json({ success: true, deal: body });
+    let resolvedWorkspaceId = body.workspaceId;
+    if (!resolvedWorkspaceId && typeof container.dealRepo.getDealById === 'function') {
+      const existing = await container.dealRepo.getDealById(body.id);
+      resolvedWorkspaceId = existing?.workspaceId;
+    }
+    const dealToUpdate: Deal = {
+      ...body,
+      workspaceId: resolvedWorkspaceId || 'ws-primary'
+    };
+    await container.dealRepo.updateDeal(dealToUpdate);
+    return NextResponse.json({ success: true, deal: dealToUpdate });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Error updating deal' }, { status: 400 });
   }
