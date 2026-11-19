@@ -23,12 +23,14 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useFeedback } from '@/context/FeedbackContext';
 import {
   BillingCycle,
   BillingProvider,
   SAAS_PLANS,
   WorkspacePlan,
   normalizePlan,
+  normalizeRole,
 } from '@/types';
 
 interface PlanFeatureMeta {
@@ -115,24 +117,33 @@ function computeDaysRemaining(trialEndsAt?: string): number | null {
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
-function getProviderDisplayName(provider?: string): string {
+function getProviderDisplayName(
+  provider: string | undefined,
+  isSuperAdmin: boolean,
+  isEs: boolean
+): string {
   switch (provider) {
     case 'mercadopago':
       return 'MercadoPago (ARS)';
     case 'lemonsqueezy':
       return 'Lemon Squeezy (USD)';
     case 'stripe':
-      return 'Stripe Internacional (USD)';
+      return isEs ? 'Stripe Internacional (USD)' : 'Stripe International (USD)';
     default:
-      return 'Sandbox / Trial';
+      if (isSuperAdmin) return 'Sandbox / Trial';
+      return isEs ? 'Periodo de Prueba' : 'Free Trial';
   }
 }
 
 export default function BillingView() {
-  const { currentWorkspace, workspaces, refreshWorkspaces, openAuthModal } = useAuth();
+  const { user, currentWorkspace, workspaces, refreshWorkspaces, openAuthModal } = useAuth();
   const { language } = useLanguage();
+  const { showToast } = useFeedback();
   const isEs = language === 'es';
   const locale = isEs ? 'es-AR' : 'en-US';
+
+  const userRole = normalizeRole(user?.role);
+  const isSuperAdmin = userRole === 'super_admin';
 
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const [provider, setProvider] = useState<BillingProvider>('mercadopago');
@@ -159,6 +170,10 @@ export default function BillingView() {
   } | null>(null);
 
   useEffect(() => {
+    if (!isSuperAdmin && provider !== 'mercadopago') {
+      return;
+    }
+
     let active = true;
     const loadGatewayConfig = async () => {
       try {
@@ -172,21 +187,22 @@ export default function BillingView() {
             ? `${window.location.origin}/api/billing/webhook`
             : '/api/billing/webhook';
 
-        setGatewayConfig({
+        setGatewayConfig((prev) => ({
           usdToArsRate:
-            Number(data.usdToArsRate) > 0 ? Number(data.usdToArsRate) : 1200,
+            Number(data.usdToArsRate) > 0 ? Number(data.usdToArsRate) : prev.usdToArsRate,
           rateSource:
-            typeof data.rateSource === 'string' ? data.rateSource : 'fallback',
-          mercadopagoConfigured: Boolean(data.mercadopagoConfigured),
-          lemonsqueezyConfigured: Boolean(data.lemonsqueezyConfigured),
-          stripeConfigured: Boolean(data.stripeConfigured),
-          webhookUrl:
-            typeof data.webhookUrl === 'string' && data.webhookUrl
+            typeof data.rateSource === 'string' ? data.rateSource : prev.rateSource,
+          mercadopagoConfigured: isSuperAdmin ? Boolean(data.mercadopagoConfigured) : false,
+          lemonsqueezyConfigured: isSuperAdmin ? Boolean(data.lemonsqueezyConfigured) : false,
+          stripeConfigured: isSuperAdmin ? Boolean(data.stripeConfigured) : false,
+          webhookUrl: isSuperAdmin
+            ? typeof data.webhookUrl === 'string' && data.webhookUrl
               ? data.webhookUrl
-              : fallbackWebhookUrl,
-        });
+              : fallbackWebhookUrl
+            : prev.webhookUrl,
+        }));
       } catch {
-        if (!active) return;
+        if (!active || !isSuperAdmin) return;
         if (typeof window !== 'undefined') {
           setGatewayConfig((prev) => ({
             ...prev,
@@ -200,15 +216,16 @@ export default function BillingView() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [isSuperAdmin, provider]);
 
   useEffect(() => {
     let active = true;
     const loadUsageMetrics = async () => {
       try {
+        const wsQuery = encodeURIComponent(currentWorkspace.id);
         const [accRes, leadsRes] = await Promise.all([
-          fetch('/api/accounts'),
-          fetch('/api/leads'),
+          fetch(`/api/accounts?workspaceId=${wsQuery}`),
+          fetch(`/api/leads?workspaceId=${wsQuery}`),
         ]);
         const accData = await accRes.json().catch(() => []);
         const leadsData = await leadsRes.json().catch(() => []);
@@ -250,7 +267,7 @@ export default function BillingView() {
     if (gatewayConfig.rateSource === 'env') {
       return isEs ? 'Tarifa configurada' : 'Configured Rate';
     }
-    return isEs ? 'Referencia base' : 'Reference Fallback';
+    return isEs ? 'Referencia base' : 'Reference Rate';
   })();
 
   const handleCheckout = async (planId: WorkspacePlan) => {
@@ -272,10 +289,10 @@ export default function BillingView() {
 
       const data = await res.json();
       if (!res.ok) {
-        setFeedback({
-          type: 'error',
-          text: data?.error || (isEs ? 'Error al procesar el cambio de plan' : 'Checkout failed'),
-        });
+        const msg =
+          data?.error || (isEs ? 'Error al procesar el cambio de plan' : 'Checkout failed');
+        setFeedback({ type: 'error', text: msg });
+        showToast(msg, 'error');
         return;
       }
 
@@ -286,39 +303,52 @@ export default function BillingView() {
 
       await refreshWorkspaces();
       const planLabel = SAAS_PLANS[planId].name;
-      const providerLabel = getProviderDisplayName(provider);
-      setFeedback({
-        type: 'success',
-        text: isEs
-          ? `¡Workspace "${currentWorkspace.name}" actualizado al plan ${planLabel} (${providerLabel} • Sandbox activo)!`
-          : `Workspace "${currentWorkspace.name}" upgraded to ${planLabel} plan (${providerLabel} • Sandbox active)!`,
-      });
+      const providerLabel = getProviderDisplayName(provider, isSuperAdmin, isEs);
+      const successText = isSuperAdmin
+        ? isEs
+          ? `Workspace "${currentWorkspace.name}" actualizado al plan ${planLabel} (${providerLabel} • Sandbox activo).`
+          : `Workspace "${currentWorkspace.name}" upgraded to ${planLabel} plan (${providerLabel} • Sandbox active).`
+        : isEs
+          ? `Workspace "${currentWorkspace.name}" actualizado al plan ${planLabel} (${providerLabel}).`
+          : `Workspace "${currentWorkspace.name}" upgraded to ${planLabel} plan (${providerLabel}).`;
+      setFeedback({ type: 'success', text: successText });
+      showToast(successText, 'success');
     } catch (err: unknown) {
-      setFeedback({
-        type: 'error',
-        text: err instanceof Error ? err.message : (isEs ? 'Error de red en facturación' : 'Billing network error'),
-      });
+      const errText =
+        err instanceof Error
+          ? err.message
+          : isEs
+            ? 'Error de red en facturación'
+            : 'Billing network error';
+      setFeedback({ type: 'error', text: errText });
+      showToast(errText, 'error');
     } finally {
       setProcessingPlan(null);
     }
   };
 
   const handleCopyWebhookUrl = async () => {
+    if (!isSuperAdmin) return;
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(gatewayConfig.webhookUrl);
       }
       setCopiedWebhook(true);
+      showToast(
+        isEs ? 'Webhook URL copiada al portapapeles' : 'Webhook URL copied to clipboard',
+        'success'
+      );
       setTimeout(() => setCopiedWebhook(false), 2200);
     } catch {
-      setFeedback({
-        type: 'error',
-        text: isEs ? 'No se pudo copiar al portapapeles' : 'Could not copy webhook URL',
-      });
+      const errText = isEs ? 'No se pudo copiar al portapapeles' : 'Could not copy webhook URL';
+      setFeedback({ type: 'error', text: errText });
+      showToast(errText, 'error');
     }
   };
 
   const handleSimulateWebhook = async () => {
+    if (!isSuperAdmin) return;
+
     setSimulatingWebhook(true);
     setFeedback(null);
 
@@ -335,28 +365,30 @@ export default function BillingView() {
 
       const data = await res.json();
       if (!res.ok || !data?.handled) {
-        setFeedback({
-          type: 'error',
-          text:
-            data?.error ||
-            data?.message ||
-            (isEs ? 'No se pudo simular el webhook de pago' : 'Webhook simulation failed'),
-        });
+        const msg =
+          data?.error ||
+          data?.message ||
+          (isEs ? 'No se pudo simular el webhook de pago' : 'Webhook simulation failed');
+        setFeedback({ type: 'error', text: msg });
+        showToast(msg, 'error');
         return;
       }
 
       await refreshWorkspaces();
-      setFeedback({
-        type: 'success',
-        text: isEs
-          ? `⚡ Webhook MercadoPago aprobado simulado para "${currentWorkspace.name}": Plan Agency activado en vivo.`
-          : `⚡ Simulated approved MercadoPago webhook for "${currentWorkspace.name}": Agency plan activated live.`,
-      });
+      const successMsg = isEs
+        ? `Webhook MercadoPago aprobado simulado para "${currentWorkspace.name}": Plan Agency activado en vivo.`
+        : `Simulated approved MercadoPago webhook for "${currentWorkspace.name}": Agency plan activated live.`;
+      setFeedback({ type: 'success', text: successMsg });
+      showToast(successMsg, 'success');
     } catch (err: unknown) {
-      setFeedback({
-        type: 'error',
-        text: err instanceof Error ? err.message : (isEs ? 'Error al simular webhook' : 'Webhook simulation error'),
-      });
+      const errMsg =
+        err instanceof Error
+          ? err.message
+          : isEs
+            ? 'Error al simular webhook'
+            : 'Webhook simulation error';
+      setFeedback({ type: 'error', text: errMsg });
+      showToast(errMsg, 'error');
     } finally {
       setSimulatingWebhook(false);
     }
@@ -372,19 +404,19 @@ export default function BillingView() {
     if (subStatus === 'active') {
       return {
         label: isEs ? 'Suscripción Activa' : 'Active Subscription',
-        classes: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+        classes: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
       };
     }
     if (subStatus === 'past_due') {
       return {
         label: isEs ? 'Pago Pendiente' : 'Past Due',
-        classes: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+        classes: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
       };
     }
     if (subStatus === 'canceled') {
       return {
         label: isEs ? 'Cancelada' : 'Canceled',
-        classes: 'bg-slate-700/40 text-slate-300 border-slate-600/40',
+        classes: 'bg-[#171B26] text-[#949EB0] border-[#232938]',
       };
     }
     return {
@@ -396,7 +428,7 @@ export default function BillingView() {
           : isEs
             ? 'Prueba Gratis (7 días)'
             : '7-Day Free Trial',
-      classes: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+      classes: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
     };
   })();
 
@@ -407,16 +439,16 @@ export default function BillingView() {
   ].filter(Boolean).length;
 
   return (
-    <div className="flex-1 h-full overflow-y-auto bg-[#0b0f17] p-6 lg:p-8 space-y-6">
+    <div className="flex-1 h-full overflow-y-auto bg-[#0A0C10] p-6 lg:p-8 space-y-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header & Active Workspace Plan Banner */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#1D2330] pb-5">
           <div>
-            <h1 className="text-lg font-bold text-white flex items-center gap-2.5">
-              <CreditCard className="w-5 h-5 text-blue-400" />
+            <h1 className="text-lg font-bold text-[#F3F5F8] flex items-center gap-2.5 tracking-tight">
+              <CreditCard className="w-5 h-5 text-[#E85D2A]" />
               <span>{isEs ? 'Facturación, Planes y Límites SaaS' : 'Billing, Plans & SaaS Limits'}</span>
             </h1>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-[#949EB0] mt-1">
               {isEs
                 ? 'Gestiona tu suscripción, consumo de casillas y capacidad de prospección por Workspace.'
                 : 'Manage your subscription, mailbox consumption, and outbound capacity per Workspace.'}
@@ -424,15 +456,15 @@ export default function BillingView() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
-              <Building2 className="w-3.5 h-3.5 text-blue-400" />
-              <span className="text-slate-300 font-semibold">{currentWorkspace.name}</span>
-              <span className="text-slate-600">•</span>
-              <span className="text-blue-400 font-bold">{activePlanConfig.name}</span>
+            <div className="flex items-center gap-2 bg-[#11141C] border border-[#232938] px-3 py-1.5 rounded-lg text-xs">
+              <Building2 className="w-3.5 h-3.5 text-[#E85D2A]" />
+              <span className="text-[#F3F5F8] font-semibold">{currentWorkspace.name}</span>
+              <span className="text-[#949EB0]">/</span>
+              <span className="text-[#E85D2A] font-bold">{activePlanConfig.name}</span>
             </div>
 
             <span
-              className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border ${statusBadge.classes}`}
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border font-mono tabular-nums ${statusBadge.classes}`}
             >
               <Clock className="w-3.5 h-3.5" />
               <span>{statusBadge.label}</span>
@@ -441,7 +473,7 @@ export default function BillingView() {
             <button
               type="button"
               onClick={() => openAuthModal('workspace')}
-              className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer"
+              className="flex items-center gap-1.5 bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] text-[#F3F5F8] px-3 py-1.5 rounded-lg text-xs font-semibold font-mono tabular-nums transition cursor-pointer"
             >
               <span>{`+ Workspace (${workspaces.length})`}</span>
             </button>
@@ -451,10 +483,10 @@ export default function BillingView() {
         {/* Inline Feedback Banner */}
         {feedback && (
           <div
-            className={`flex items-center gap-3 p-4 rounded-2xl border text-xs font-medium ${
+            className={`flex items-center gap-3 p-4 rounded-xl border text-xs font-medium ${
               feedback.type === 'success'
-                ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300'
-                : 'bg-rose-950/30 border-rose-500/40 text-rose-300'
+                ? 'bg-emerald-500/10 border-emerald-500/35 text-emerald-300'
+                : 'bg-rose-500/10 border-rose-500/35 text-rose-300'
             }`}
           >
             {feedback.type === 'success' ? (
@@ -469,53 +501,55 @@ export default function BillingView() {
         {/* Real Usage Meters */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Mailboxes Usage */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
-                <Server className="w-4 h-4 text-blue-400" />
+              <div className="flex items-center gap-2 text-xs font-semibold text-[#949EB0]">
+                <Server className="w-4 h-4 text-[#E85D2A]" />
                 <span>{isEs ? 'Casillas Conectadas' : 'Connected Mailboxes'}</span>
               </div>
-              <span className="text-xs font-mono font-bold text-white">
+              <span className="text-xs font-mono tabular-nums font-bold text-[#F3F5F8]">
                 {loadingUsage ? '...' : accountsCount} / {maxAccounts >= 999 ? '∞' : maxAccounts}
               </span>
             </div>
-            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-[#171B26] rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${
-                  accountsPct >= 85 ? 'bg-amber-500' : 'bg-blue-500'
+                  accountsPct >= 85 ? 'bg-amber-500' : 'bg-[#E85D2A]'
                 }`}
                 style={{ width: `${Math.max(accountsCount > 0 ? 6 : 0, accountsPct)}%` }}
               />
             </div>
-            <div className="text-[11px] text-slate-400">
+            <div className="text-[11px] text-[#949EB0] font-mono tabular-nums">
               {maxAccounts >= 999
-                ? (isEs ? 'Capacidad ilimitada en plan Agency' : 'Unlimited capacity on Agency plan')
-                : (isEs
-                    ? `${Math.max(0, maxAccounts - accountsCount)} cupos disponibles en tu plan`
-                    : `${Math.max(0, maxAccounts - accountsCount)} mailbox slots remaining`)}
+                ? isEs
+                  ? 'Capacidad ilimitada en plan Agency'
+                  : 'Unlimited capacity on Agency plan'
+                : isEs
+                  ? `${Math.max(0, maxAccounts - accountsCount)} cupos disponibles en tu plan`
+                  : `${Math.max(0, maxAccounts - accountsCount)} mailbox slots remaining`}
             </div>
           </div>
 
           {/* Leads Usage */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
-                <Users className="w-4 h-4 text-indigo-400" />
+              <div className="flex items-center gap-2 text-xs font-semibold text-[#949EB0]">
+                <Users className="w-4 h-4 text-[#F3F5F8]" />
                 <span>{isEs ? 'Leads Activos' : 'Active Leads'}</span>
               </div>
-              <span className="text-xs font-mono font-bold text-white">
+              <span className="text-xs font-mono tabular-nums font-bold text-[#F3F5F8]">
                 {loadingUsage ? '...' : leadsCount.toLocaleString()} / {maxLeads.toLocaleString()}
               </span>
             </div>
-            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-[#171B26] rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${
-                  leadsPct >= 85 ? 'bg-amber-500' : 'bg-indigo-500'
+                  leadsPct >= 85 ? 'bg-amber-500' : 'bg-[#949EB0]'
                 }`}
                 style={{ width: `${Math.max(leadsCount > 0 ? 4 : 0, leadsPct)}%` }}
               />
             </div>
-            <div className="text-[11px] text-slate-400">
+            <div className="text-[11px] text-[#949EB0] font-mono tabular-nums">
               {isEs
                 ? `${leadsPct}% de tu cuota mensual utilizada`
                 : `${leadsPct}% of monthly lead capacity used`}
@@ -523,43 +557,43 @@ export default function BillingView() {
           </div>
 
           {/* Credits Balance */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
+              <div className="flex items-center gap-2 text-xs font-semibold text-[#949EB0]">
                 <Zap className="w-4 h-4 text-emerald-400" />
                 <span>{isEs ? 'Créditos Verificados' : 'Verification Credits'}</span>
               </div>
-              <span className="text-xs font-mono font-bold text-emerald-400">
+              <span className="text-xs font-mono tabular-nums font-bold text-emerald-400">
                 {credits.toLocaleString()}
               </span>
             </div>
-            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-[#171B26] rounded-full overflow-hidden">
               <div className="h-full rounded-full bg-emerald-500" style={{ width: '100%' }} />
             </div>
-            <div className="text-[11px] text-slate-400">
+            <div className="text-[11px] text-[#949EB0]">
               {isEs
-                ? `Proveedor activo: ${getProviderDisplayName(currentWorkspace.billingProvider)}`
-                : `Active provider: ${getProviderDisplayName(currentWorkspace.billingProvider)}`}
+                ? `Proveedor activo: ${getProviderDisplayName(currentWorkspace.billingProvider, isSuperAdmin, isEs)}`
+                : `Active provider: ${getProviderDisplayName(currentWorkspace.billingProvider, isSuperAdmin, isEs)}`}
             </div>
           </div>
         </div>
 
         {/* Billing Controls: Cycle Toggle + 3-Gateway Selector + MercadoPago ARS/Recurring Bar */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 space-y-4">
+        <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-4 space-y-4">
           <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
             {/* Monthly vs Annual (20% Off) */}
             <div className="flex items-center gap-3">
-              <span className="text-xs font-semibold text-slate-400">
+              <span className="text-xs font-semibold text-[#949EB0]">
                 {isEs ? 'Ciclo de facturación:' : 'Billing cycle:'}
               </span>
-              <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1">
+              <div className="flex items-center bg-[#0A0C10] border border-[#232938] rounded-lg p-1">
                 <button
                   type="button"
                   onClick={() => setBillingCycle('monthly')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                     billingCycle === 'monthly'
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-[#E85D2A] text-white'
+                      : 'text-[#949EB0] hover:text-[#F3F5F8]'
                   }`}
                 >
                   {isEs ? 'Mensual' : 'Monthly'}
@@ -569,12 +603,18 @@ export default function BillingView() {
                   onClick={() => setBillingCycle('annual')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                     billingCycle === 'annual'
-                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-[#E85D2A] text-white'
+                      : 'text-[#949EB0] hover:text-[#F3F5F8]'
                   }`}
                 >
                   <span>{isEs ? 'Anual' : 'Annual'}</span>
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.2 rounded-full">
+                  <span
+                    className={`text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded-lg border ${
+                      billingCycle === 'annual'
+                        ? 'bg-black/25 text-white border-white/25'
+                        : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                    }`}
+                  >
                     -20%
                   </span>
                 </button>
@@ -583,57 +623,64 @@ export default function BillingView() {
 
             {/* 3-Gateway Selector */}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5 text-blue-400" />
+              <span className="text-xs font-semibold text-[#949EB0] flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-[#E85D2A]" />
                 <span>{isEs ? 'Pasarela:' : 'Payment Gateway:'}</span>
               </span>
 
               <button
                 type="button"
                 onClick={() => setProvider('mercadopago')}
-                className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer flex items-center gap-2 ${
                   provider === 'mercadopago'
-                    ? 'bg-sky-600/20 border-sky-400/60 text-sky-200 shadow-sm'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-[#171B26] border-[#E85D2A] text-[#F3F5F8]'
+                    : 'bg-[#0A0C10] border-[#232938] text-[#949EB0] hover:text-[#F3F5F8] hover:border-[#343D52]'
                 }`}
               >
-                <span>🇦🇷</span>
+                <span className="font-mono tabular-nums text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#0A0C10] border border-[#232938] text-[#F3F5F8]">
+                  ARS
+                </span>
                 <span>
                   {isEs
-                    ? 'MercadoPago (ARS — Saldo MP, Débito, Crédito)'
-                    : 'MercadoPago (ARS — MP Wallet, Debit, Credit)'}
+                    ? 'MercadoPago (Saldo MP, Débito, Crédito)'
+                    : 'MercadoPago (MP Wallet, Debit, Credit)'}
                 </span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setProvider('lemonsqueezy')}
-                className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer flex items-center gap-2 ${
                   provider === 'lemonsqueezy'
-                    ? 'bg-amber-500/15 border-amber-400/60 text-amber-200 shadow-sm'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-[#171B26] border-[#E85D2A] text-[#F3F5F8]'
+                    : 'bg-[#0A0C10] border-[#232938] text-[#949EB0] hover:text-[#F3F5F8] hover:border-[#343D52]'
                 }`}
               >
-                <span>🍋</span>
+                <span className="font-mono tabular-nums text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#0A0C10] border border-[#232938] text-amber-300">
+                  USD
+                </span>
                 <span>
                   {isEs
-                    ? 'Lemon Squeezy (USD — Global sin LLC)'
-                    : 'Lemon Squeezy (USD — Global Merchant of Record)'}
+                    ? 'Lemon Squeezy (Global sin LLC)'
+                    : 'Lemon Squeezy (Global Merchant of Record)'}
                 </span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setProvider('stripe')}
-                className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer flex items-center gap-2 ${
                   provider === 'stripe'
-                    ? 'bg-blue-600/20 border-blue-500/60 text-blue-200 shadow-sm'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-[#171B26] border-[#E85D2A] text-[#F3F5F8]'
+                    : 'bg-[#0A0C10] border-[#232938] text-[#949EB0] hover:text-[#F3F5F8] hover:border-[#343D52]'
                 }`}
               >
-                <span>💳</span>
+                <CreditCard className="w-3.5 h-3.5 text-[#949EB0]" />
+                <span className="font-mono tabular-nums text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#0A0C10] border border-[#232938] text-[#F3F5F8]">
+                  USD
+                </span>
                 <span>
-                  {isEs ? 'Stripe Internacional (USD)' : 'Stripe International (USD)'}
+                  {isEs ? 'Stripe Internacional' : 'Stripe International'}
                 </span>
               </button>
             </div>
@@ -641,27 +688,27 @@ export default function BillingView() {
 
           {/* MercadoPago Live Exchange Rate & Recurring Preapproval Toggle */}
           {provider === 'mercadopago' && (
-            <div className="pt-3 border-t border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs text-sky-300 bg-sky-950/30 border border-sky-500/25 px-3 py-2 rounded-xl">
-                <span className="font-bold">
+            <div className="pt-3 border-t border-[#1D2330] flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex items-center flex-wrap gap-2 text-xs text-[#949EB0] bg-[#171B26] border border-[#232938] px-3 py-2 rounded-lg">
+                <span className="font-semibold text-[#F3F5F8]">
                   {isEs ? 'Tipo de cambio USD → ARS:' : 'USD → ARS Exchange Rate:'}
                 </span>
-                <span className="font-mono font-bold text-white">
+                <span className="font-mono tabular-nums font-bold text-[#F3F5F8]">
                   1 USD = ARS ${gatewayConfig.usdToArsRate.toLocaleString(locale)}
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
                   {rateSourceLabel}
                 </span>
               </div>
 
-              <label className="flex items-center gap-2.5 text-xs text-slate-200 bg-slate-950/70 border border-slate-800 px-3.5 py-2 rounded-xl cursor-pointer hover:border-sky-500/40 transition select-none">
+              <label className="flex items-center gap-2.5 text-xs text-[#F3F5F8] bg-[#171B26] border border-[#232938] px-3.5 py-2 rounded-lg cursor-pointer hover:border-[#E85D2A]/60 transition select-none">
                 <input
                   type="checkbox"
                   checked={mpRecurring}
                   onChange={(e) => setMpRecurring(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-sky-500 focus:ring-sky-500 cursor-pointer"
+                  className="w-4 h-4 rounded border-[#232938] bg-[#0A0C10] accent-[#E85D2A] cursor-pointer"
                 />
-                <Repeat className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                <Repeat className="w-3.5 h-3.5 text-[#E85D2A] shrink-0" />
                 <span className="font-medium">
                   {isEs
                     ? 'Adherir a débito automático mensual (/preapproval)'
@@ -692,54 +739,54 @@ export default function BillingView() {
             return (
               <div
                 key={meta.id}
-                className={`relative rounded-3xl p-6 border flex flex-col justify-between space-y-6 transition ${
+                className={`relative rounded-xl p-6 border flex flex-col justify-between space-y-6 transition ${
                   meta.popular
-                    ? 'bg-gradient-to-b from-indigo-950/40 to-slate-900/90 border-indigo-500/50 shadow-xl shadow-indigo-950/30'
-                    : 'bg-slate-900/70 border-slate-800 hover:border-slate-700'
+                    ? 'bg-[#11141C] border-[#E85D2A]/60 shadow-xl'
+                    : 'bg-[#11141C] border-[#1D2330] hover:border-[#232938]'
                 }`}
               >
                 {meta.popular && (
-                  <div className="absolute -top-3 right-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-md flex items-center gap-1">
+                  <div className="absolute -top-3 right-5 bg-[#E85D2A] text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg shadow-sm flex items-center gap-1">
                     <Sparkles className="w-3 h-3" />
                     <span>{isEs ? 'Más Popular' : 'Most Popular'}</span>
                   </div>
                 )}
 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold text-white">{cfg.name}</h2>
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="text-base font-bold text-[#F3F5F8]">{cfg.name}</h2>
                     {isCurrent && (
-                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                         {isEs ? 'Plan Actual' : 'Current Plan'}
                       </span>
                     )}
                     {isTrialingThis && (
-                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30 font-mono tabular-nums">
                         {isEs ? 'En Prueba (7d)' : 'Trialing (7d)'}
                       </span>
                     )}
                   </div>
 
-                  <p className="text-xs text-slate-400 leading-relaxed min-h-[34px]">{tagline}</p>
+                  <p className="text-xs text-[#949EB0] leading-relaxed min-h-[34px]">{tagline}</p>
 
-                  <div className="pt-1 space-y-2">
+                  <div className="pt-1 space-y-2.5">
                     <div>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="text-3xl font-black text-white">
+                        <span className="text-3xl font-extrabold text-[#F3F5F8] font-mono tabular-nums">
                           {formatPrice(cfg.monthlyPriceUsd)}
                         </span>
-                        <span className="text-xs text-slate-400 font-medium">
+                        <span className="text-xs text-[#949EB0] font-mono font-medium">
                           {isEs ? 'USD / mes' : 'USD / mo'}
                         </span>
                       </div>
                       {billingCycle === 'annual' ? (
-                        <p className="text-[11px] text-emerald-400 mt-1 font-medium">
+                        <p className="text-[11px] text-emerald-400 mt-1 font-mono tabular-nums font-medium">
                           {isEs
                             ? `Facturado $${totalUsd}/año (ahorras 20%)`
                             : `Billed $${totalUsd}/year (save 20%)`}
                         </p>
                       ) : (
-                        <p className="text-[11px] text-slate-500 mt-1">
+                        <p className="text-[11px] text-[#949EB0] mt-1">
                           {isEs ? 'Facturación mensual flexible' : 'Flexible monthly billing'}
                         </p>
                       )}
@@ -747,21 +794,23 @@ export default function BillingView() {
 
                     {/* Exact ARS Converted Price Box when MercadoPago is selected */}
                     {provider === 'mercadopago' && (
-                      <div className="bg-sky-950/35 border border-sky-500/30 rounded-xl p-2.5 space-y-0.5">
+                      <div className="bg-[#171B26] border border-[#232938] rounded-xl p-3 space-y-1">
                         <div className="flex items-baseline justify-between gap-2">
-                          <span className="text-sm font-extrabold text-sky-300 font-mono">
+                          <span className="text-sm font-bold text-[#F3F5F8] font-mono tabular-nums">
                             {`ARS $${monthlyEquivalentArs.toLocaleString(locale)}`}
-                            <span className="text-[11px] font-medium text-sky-400/80">
+                            <span className="text-[11px] font-normal text-[#949EB0]">
                               {isEs ? ' / mes' : ' / mo'}
                             </span>
                           </span>
-                          <span className="text-[10px] text-sky-400/80 font-semibold">
+                          <span className="text-[10px] text-[#E85D2A] font-semibold">
                             {mpRecurring
-                              ? (isEs ? 'Débito Automático' : 'Auto-Debit')
+                              ? isEs
+                                ? 'Débito Automático'
+                                : 'Auto-Debit'
                               : 'Checkout Pro'}
                           </span>
                         </div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-[10px] text-[#949EB0] font-mono tabular-nums">
                           {billingCycle === 'annual'
                             ? isEs
                               ? `Cobro único anual: ARS $${totalArs.toLocaleString(locale)} (MEP $${gatewayConfig.usdToArsRate.toLocaleString(locale)})`
@@ -774,9 +823,9 @@ export default function BillingView() {
                     )}
                   </div>
 
-                  <ul className="space-y-2.5 pt-3 border-t border-slate-800/80">
+                  <ul className="space-y-2.5 pt-3 border-t border-[#1D2330]">
                     {features.map((feat, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-xs text-slate-300">
+                      <li key={idx} className="flex items-start gap-2 text-xs text-[#F3F5F8]/90">
                         <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                         <span>{feat}</span>
                       </li>
@@ -788,12 +837,12 @@ export default function BillingView() {
                   type="button"
                   disabled={processingPlan !== null || isCurrent}
                   onClick={() => handleCheckout(meta.id)}
-                  className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
+                  className={`w-full py-2.5 px-4 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
                     isCurrent
-                      ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-500/30'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                       : meta.popular
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-600/25'
-                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-md'
+                        ? 'bg-[#E85D2A] hover:bg-[#F26B3A] text-white'
+                        : 'bg-[#171B26] hover:bg-[#1D2330] text-[#F3F5F8] border border-[#232938]'
                   }`}
                 >
                   {processingPlan === meta.id ? (
@@ -819,214 +868,254 @@ export default function BillingView() {
           })}
         </div>
 
-        {/* Collapsible Gateway & Webhook Setup Assistant */}
-        <div className="bg-slate-900/70 border border-slate-800 rounded-2xl overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setIsSetupOpen((prev) => !prev)}
-            className="w-full px-5 py-4 flex items-center justify-between gap-3 text-left hover:bg-slate-900 transition cursor-pointer"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <Settings2 className="w-4 h-4 text-blue-400 shrink-0" />
-              <div className="min-w-0">
-                <h2 className="text-xs sm:text-sm font-bold text-white truncate">
-                  {isEs
-                    ? '⚙️ Asistente de Conexión de Pasarelas y Webhooks (Guía Paso a Paso)'
-                    : '⚙️ Payment Gateway & Webhook Setup Assistant (Step-by-Step Guide)'}
-                </h2>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {isEs
-                    ? `${configuredCount}/3 pasarelas en vivo configuradas • Copia tu Webhook URL o prueba activaciones al instante`
-                    : `${configuredCount}/3 live gateways configured • Copy your Webhook URL or test instant plan activation`}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                {configuredCount > 0
-                  ? (isEs ? `${configuredCount} Activa(s)` : `${configuredCount} Active`)
-                  : (isEs ? 'Modo Sandbox' : 'Sandbox Mode')}
-              </span>
-              {isSetupOpen ? (
-                <ChevronUp className="w-4 h-4 text-slate-400" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-slate-400" />
-              )}
-            </div>
-          </button>
-
-          {isSetupOpen && (
-            <div className="px-5 pb-5 pt-2 border-t border-slate-800/80 space-y-5">
-              {/* Webhook Endpoint Copy & Live Simulator Bar */}
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                <div className="space-y-1 min-w-0 flex-1">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    {isEs ? 'URL Única de Webhook (MercadoPago • Lemon Squeezy • Stripe)' : 'Unified Webhook URL (MercadoPago • Lemon Squeezy • Stripe)'}
-                  </div>
-                  <div className="font-mono text-xs text-sky-300 break-all">
-                    {gatewayConfig.webhookUrl}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleCopyWebhookUrl}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-200 transition cursor-pointer"
-                  >
-                    <Copy className="w-3.5 h-3.5 text-blue-400" />
-                    <span>
-                      {copiedWebhook
-                        ? (isEs ? '¡URL Copiada!' : 'Copied!')
-                        : (isEs ? 'Copiar Webhook URL' : 'Copy Webhook URL')}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={simulatingWebhook}
-                    onClick={handleSimulateWebhook}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-xs font-bold text-white shadow-md transition cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    <span>
-                      {simulatingWebhook
-                        ? (isEs ? 'Simulando pago...' : 'Simulating...')
-                        : (isEs ? '⚡ Simular Webhook de Pago Aprobado' : '⚡ Simulate Approved Payment Webhook')}
-                    </span>
-                  </button>
+        {/* Collapsible Gateway & Webhook Setup Assistant — Strictly Super Admin Only */}
+        {isSuperAdmin && (
+          <div className="bg-[#11141C] border border-[#1D2330] rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setIsSetupOpen((prev) => !prev)}
+              className="w-full px-5 py-4 flex items-center justify-between gap-3 text-left hover:bg-[#171B26]/60 transition cursor-pointer"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <Settings2 className="w-4 h-4 text-[#E85D2A] shrink-0" />
+                <div className="min-w-0">
+                  <h2 className="text-xs sm:text-sm font-bold text-[#F3F5F8] truncate">
+                    {isEs
+                      ? 'Asistente de Conexión de Pasarelas y Webhooks (Guía Paso a Paso)'
+                      : 'Payment Gateway & Webhook Setup Assistant (Step-by-Step Guide)'}
+                  </h2>
+                  <p className="text-[11px] text-[#949EB0] mt-0.5 font-mono tabular-nums">
+                    {isEs
+                      ? `${configuredCount}/3 pasarelas en vivo configuradas • Copia tu Webhook URL o prueba activaciones al instante`
+                      : `${configuredCount}/3 live gateways configured • Copy your Webhook URL or test instant plan activation`}
+                  </p>
                 </div>
               </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[10px] font-bold font-mono tabular-nums px-2.5 py-1 rounded-lg bg-[#171B26] text-[#949EB0] border border-[#232938]">
+                  {configuredCount > 0
+                    ? isEs
+                      ? `${configuredCount} Activa(s)`
+                      : `${configuredCount} Active`
+                    : isEs
+                      ? 'Modo Sandbox'
+                      : 'Sandbox Mode'}
+                </span>
+                {isSetupOpen ? (
+                  <ChevronUp className="w-4 h-4 text-[#949EB0]" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-[#949EB0]" />
+                )}
+              </div>
+            </button>
 
-              {/* 3-Step Guides per Gateway */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {/* MercadoPago 3-step guide */}
-                <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span>🇦🇷</span>
-                      <span>MercadoPago (ARS)</span>
+            {isSetupOpen && (
+              <div className="px-5 pb-5 pt-3 border-t border-[#1D2330] space-y-5">
+                {/* Webhook Endpoint Copy & Live Simulator Bar */}
+                <div className="bg-[#0A0C10] border border-[#232938] rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-[#949EB0]">
+                      {isEs
+                        ? 'URL Única de Webhook (MercadoPago • Lemon Squeezy • Stripe)'
+                        : 'Unified Webhook URL (MercadoPago • Lemon Squeezy • Stripe)'}
                     </div>
-                    <span
-                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                        gatewayConfig.mercadopagoConfigured
-                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                          : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                      }`}
-                    >
-                      {gatewayConfig.mercadopagoConfigured
-                        ? (isEs ? 'Configurada' : 'Configured')
-                        : (isEs ? 'Modo Sandbox' : 'Sandbox Mode')}
-                    </span>
+                    <div className="font-mono text-xs text-[#F3F5F8] break-all">
+                      {gatewayConfig.webhookUrl}
+                    </div>
                   </div>
 
-                  <ol className="space-y-2 text-[11px] text-slate-300 list-decimal list-inside leading-relaxed">
-                    <li>
-                      {isEs
-                        ? 'Ingresa a mercadopago.com.ar/developers/panel/app y crea tu aplicación Checkout Pro / Suscripciones.'
-                        : 'Go to mercadopago.com.ar/developers/panel/app and create your Checkout Pro / Subscriptions app.'}
-                    </li>
-                    <li>
-                      {isEs
-                        ? 'Agrega en Vercel tu Access Token de Producción en MERCADOPAGO_ACCESS_TOKEN (y opcionalmente MP_USD_TO_ARS_RATE como respaldo del MEP).'
-                        : 'Add your Production Access Token in Vercel as MERCADOPAGO_ACCESS_TOKEN (plus optional MP_USD_TO_ARS_RATE fallback).'}
-                    </li>
-                    <li>
-                      {isEs
-                        ? 'En Webhooks de MercadoPago pega la URL de arriba (eventos payment y subscription_preapproval).'
-                        : 'Paste the Webhook URL above in MercadoPago Webhooks (subscribe to payment and subscription_preapproval).'}
-                    </li>
-                  </ol>
+                  <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleCopyWebhookUrl}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] text-xs font-semibold text-[#F3F5F8] transition cursor-pointer"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-[#E85D2A]" />
+                      <span>
+                        {copiedWebhook
+                          ? isEs
+                            ? 'URL Copiada'
+                            : 'Copied'
+                          : isEs
+                            ? 'Copiar Webhook URL'
+                            : 'Copy Webhook URL'}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={simulatingWebhook}
+                      onClick={handleSimulateWebhook}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#E85D2A] hover:bg-[#F26B3A] disabled:opacity-60 text-xs font-bold text-white transition cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>
+                        {simulatingWebhook
+                          ? isEs
+                            ? 'Simulando pago...'
+                            : 'Simulating...'
+                          : isEs
+                            ? 'Simular Webhook de Pago Aprobado'
+                            : 'Simulate Approved Payment Webhook'}
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Lemon Squeezy 3-step guide */}
-                <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span>🍋</span>
-                      <span>Lemon Squeezy (USD)</span>
+                {/* 3-Step Guides per Gateway */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  {/* MercadoPago 3-step guide */}
+                  <div className="bg-[#0A0C10] border border-[#232938] rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-xs font-bold text-[#F3F5F8] flex items-center gap-2">
+                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#171B26] border border-[#232938] text-[#949EB0]">
+                          ARS
+                        </span>
+                        <span>MercadoPago</span>
+                      </div>
+                      <span
+                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-lg border ${
+                          gatewayConfig.mercadopagoConfigured
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                            : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                        }`}
+                      >
+                        {gatewayConfig.mercadopagoConfigured
+                          ? isEs
+                            ? 'Configurada'
+                            : 'Configured'
+                          : isEs
+                            ? 'Modo Sandbox'
+                            : 'Sandbox Mode'}
+                      </span>
                     </div>
-                    <span
-                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                        gatewayConfig.lemonsqueezyConfigured
-                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                          : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                      }`}
-                    >
-                      {gatewayConfig.lemonsqueezyConfigured
-                        ? (isEs ? 'Configurada' : 'Configured')
-                        : (isEs ? 'Modo Sandbox' : 'Sandbox Mode')}
-                    </span>
+
+                    <ol className="space-y-2 text-[11px] text-[#949EB0] list-decimal list-inside leading-relaxed">
+                      <li>
+                        {isEs
+                          ? 'Ingresa a mercadopago.com.ar/developers/panel/app y crea tu aplicación Checkout Pro / Suscripciones.'
+                          : 'Go to mercadopago.com.ar/developers/panel/app and create your Checkout Pro / Subscriptions app.'}
+                      </li>
+                      <li>
+                        {isEs
+                          ? 'Agrega en Vercel tu Access Token de Producción en MERCADOPAGO_ACCESS_TOKEN (y opcionalmente MP_USD_TO_ARS_RATE como respaldo del MEP).'
+                          : 'Add your Production Access Token in Vercel as MERCADOPAGO_ACCESS_TOKEN (plus optional MP_USD_TO_ARS_RATE fallback).'}
+                      </li>
+                      <li>
+                        {isEs
+                          ? 'En Webhooks de MercadoPago pega la URL de arriba (eventos payment y subscription_preapproval).'
+                          : 'Paste the Webhook URL above in MercadoPago Webhooks (subscribe to payment and subscription_preapproval).'}
+                      </li>
+                    </ol>
                   </div>
 
-                  <ol className="space-y-2 text-[11px] text-slate-300 list-decimal list-inside leading-relaxed">
-                    <li>
-                      {isEs
-                        ? 'Crea tu tienda en app.lemonsqueezy.com (cobra en USD global sin LLC) y define variantes Starter, Growth y Agency.'
-                        : 'Create your store on app.lemonsqueezy.com (global USD Merchant of Record) with Starter, Growth & Agency variants.'}
-                    </li>
-                    <li>
-                      {isEs
-                        ? 'Configura en Vercel LEMONSQUEEZY_API_KEY, LEMONSQUEEZY_STORE_ID y LEMONSQUEEZY_VARIANT_STARTER / GROWTH / AGENCY.'
-                        : 'Set LEMONSQUEEZY_API_KEY, LEMONSQUEEZY_STORE_ID, and LEMONSQUEEZY_VARIANT_STARTER / GROWTH / AGENCY in Vercel.'}
-                    </li>
-                    <li>
-                      {isEs
-                        ? 'En Settings → Webhooks pega la URL de arriba, guarda LEMONSQUEEZY_WEBHOOK_SECRET y marca order_created y subscription_*.'
-                        : 'Under Settings → Webhooks paste the Webhook URL, save LEMONSQUEEZY_WEBHOOK_SECRET, and enable order_created & subscription_*.'}
-                    </li>
-                  </ol>
-                </div>
-
-                {/* Stripe 3-step guide */}
-                <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span>💳</span>
-                      <span>Stripe Internacional (USD)</span>
+                  {/* Lemon Squeezy 3-step guide */}
+                  <div className="bg-[#0A0C10] border border-[#232938] rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-xs font-bold text-[#F3F5F8] flex items-center gap-2">
+                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#171B26] border border-[#232938] text-amber-300">
+                          USD
+                        </span>
+                        <span>Lemon Squeezy</span>
+                      </div>
+                      <span
+                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-lg border ${
+                          gatewayConfig.lemonsqueezyConfigured
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                            : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                        }`}
+                      >
+                        {gatewayConfig.lemonsqueezyConfigured
+                          ? isEs
+                            ? 'Configurada'
+                            : 'Configured'
+                          : isEs
+                            ? 'Modo Sandbox'
+                            : 'Sandbox Mode'}
+                      </span>
                     </div>
-                    <span
-                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                        gatewayConfig.stripeConfigured
-                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                          : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                      }`}
-                    >
-                      {gatewayConfig.stripeConfigured
-                        ? (isEs ? 'Configurada' : 'Configured')
-                        : (isEs ? 'Modo Sandbox' : 'Sandbox Mode')}
-                    </span>
+
+                    <ol className="space-y-2 text-[11px] text-[#949EB0] list-decimal list-inside leading-relaxed">
+                      <li>
+                        {isEs
+                          ? 'Crea tu tienda en app.lemonsqueezy.com (cobra en USD global sin LLC) y define variantes Starter, Growth y Agency.'
+                          : 'Create your store on app.lemonsqueezy.com (global USD Merchant of Record) with Starter, Growth & Agency variants.'}
+                      </li>
+                      <li>
+                        {isEs
+                          ? 'Configura en Vercel LEMONSQUEEZY_API_KEY, LEMONSQUEEZY_STORE_ID y LEMONSQUEEZY_VARIANT_STARTER / GROWTH / AGENCY.'
+                          : 'Set LEMONSQUEEZY_API_KEY, LEMONSQUEEZY_STORE_ID, and LEMONSQUEEZY_VARIANT_STARTER / GROWTH / AGENCY in Vercel.'}
+                      </li>
+                      <li>
+                        {isEs
+                          ? 'En Settings → Webhooks pega la URL de arriba, guarda LEMONSQUEEZY_WEBHOOK_SECRET y marca order_created y subscription_*.'
+                          : 'Under Settings → Webhooks paste the Webhook URL, save LEMONSQUEEZY_WEBHOOK_SECRET, and enable order_created & subscription_*.'}
+                      </li>
+                    </ol>
                   </div>
 
-                  <ol className="space-y-2 text-[11px] text-slate-300 list-decimal list-inside leading-relaxed">
-                    <li>
-                      {isEs
-                        ? 'Ingresa a dashboard.stripe.com/apikeys y copia tu Secret Key (sk_live_... o sk_test_...).'
-                        : 'Open dashboard.stripe.com/apikeys and copy your Secret Key (sk_live_... or sk_test_...).'}
-                    </li>
-                    <li>
-                      {isEs
-                        ? 'Configura STRIPE_SECRET_KEY en las variables de entorno de tu proyecto en Vercel.'
-                        : 'Set STRIPE_SECRET_KEY in your Vercel project environment variables.'}
-                    </li>
-                    <li>
-                      {isEs
-                        ? 'En Developers → Webhooks apunta a la URL de arriba con checkout.session.completed y customer.subscription.* (STRIPE_WEBHOOK_SECRET).'
-                        : 'Under Developers → Webhooks point to the URL above for checkout.session.completed & customer.subscription.* (STRIPE_WEBHOOK_SECRET).'}
-                    </li>
-                  </ol>
+                  {/* Stripe 3-step guide */}
+                  <div className="bg-[#0A0C10] border border-[#232938] rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-xs font-bold text-[#F3F5F8] flex items-center gap-2">
+                        <CreditCard className="w-3.5 h-3.5 text-[#949EB0]" />
+                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#171B26] border border-[#232938] text-[#949EB0]">
+                          USD
+                        </span>
+                        <span>Stripe</span>
+                      </div>
+                      <span
+                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-lg border ${
+                          gatewayConfig.stripeConfigured
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                            : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                        }`}
+                      >
+                        {gatewayConfig.stripeConfigured
+                          ? isEs
+                            ? 'Configurada'
+                            : 'Configured'
+                          : isEs
+                            ? 'Modo Sandbox'
+                            : 'Sandbox Mode'}
+                      </span>
+                    </div>
+
+                    <ol className="space-y-2 text-[11px] text-[#949EB0] list-decimal list-inside leading-relaxed">
+                      <li>
+                        {isEs
+                          ? 'Ingresa a dashboard.stripe.com/apikeys y copia tu Secret Key (sk_live_... o sk_test_...).'
+                          : 'Open dashboard.stripe.com/apikeys and copy your Secret Key (sk_live_... or sk_test_...).'}
+                      </li>
+                      <li>
+                        {isEs
+                          ? 'Configura STRIPE_SECRET_KEY en las variables de entorno de tu proyecto en Vercel.'
+                          : 'Set STRIPE_SECRET_KEY in your Vercel project environment variables.'}
+                      </li>
+                      <li>
+                        {isEs
+                          ? 'En Developers → Webhooks apunta a la URL de arriba con checkout.session.completed y customer.subscription.* (STRIPE_WEBHOOK_SECRET).'
+                          : 'Under Developers → Webhooks point to the URL above for checkout.session.completed & customer.subscription.* (STRIPE_WEBHOOK_SECRET).'}
+                      </li>
+                    </ol>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
-        {/* Security / Sandbox Footer Note */}
-        <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3 text-xs text-slate-400">
+        {/* Commercial / SuperAdmin Footer Note */}
+        <div className="bg-[#11141C] border border-[#1D2330] rounded-xl p-4 flex items-center gap-3 text-xs text-[#949EB0]">
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>
-            {isEs
-              ? 'Los pagos soportan MercadoPago (ARS), Lemon Squeezy (USD Global) y Stripe Internacional. En Modo Sandbox los cambios de plan y webhooks simulados activan los límites de inmediato.'
-              : 'Payments support MercadoPago (ARS), Lemon Squeezy (Global USD), and Stripe International. In Sandbox Mode, plan changes and simulated webhooks activate workspace limits immediately.'}
+            {isSuperAdmin
+              ? isEs
+                ? 'Los pagos soportan MercadoPago (ARS), Lemon Squeezy (USD Global) y Stripe Internacional. En Modo Sandbox los cambios de plan y webhooks simulados activan los límites de inmediato.'
+                : 'Payments support MercadoPago (ARS), Lemon Squeezy (Global USD), and Stripe International. In Sandbox Mode, plan changes and simulated webhooks activate workspace limits immediately.'
+              : isEs
+                ? 'Los pagos se procesan de forma segura con MercadoPago (ARS), Lemon Squeezy (USD Global) y Stripe Internacional. Los límites del plan se activan automáticamente al confirmarse el pago.'
+                : 'Payments are securely processed via MercadoPago (ARS), Lemon Squeezy (Global USD), and Stripe International. Plan limits activate automatically upon payment confirmation.'}
           </span>
         </div>
       </div>
