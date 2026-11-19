@@ -35,28 +35,21 @@ export default function OnboardingChecklist({
 }: OnboardingChecklistProps) {
   const { language } = useLanguage();
   const isEs = language === 'es';
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [manualCollapsed, setManualCollapsed] = useState<boolean | null>(null);
+  const [expandedInSession, setExpandedInSession] = useState(false);
 
   useEffect(() => {
     Promise.resolve().then(() => {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved === 'true') {
-          setIsCollapsed(true);
+          setManualCollapsed(true);
+        } else if (saved === 'false') {
+          setManualCollapsed(false);
         }
       } catch {}
     });
   }, []);
-
-  const toggleCollapsed = () => {
-    setIsCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(STORAGE_KEY, String(next));
-      } catch {}
-      return next;
-    });
-  };
 
   const triggerTour = () => {
     onOpenTour?.();
@@ -114,23 +107,50 @@ export default function OnboardingChecklist({
   const progressPct = Math.round((completedCount / milestones.length) * 100);
   const nextPending = milestones.find((m) => !m.completed);
 
+  const isCollapsed = progressPct === 100 ? !expandedInSession : manualCollapsed === true;
+
+  const toggleCollapsed = () => {
+    const nextCollapsed = !isCollapsed;
+    setManualCollapsed(nextCollapsed);
+    if (progressPct === 100) {
+      setExpandedInSession(!nextCollapsed);
+    }
+    try {
+      localStorage.setItem(STORAGE_KEY, String(nextCollapsed));
+    } catch {}
+  };
+
   if (isCollapsed) {
     return (
-      <div className="px-5 py-2 bg-[#0c121e]/95 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-3 shrink-0 select-none">
+      <div className="min-h-[36px] px-5 py-1.5 bg-[#11141C] border-b border-[#1D2330] flex flex-wrap items-center justify-between gap-3 shrink-0 select-none">
         <div className="flex items-center gap-3 min-w-0">
-          <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-            <Rocket className="w-3.5 h-3.5 text-blue-400" />
-            <span>{isEs ? 'Primeros Pasos' : 'Quick Setup'}</span>
+          <span className="text-xs font-bold text-[#F3F5F8] flex items-center gap-1.5">
+            {progressPct === 100 ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <Rocket className="w-3.5 h-3.5 text-[#E85D2A]" />
+            )}
+            <span>
+              {progressPct === 100
+                ? isEs
+                  ? 'Motor Listo'
+                  : 'Engine Ready'
+                : isEs
+                  ? 'Primeros Pasos'
+                  : 'Quick Setup'}
+            </span>
           </span>
 
           <div className="flex items-center gap-2">
-            <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-24 h-1.5 bg-[#171B26] border border-[#232938] rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-blue-500 to-emerald-400 rounded-full transition-all duration-300"
+                className={`h-full rounded-full transition-all duration-300 ${
+                  progressPct === 100 ? 'bg-emerald-500' : 'bg-[#E85D2A]'
+                }`}
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <span className="text-[11px] font-mono font-semibold text-slate-300">
+            <span className="text-[11px] font-mono tabular-nums font-semibold text-[#F3F5F8]">
               {completedCount}/{milestones.length} ({progressPct}%)
             </span>
           </div>
@@ -139,7 +159,7 @@ export default function OnboardingChecklist({
             <button
               type="button"
               onClick={() => onNavigate(nextPending.targetTab)}
-              className="hidden md:inline-flex items-center gap-1 text-[11px] font-semibold text-blue-400 hover:text-blue-300 transition cursor-pointer"
+              className="hidden md:inline-flex items-center gap-1 text-[11px] font-semibold text-[#E85D2A] hover:text-[#F26B3A] transition cursor-pointer"
             >
               <span>
                 {isEs ? 'Siguiente:' : 'Next:'}{' '}
@@ -154,15 +174,16 @@ export default function OnboardingChecklist({
           <button
             type="button"
             onClick={triggerTour}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 text-[11px] font-semibold transition cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold transition cursor-pointer"
           >
-            <span>🎯 {isEs ? 'Iniciar Tour Guiado' : 'Start Guided Tour'}</span>
+            <Compass className="w-3.5 h-3.5" />
+            <span>{isEs ? 'Iniciar Tour Guiado' : 'Start Guided Tour'}</span>
           </button>
 
           <button
             type="button"
             onClick={toggleCollapsed}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-[11px] font-semibold transition cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] text-[#949EB0] hover:text-[#F3F5F8] text-[11px] font-semibold transition cursor-pointer"
           >
             <span>{isEs ? 'Expandir' : 'Expand'}</span>
             <ChevronDown className="w-3.5 h-3.5" />
@@ -175,36 +196,36 @@ export default function OnboardingChecklist({
   return (
     <section
       aria-label={isEs ? 'Checklist de configuración inicial' : 'Onboarding setup checklist'}
-      className="px-5 py-3.5 bg-gradient-to-r from-[#0d1424] via-[#0e172a] to-[#0d1424] border-b border-slate-800 shrink-0 space-y-3"
+      className="px-5 py-3.5 bg-[#11141C] border-b border-[#1D2330] shrink-0 space-y-3"
     >
       {/* Header Row */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
-            <Compass className="w-4 h-4 text-blue-400" />
+          <div className="w-8 h-8 rounded-xl bg-[#171B26] border border-[#232938] flex items-center justify-center shrink-0">
+            <Compass className="w-4 h-4 text-[#E85D2A]" />
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xs sm:text-sm font-bold text-white">
+              <h2 className="text-xs sm:text-sm font-bold text-[#F3F5F8]">
                 {progressPct === 100
                   ? isEs
-                    ? '¡Tu motor outbound está listo para escalar!'
-                    : 'Your outbound engine is ready to scale!'
+                    ? 'Tu motor outbound está listo para escalar'
+                    : 'Your outbound engine is ready to scale'
                   : isEs
                     ? 'Checklist de Puesta en Marcha'
                     : 'Launch Readiness Checklist'}
               </h2>
               <span
-                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                className={`text-[10px] font-mono tabular-nums font-bold px-2 py-0.5 rounded-lg border ${
                   progressPct === 100
                     ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                    : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                    : 'bg-[#E85D2A]/15 text-[#E85D2A] border-[#E85D2A]/35'
                 }`}
               >
-                {completedCount}/4 • {progressPct}%
+                {completedCount}/{milestones.length} • {progressPct}%
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-[#949EB0]">
               {isEs
                 ? 'Completa estos 4 hitos reales para comenzar a enviar campañas con máxima entregabilidad.'
                 : 'Complete these 4 live milestones to start sending campaigns with peak deliverability.'}
@@ -216,16 +237,17 @@ export default function OnboardingChecklist({
           <button
             type="button"
             onClick={triggerTour}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600/25 to-teal-600/25 hover:from-emerald-600/40 hover:to-teal-600/40 border border-emerald-500/40 text-emerald-300 text-xs font-bold shadow-sm transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/35 text-emerald-300 text-xs font-bold transition cursor-pointer"
           >
-            <span>🎯 {isEs ? 'Iniciar Tour Guiado' : 'Start Guided Tour'}</span>
+            <Compass className="w-3.5 h-3.5" />
+            <span>{isEs ? 'Iniciar Tour Guiado' : 'Start Guided Tour'}</span>
           </button>
 
           <button
             type="button"
             onClick={toggleCollapsed}
             title={isEs ? 'Minimizar checklist' : 'Minimize checklist'}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] text-[#949EB0] hover:text-[#F3F5F8] text-xs font-semibold transition cursor-pointer"
           >
             <span className="hidden sm:inline">{isEs ? 'Minimizar' : 'Minimize'}</span>
             <ChevronUp className="w-3.5 h-3.5" />
@@ -234,9 +256,11 @@ export default function OnboardingChecklist({
       </div>
 
       {/* Progress Bar */}
-      <div className="w-full h-1.5 bg-slate-800/90 rounded-full overflow-hidden">
+      <div className="w-full h-1.5 bg-[#171B26] border border-[#1D2330] rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 rounded-full transition-all duration-500"
+          className={`h-full rounded-full transition-all duration-500 ${
+            progressPct === 100 ? 'bg-emerald-500' : 'bg-[#E85D2A]'
+          }`}
           style={{ width: `${progressPct}%` }}
         />
       </div>
@@ -251,18 +275,20 @@ export default function OnboardingChecklist({
               className={`flex flex-col justify-between gap-2 p-3 rounded-xl border transition ${
                 item.completed
                   ? 'bg-emerald-950/20 border-emerald-500/30'
-                  : 'bg-slate-900/75 border-slate-800 hover:border-slate-700'
+                  : 'bg-[#171B26] border-[#232938] hover:border-[#343D52]'
               }`}
             >
               <div className="flex items-start gap-2 min-w-0">
                 {item.completed ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 ) : (
-                  <Circle className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+                  <Circle className="w-4 h-4 text-[#949EB0]/60 shrink-0 mt-0.5" />
                 )}
                 <div
                   className={`text-xs font-semibold leading-snug flex items-start gap-1.5 min-w-0 ${
-                    item.completed ? 'text-emerald-200 line-through decoration-emerald-500/50' : 'text-slate-100'
+                    item.completed
+                      ? 'text-emerald-200 line-through decoration-emerald-500/50'
+                      : 'text-[#F3F5F8]'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5 shrink-0 mt-0.5 opacity-80" />
@@ -275,15 +301,16 @@ export default function OnboardingChecklist({
                   <button
                     type="button"
                     onClick={() => onNavigate(item.targetTab)}
-                    className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition cursor-pointer"
+                    className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition cursor-pointer"
                   >
-                    {isEs ? 'Completado ✓' : 'Completed ✓'}
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>{isEs ? 'Completado' : 'Completed'}</span>
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={() => onNavigate(item.targetTab)}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 text-[11px] font-semibold transition cursor-pointer"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#E85D2A]/15 hover:bg-[#E85D2A] text-[#E85D2A] hover:text-white border border-[#E85D2A]/35 text-[11px] font-semibold transition cursor-pointer"
                   >
                     <span>{isEs ? item.ctaEs : item.ctaEn}</span>
                     <ArrowRight className="w-3 h-3" />

@@ -6,6 +6,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   useRef,
   ReactNode,
 } from 'react';
@@ -16,6 +17,7 @@ import {
   SAAS_PLANS,
   UserRole,
   TeamMember,
+  ROLE_PERMISSIONS,
   normalizeRole,
 } from '@/types';
 
@@ -27,6 +29,7 @@ export interface AuthUser {
   avatarInitials: string;
   role: UserRole;
   workspaceId?: string;
+  allowedWorkspaceIds?: string[];
   isDemo?: boolean;
   provider?: string;
 }
@@ -53,6 +56,7 @@ interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   workspaces: Workspace[];
+  visibleWorkspaces: Workspace[];
   currentWorkspace: Workspace;
   switchWorkspace: (workspaceOrId: Workspace | string) => void;
   createWorkspace: (
@@ -183,6 +187,18 @@ function getSavedRoleOverride(): UserRole | null {
   return null;
 }
 
+function normalizeOptionalWorkspaceIds(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const seen = new Set<string>();
+  for (const item of raw) {
+    if (typeof item === 'string') {
+      const trimmed = item.trim();
+      if (trimmed) seen.add(trimmed);
+    }
+  }
+  return seen.size > 0 ? Array.from(seen) : undefined;
+}
+
 function mapSupabaseUser(sbUser: SupabaseUser, teamMatch?: TeamMember | null): AuthUser {
   const meta = (sbUser.user_metadata || {}) as Record<string, unknown>;
   const rawFullName =
@@ -201,6 +217,9 @@ function mapSupabaseUser(sbUser: SupabaseUser, teamMatch?: TeamMember | null): A
       (typeof meta.role === 'string' ? meta.role : undefined) ||
       inferDefaultRoleFromEmail(email)
   );
+  const allowedWorkspaceIds = normalizeOptionalWorkspaceIds(
+    teamMatch?.allowedWorkspaceIds ?? meta.allowedWorkspaceIds ?? meta.allowed_workspace_ids
+  );
 
   return {
     id: sbUser.id,
@@ -211,7 +230,8 @@ function mapSupabaseUser(sbUser: SupabaseUser, teamMatch?: TeamMember | null): A
       (typeof meta.company === 'string' ? meta.company : undefined),
     avatarInitials: buildInitials(fullName, email),
     role,
-    workspaceId: teamMatch?.workspaceId,
+    workspaceId: teamMatch?.workspaceId || allowedWorkspaceIds?.[0],
+    allowedWorkspaceIds,
     isDemo: false,
     provider:
       typeof sbUser.app_metadata?.provider === 'string'
@@ -227,6 +247,7 @@ function normalizeStoredAuthUser(raw: Partial<AuthUser>): AuthUser {
   const role = normalizeRole(
     raw.role || roleOverride || inferDefaultRoleFromEmail(email)
   );
+  const allowedWorkspaceIds = normalizeOptionalWorkspaceIds(raw.allowedWorkspaceIds);
   return {
     id: raw.id || 'demo-staging-user',
     email,
@@ -234,7 +255,8 @@ function normalizeStoredAuthUser(raw: Partial<AuthUser>): AuthUser {
     company: raw.company,
     avatarInitials: raw.avatarInitials || buildInitials(fullName, email),
     role,
-    workspaceId: raw.workspaceId,
+    workspaceId: raw.workspaceId || allowedWorkspaceIds?.[0],
+    allowedWorkspaceIds,
     isDemo: raw.isDemo ?? true,
     provider: raw.provider || 'staging-demo',
   };
@@ -262,7 +284,27 @@ async function lookupTeamMemberByEmail(email: string): Promise<TeamMember | null
     if (!res.ok) return null;
     const data = await res.json();
     if (Array.isArray(data) && data.length > 0) {
-      return data[0] as TeamMember;
+      const rows = data as TeamMember[];
+      const mergedWorkspaceIds = new Set<string>();
+      for (const row of rows) {
+        if (typeof row.workspaceId === 'string' && row.workspaceId.trim()) {
+          mergedWorkspaceIds.add(row.workspaceId.trim());
+        }
+        if (Array.isArray(row.allowedWorkspaceIds)) {
+          for (const wsId of row.allowedWorkspaceIds) {
+            if (typeof wsId === 'string' && wsId.trim()) {
+              mergedWorkspaceIds.add(wsId.trim());
+            }
+          }
+        }
+      }
+      const primary = rows[0];
+      const allowedWorkspaceIds =
+        mergedWorkspaceIds.size > 0 ? Array.from(mergedWorkspaceIds) : undefined;
+      return {
+        ...primary,
+        allowedWorkspaceIds,
+      };
     }
     return null;
   } catch {
@@ -289,6 +331,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     workspacesRef.current = workspaces;
   }, [workspaces]);
+
+  const visibleWorkspaces = useMemo<Workspace[]>(() => {
+    if (!user) return workspaces;
+    const perms = ROLE_PERMISSIONS[normalizeRole(user.role)];
+    if (perms.canManageWorkspaces) {
+      return workspaces;
+    }
+
+    const allowedIds =
+      Array.isArray(user.allowedWorkspaceIds) && user.allowedWorkspaceIds.length > 0
+        ? user.allowedWorkspaceIds
+        : user.workspaceId
+          ? [user.workspaceId]
+          : [];
+
+    if (allowedIds.length > 0) {
+      const allowedSet = new Set(allowedIds);
+      const matched = workspaces.filter((ws) => allowedSet.has(ws.id));
+      if (matched.length > 0) {
+        return matched;
+      }
+    }
+
+    return workspaces.length > 0 ? [workspaces[0]] : [];
+  }, [user, workspaces]);
+
+  useEffect(() => {
+    if (visibleWorkspaces.length === 0) return;
+    const containsCurrent = visibleWorkspaces.some((w) => w.id === currentWorkspace.id);
+    if (!containsCurrent) {
+      const nextWorkspace = enrichWorkspaceDefaults(visibleWorkspaces[0]);
+      const timer = setTimeout(() => {
+        setCurrentWorkspace(nextWorkspace);
+        try {
+          localStorage.setItem(CURRENT_WORKSPACE_STORAGE_KEY, nextWorkspace.id);
+        } catch {}
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [visibleWorkspaces, currentWorkspace.id]);
 
   const persistWorkspacesLocally = useCallback((list: Workspace[], activeId?: string) => {
     try {
@@ -447,10 +529,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const switchWorkspace = useCallback(
     (workspaceOrId: Workspace | string) => {
+      const pool = visibleWorkspaces.length > 0 ? visibleWorkspaces : workspaces;
       const target =
         typeof workspaceOrId === 'string'
-          ? workspaces.find((w) => w.id === workspaceOrId)
-          : workspaceOrId;
+          ? pool.find((w) => w.id === workspaceOrId)
+          : pool.find((w) => w.id === workspaceOrId.id);
       if (!target) return;
 
       const enriched = enrichWorkspaceDefaults(target);
@@ -459,7 +542,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(CURRENT_WORKSPACE_STORAGE_KEY, enriched.id);
       } catch {}
     },
-    [workspaces]
+    [visibleWorkspaces, workspaces]
   );
 
   const createWorkspace = useCallback(
@@ -556,10 +639,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       company?: string,
       idOverride?: string,
       role: UserRole = 'admin',
-      workspaceId?: string
+      workspaceId?: string,
+      allowedWorkspaceIds?: string[]
     ): AuthUser => {
       const cleanEmail = email.trim().toLowerCase();
       const normalizedRole = normalizeRole(role);
+      const normalizedAllowed = normalizeOptionalWorkspaceIds(allowedWorkspaceIds);
       const demoUser: AuthUser = {
         id: idOverride || `demo-${Date.now()}`,
         email: cleanEmail,
@@ -567,7 +652,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         company,
         avatarInitials: buildInitials(fullName, cleanEmail),
         role: normalizedRole,
-        workspaceId,
+        workspaceId: workspaceId || normalizedAllowed?.[0],
+        allowedWorkspaceIds: normalizedAllowed,
         isDemo: true,
         provider: 'staging-demo',
       };
@@ -606,7 +692,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const targetName = customUser?.fullName || preset.fullName;
       const targetCompany = customUser?.company || preset.company;
       const targetId = customUser?.id || preset.id;
-      const targetWorkspaceId = customUser?.workspaceId;
+      const targetAllowedWorkspaceIds = normalizeOptionalWorkspaceIds(
+        customUser?.allowedWorkspaceIds
+      );
+      const targetWorkspaceId =
+        customUser?.workspaceId ?? targetAllowedWorkspaceIds?.[0];
 
       activateDemoUser(
         targetEmail,
@@ -614,7 +704,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         targetCompany,
         targetId,
         normalized,
-        targetWorkspaceId
+        targetWorkspaceId,
+        targetAllowedWorkspaceIds
       );
       await refreshWorkspaces(targetWorkspaceId);
       setIsAuthModalOpen(false);
@@ -646,7 +737,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const resolvedRole = normalizeRole(
         teamMatch?.roleId || inferDefaultRoleFromEmail(cleanEmail)
       );
-      const resolvedWorkspaceId = teamMatch?.workspaceId;
+      const resolvedAllowedWorkspaceIds = teamMatch?.allowedWorkspaceIds;
+      const resolvedWorkspaceId =
+        teamMatch?.workspaceId || resolvedAllowedWorkspaceIds?.[0];
 
       try {
         localStorage.setItem(ROLE_OVERRIDE_STORAGE_KEY, resolvedRole);
@@ -660,7 +753,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           teamMatch?.company,
           teamMatch?.id,
           resolvedRole,
-          resolvedWorkspaceId
+          resolvedWorkspaceId,
+          resolvedAllowedWorkspaceIds
         );
         await refreshWorkspaces(resolvedWorkspaceId);
         setIsAuthModalOpen(false);
@@ -692,7 +786,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             teamMatch?.company,
             teamMatch?.id,
             resolvedRole,
-            resolvedWorkspaceId
+            resolvedWorkspaceId,
+            resolvedAllowedWorkspaceIds
           );
           await refreshWorkspaces(resolvedWorkspaceId);
           setIsAuthModalOpen(false);
@@ -858,6 +953,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         loading,
         workspaces,
+        visibleWorkspaces,
         currentWorkspace,
         switchWorkspace,
         createWorkspace,

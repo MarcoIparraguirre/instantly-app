@@ -11,13 +11,13 @@ import {
   ShieldCheck,
   Briefcase,
   ArrowRight,
-  Zap,
   AlertCircle,
   CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { WorkspacePlan, SAAS_PLANS, ROLE_PERMISSIONS, normalizeRole } from '@/types';
+import { BrandMark } from '@/components/ui/BrandMark';
 
 export default function AuthModal() {
   const {
@@ -182,26 +182,20 @@ export default function AuthModal() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-[#0f172a] border border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col"
+        className="bg-[#11141C] border border-[#232938] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col"
       >
         {/* Modal Header */}
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+        <div className="px-6 py-5 border-b border-[#1D2330] flex items-center justify-between bg-[#0A0C10]/60">
           <div className="flex items-center gap-3">
-            <div
-              className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg ${
-                isWorkspaceMode
-                  ? 'bg-gradient-to-tr from-emerald-600 to-teal-600 shadow-emerald-600/20'
-                  : 'bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-blue-600/20'
-              }`}
-            >
-              {isWorkspaceMode ? (
+            {isWorkspaceMode ? (
+              <div className="w-10 h-10 rounded-xl bg-[#171B26] border border-[#232938] flex items-center justify-center text-emerald-400">
                 <Building2 className="w-5 h-5" />
-              ) : (
-                <Zap className="w-5 h-5 fill-white" />
-              )}
-            </div>
+              </div>
+            ) : (
+              <BrandMark size="md" />
+            )}
             <div>
-              <h2 id="auth-modal-title" className="text-base font-bold text-white leading-tight">
+              <h2 id="auth-modal-title" className="text-base font-bold text-[#F3F5F8] leading-tight">
                 {isWorkspaceMode
                   ? isEs
                     ? 'Nuevo Workspace para Cliente de tu Agencia'
@@ -210,7 +204,7 @@ export default function AuthModal() {
                     ? 'Acceso a MiSender SaaS'
                     : 'Sign in to MiSender SaaS'}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[#949EB0]">
                 {isWorkspaceMode
                   ? isEs
                     ? 'Crea un entorno aislado para cada cliente sin mezclar casillas ni leads'
@@ -230,7 +224,7 @@ export default function AuthModal() {
             type="button"
             onClick={handleClose}
             aria-label={isEs ? 'Cerrar modal' : 'Close modal'}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition cursor-pointer"
+            className="p-1.5 text-[#949EB0] hover:text-[#F3F5F8] hover:bg-[#171B26] rounded-lg transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -239,14 +233,14 @@ export default function AuthModal() {
         {/* Navigation Tabs: ONLY Sign In and Sign Up in auth mode; NO workspace tab in auth gate */}
         {!isWorkspaceMode && (
           <div className="px-6 pt-4">
-            <div className="grid grid-cols-2 gap-1.5 bg-slate-900/90 border border-slate-800 p-1 rounded-2xl">
+            <div className="grid grid-cols-2 gap-1.5 bg-[#171B26] border border-[#232938] p-1 rounded-xl">
               <button
                 type="button"
                 onClick={() => handleSwitchTab('signin')}
-                className={`py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition cursor-pointer ${
                   authModalTab === 'signin'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-[#E85D2A] text-white shadow-sm'
+                    : 'text-[#949EB0] hover:text-[#F3F5F8]'
                 }`}
               >
                 {isEs ? 'Iniciar Sesión' : 'Sign In'}
@@ -254,10 +248,10 @@ export default function AuthModal() {
               <button
                 type="button"
                 onClick={() => handleSwitchTab('signup')}
-                className={`py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition cursor-pointer ${
                   authModalTab === 'signup'
-                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-[#E85D2A] text-white shadow-sm'
+                    : 'text-[#949EB0] hover:text-[#F3F5F8]'
                 }`}
               >
                 {isEs ? 'Crear Cuenta (7d)' : 'Create Account (7d)'}
@@ -269,14 +263,14 @@ export default function AuthModal() {
         {/* Body */}
         <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
           {errorMsg && (
-            <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs">
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs">
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs">
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
               <span>{successMsg}</span>
             </div>
@@ -290,7 +284,7 @@ export default function AuthModal() {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={submitting}
-                className="w-full flex items-center justify-center gap-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition cursor-pointer disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2.5 bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] text-[#F3F5F8] font-semibold py-2.5 px-4 rounded-lg text-xs transition cursor-pointer disabled:opacity-50"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
                   <path
@@ -314,17 +308,17 @@ export default function AuthModal() {
               </button>
 
               <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-slate-800" />
-                <span className="text-[10px] uppercase font-bold text-slate-500">
+                <div className="h-px flex-1 bg-[#1D2330]" />
+                <span className="text-[10px] uppercase font-bold text-[#949EB0]">
                   {isEs ? 'o con email' : 'or with email'}
                 </span>
-                <div className="h-px flex-1 bg-slate-800" />
+                <div className="h-px flex-1 bg-[#1D2330]" />
               </div>
 
               <form onSubmit={handleSignIn} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-blue-400" />
+                  <label className="block text-xs font-semibold text-[#F3F5F8] mb-1 flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-[#E85D2A]" />
                     <span>{isEs ? 'Correo Electrónico' : 'Email Address'}</span>
                   </label>
                   <input
@@ -333,13 +327,13 @@ export default function AuthModal() {
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     placeholder="founder@tuagencia.com"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                    className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-indigo-400" />
+                  <label className="block text-xs font-semibold text-[#F3F5F8] mb-1 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-[#949EB0]" />
                     <span>{isEs ? 'Contraseña' : 'Password'}</span>
                   </label>
                   <input
@@ -348,14 +342,14 @@ export default function AuthModal() {
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                    className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-2.5 rounded-xl text-xs shadow-lg shadow-blue-600/20 transition cursor-pointer disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white font-semibold py-2.5 rounded-lg text-xs shadow-sm transition cursor-pointer disabled:opacity-50"
                 >
                   <span>
                     {submitting
@@ -375,10 +369,10 @@ export default function AuthModal() {
           {/* TAB 2: CREATE SAAS ACCOUNT (7 DAYS FREE) */}
           {authModalTab === 'signup' && (
             <form onSubmit={handleSignUp} className="space-y-3.5">
-              <div className="bg-indigo-950/30 border border-indigo-500/30 rounded-2xl p-3 flex items-center gap-3">
+              <div className="bg-[#171B26] border border-[#232938] rounded-xl p-3 flex items-center gap-3">
                 <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
-                <div className="text-[11px] text-slate-300 leading-snug">
-                  <span className="font-bold text-white">
+                <div className="text-[11px] text-[#949EB0] leading-snug">
+                  <span className="font-bold text-[#F3F5F8]">
                     {isEs
                       ? 'Crear Cuenta de Agencia (7 días gratis):'
                       : 'Create Agency Account (7 days free):'}
@@ -391,8 +385,8 @@ export default function AuthModal() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-blue-400" />
+                  <label className="block text-xs font-semibold text-[#F3F5F8] mb-1 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-[#E85D2A]" />
                     <span>{isEs ? 'Nombre Completo' : 'Full Name'}</span>
                   </label>
                   <input
@@ -401,13 +395,13 @@ export default function AuthModal() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Sofía Méndez"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                    className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 text-purple-400" />
+                  <label className="block text-xs font-semibold text-[#F3F5F8] mb-1 flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-[#949EB0]" />
                     <span>{isEs ? 'Empresa / Agencia' : 'Company / Agency'}</span>
                   </label>
                   <input
@@ -416,13 +410,13 @@ export default function AuthModal() {
                     value={company}
                     onChange={(e) => setCompany(e.target.value)}
                     placeholder="Growth Agency"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                    className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#F3F5F8] mb-1">
                   {isEs ? 'Email Corporativo' : 'Work Email'}
                 </label>
                 <input
@@ -431,13 +425,13 @@ export default function AuthModal() {
                   value={signupEmail}
                   onChange={(e) => setSignupEmail(e.target.value)}
                   placeholder="sofia@growthagency.io"
-                  className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                  className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-[#F3F5F8] mb-1">
                     {isEs ? 'Contraseña (mín. 6)' : 'Password (min 6)'}
                   </label>
                   <input
@@ -447,18 +441,18 @@ export default function AuthModal() {
                     value={signupPassword}
                     onChange={(e) => setSignupPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                    className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-[#F3F5F8] mb-1">
                     {isEs ? 'Plan Trial (7 días)' : 'Trial Plan (7 days)'}
                   </label>
                   <select
                     value={signupPlan}
                     onChange={(e) => setSignupPlan(e.target.value as WorkspacePlan)}
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none cursor-pointer"
+                    className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-xs text-[#F3F5F8] focus:outline-none cursor-pointer"
                   >
                     <option value="starter">Starter ($39/m)</option>
                     <option value="growth">Growth ($79/m — Popular)</option>
@@ -470,7 +464,7 @@ export default function AuthModal() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold py-2.5 rounded-xl text-xs shadow-lg shadow-indigo-600/20 transition cursor-pointer disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white font-semibold py-2.5 rounded-lg text-xs shadow-sm transition cursor-pointer disabled:opacity-50"
               >
                 <span>
                   {submitting
@@ -489,10 +483,10 @@ export default function AuthModal() {
           {/* INTERNAL MODAL MODE: CREATE CLIENT WORKSPACE FOR AGENCY */}
           {isWorkspaceMode && (
             <form onSubmit={handleCreateWorkspace} className="space-y-3.5">
-              <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-2xl p-3 flex items-center gap-3">
+              <div className="bg-[#171B26] border border-emerald-500/25 rounded-xl p-3 flex items-center gap-3">
                 <Briefcase className="w-5 h-5 text-emerald-400 shrink-0" />
-                <div className="text-[11px] text-slate-300 leading-snug">
-                  <span className="font-bold text-white">
+                <div className="text-[11px] text-[#949EB0] leading-snug">
+                  <span className="font-bold text-[#F3F5F8]">
                     {isEs ? 'Sub-espacio para Cliente:' : 'Client Sub-Workspace:'}
                   </span>{' '}
                   {isEs
@@ -502,7 +496,7 @@ export default function AuthModal() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#F3F5F8] mb-1">
                   {isEs ? 'Nombre del Workspace' : 'Workspace Name'}
                 </label>
                 <input
@@ -511,12 +505,12 @@ export default function AuthModal() {
                   value={wsName}
                   onChange={(e) => setWsName(e.target.value)}
                   placeholder={isEs ? 'Ej: Outbound Cliente FinTech' : 'e.g. FinTech Client Outbound'}
-                  className="w-full bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                  className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#F3F5F8] mb-1">
                   {isEs ? 'Cliente u Organización' : 'Client or Organization'}
                 </label>
                 <input
@@ -524,12 +518,12 @@ export default function AuthModal() {
                   value={wsClientName}
                   onChange={(e) => setWsClientName(e.target.value)}
                   placeholder="Ej: FinTech Labs S.A."
-                  className="w-full bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                  className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#F3F5F8] mb-1">
                   {isEs ? 'Plan Inicial del Workspace' : 'Initial Workspace Plan'}
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -543,13 +537,15 @@ export default function AuthModal() {
                         onClick={() => setWsPlan(p)}
                         className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
                           selected
-                            ? 'bg-emerald-950/40 border-emerald-500/60 text-white'
-                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                            ? 'bg-[#E85D2A]/15 border-[#E85D2A]/60 text-[#F3F5F8]'
+                            : 'bg-[#171B26] border-[#232938] text-[#949EB0] hover:border-[#343D52]'
                         }`}
                       >
-                        <div className="text-xs font-bold">{cfg.name}</div>
-                        <div className="text-[10px] text-slate-400">${cfg.monthlyPriceUsd}/m</div>
-                        <div className="text-[9px] text-emerald-400 mt-0.5">
+                        <div className="text-xs font-bold text-[#F3F5F8]">{cfg.name}</div>
+                        <div className="text-[10px] text-[#949EB0] font-mono tabular-nums">
+                          ${cfg.monthlyPriceUsd}/m
+                        </div>
+                        <div className="text-[9px] text-emerald-400 font-mono tabular-nums mt-0.5">
                           {cfg.maxAccounts === 999 ? '∞' : cfg.maxAccounts}{' '}
                           {isEs ? 'casillas' : 'mailboxes'}
                         </div>
@@ -562,7 +558,7 @@ export default function AuthModal() {
               <button
                 type="submit"
                 disabled={submitting || !canCreateWorkspace}
-                className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-xs shadow-lg shadow-emerald-600/20 transition cursor-pointer disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white font-semibold py-2.5 rounded-lg text-xs shadow-sm transition cursor-pointer disabled:opacity-50"
               >
                 <span>
                   {submitting

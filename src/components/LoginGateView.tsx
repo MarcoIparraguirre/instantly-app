@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import {
-  Zap,
   ShieldCheck,
   Building2,
   Mail,
@@ -19,6 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { WorkspacePlan } from '@/types';
 import LanguageToggle from './LanguageToggle';
+import { BrandMark } from '@/components/ui/BrandMark';
 
 export default function LoginGateView() {
   const { signIn, signUp, signInWithGoogle } = useAuth();
@@ -89,7 +89,7 @@ export default function LoginGateView() {
       desc: isEs
         ? 'Distribuye envíos entre múltiples cuentas SMTP y protege la reputación de tus dominios en piloto automático.'
         : 'Spread volume across multiple SMTP accounts and protect domain reputation automatically.',
-      accent: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+      accent: 'text-amber-400 bg-amber-500/10 border-amber-500/25',
     },
     {
       icon: Send,
@@ -97,7 +97,7 @@ export default function LoginGateView() {
       desc: isEs
         ? 'Personalización con variables dinámicas, pruebas A/Z y detención automática cuando responde cualquier colega.'
         : 'Dynamic variables, A/Z variants, and automatic sequence stop on company-domain replies.',
-      accent: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+      accent: 'text-[#E85D2A] bg-[#E85D2A]/10 border-[#E85D2A]/30',
     },
     {
       icon: Inbox,
@@ -105,7 +105,7 @@ export default function LoginGateView() {
       desc: isEs
         ? 'Clasifica respuestas con IA (Interesado, Reunión) y mueve oportunidades directo a tu tablero comercial.'
         : 'AI sentiment tagging and one-click deal promotion straight into your sales pipeline.',
-      accent: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+      accent: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25',
     },
     {
       icon: Building2,
@@ -113,32 +113,24 @@ export default function LoginGateView() {
       desc: isEs
         ? 'Separa casillas, leads y métricas por cada cliente desde una sola cuenta con accesos por rol.'
         : 'Keep mailboxes, leads, and metrics strictly isolated per client with role-based access.',
-      accent: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
+      accent: 'text-[#F3F5F8] bg-[#171B26] border-[#232938]',
     },
   ];
 
   return (
-    <div className="min-h-screen w-screen bg-[#070b14] text-slate-100 flex flex-col justify-between overflow-y-auto relative">
-      {/* Subtle Ambient Background */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl" />
-      </div>
-
+    <div className="min-h-screen w-screen bg-[#0A0C10] text-[#F3F5F8] flex flex-col justify-between overflow-y-auto relative">
       {/* Top Strip */}
-      <header className="relative z-10 px-6 py-4 flex items-center justify-between border-b border-slate-800/70 bg-[#090e1a]/80 backdrop-blur-md">
+      <header className="relative z-10 px-6 py-4 flex items-center justify-between border-b border-[#1D2330] bg-[#11141C]">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-600/25">
-            <Zap className="w-4.5 h-4.5 text-white fill-white" />
-          </div>
+          <BrandMark size="md" />
           <div>
-            <div className="font-bold text-white text-sm tracking-wide flex items-center gap-2">
+            <div className="font-bold text-[#F3F5F8] text-sm tracking-wide flex items-center gap-2">
               <span>MiSender</span>
-              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+              <span className="text-[10px] uppercase font-mono font-bold px-1.5 py-0.5 rounded-lg bg-[#E85D2A]/15 text-[#E85D2A] border border-[#E85D2A]/30">
                 Outbound OS
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-[#949EB0]">
               {isEs
                 ? 'Infraestructura de prospección B2B y entregabilidad multi-agencia'
                 : 'B2B cold outreach & multi-agency deliverability infrastructure'}
@@ -155,20 +147,20 @@ export default function LoginGateView() {
           {/* Left Column: Clean Product Value Proposition */}
           <div className="lg:col-span-7 space-y-6">
             <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-semibold">
-                <ShieldCheck className="w-3.5 h-3.5" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-[#171B26] border border-[#232938] text-[#F3F5F8] text-xs font-semibold">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#E85D2A]" />
                 <span>
                   {isEs
                     ? 'Plataforma Outbound para Agencias y Equipos B2B'
                     : 'Outbound Platform for Agencies & B2B Teams'}
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F3F5F8] tracking-tight leading-tight">
                 {isEs
                   ? 'Escala tus campañas en frío manteniendo alta entregabilidad en cada dominio'
                   : 'Scale your cold outreach while protecting deliverability on every domain'}
               </h1>
-              <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
+              <p className="text-sm text-[#949EB0] leading-relaxed max-w-2xl">
                 {isEs
                   ? 'Inicia sesión para gestionar tus campañas, casillas y prospectos, o crea tu cuenta con 7 días de prueba gratis.'
                   : 'Sign in to manage your campaigns, mailboxes, and leads, or create an account with a 7-day free trial.'}
@@ -181,15 +173,15 @@ export default function LoginGateView() {
                 return (
                   <div
                     key={item.title}
-                    className="bg-[#0c1220] border border-slate-800/90 rounded-2xl p-4 space-y-2"
+                    className="bg-[#11141C] border border-[#1D2330] rounded-xl p-4 space-y-2"
                   >
                     <div
-                      className={`w-8 h-8 rounded-xl border flex items-center justify-center ${item.accent}`}
+                      className={`w-8 h-8 rounded-lg border flex items-center justify-center ${item.accent}`}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
-                    <h2 className="font-bold text-white text-xs">{item.title}</h2>
-                    <p className="text-[11px] text-slate-400 leading-relaxed">{item.desc}</p>
+                    <h2 className="font-bold text-[#F3F5F8] text-xs">{item.title}</h2>
+                    <p className="text-[11px] text-[#949EB0] leading-relaxed">{item.desc}</p>
                   </div>
                 );
               })}
@@ -197,19 +189,19 @@ export default function LoginGateView() {
           </div>
 
           {/* Right Column: Login / Create Account Card (Strictly 2 Tabs) */}
-          <div className="lg:col-span-5 bg-[#0f172a] border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
-            <div className="px-6 pt-5 pb-4 border-b border-slate-800 bg-slate-900/50">
-              <div className="grid grid-cols-2 gap-1.5 bg-slate-950/80 border border-slate-800 p-1 rounded-2xl">
+          <div className="lg:col-span-5 bg-[#11141C] border border-[#232938] rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-6 pt-5 pb-4 border-b border-[#1D2330] bg-[#0A0C10]/50">
+              <div className="grid grid-cols-2 gap-1.5 bg-[#171B26] border border-[#232938] p-1 rounded-xl">
                 <button
                   type="button"
                   onClick={() => {
                     setErrorMsg(null);
                     setActiveTab('signin');
                   }}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  className={`py-2 px-3 rounded-lg text-xs font-bold transition cursor-pointer ${
                     activeTab === 'signin'
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-[#E85D2A] text-white shadow-sm'
+                      : 'text-[#949EB0] hover:text-[#F3F5F8]'
                   }`}
                 >
                   {isEs ? 'Iniciar Sesión' : 'Sign In'}
@@ -220,10 +212,10 @@ export default function LoginGateView() {
                     setErrorMsg(null);
                     setActiveTab('signup');
                   }}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  className={`py-2 px-3 rounded-lg text-xs font-bold transition cursor-pointer ${
                     activeTab === 'signup'
-                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-[#E85D2A] text-white shadow-sm'
+                      : 'text-[#949EB0] hover:text-[#F3F5F8]'
                   }`}
                 >
                   {isEs ? 'Crear Cuenta' : 'Create Account'}
@@ -233,7 +225,7 @@ export default function LoginGateView() {
 
             <div className="p-6 space-y-4">
               {errorMsg && (
-                <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs">
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
                   <span>{errorMsg}</span>
                 </div>
@@ -245,7 +237,7 @@ export default function LoginGateView() {
                     type="button"
                     onClick={handleGoogleSignIn}
                     disabled={submitting}
-                    className="w-full flex items-center justify-center gap-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition cursor-pointer disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2.5 bg-[#171B26] hover:bg-[#1D2330] border border-[#232938] text-[#F3F5F8] font-semibold py-2.5 px-4 rounded-lg text-xs transition cursor-pointer disabled:opacity-50"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
                       <path
@@ -269,17 +261,17 @@ export default function LoginGateView() {
                   </button>
 
                   <div className="flex items-center gap-3">
-                    <div className="h-px flex-1 bg-slate-800" />
-                    <span className="text-[10px] uppercase font-bold text-slate-500">
+                    <div className="h-px flex-1 bg-[#1D2330]" />
+                    <span className="text-[10px] uppercase font-bold text-[#949EB0]">
                       {isEs ? 'o accede con tu correo' : 'or sign in with email'}
                     </span>
-                    <div className="h-px flex-1 bg-slate-800" />
+                    <div className="h-px flex-1 bg-[#1D2330]" />
                   </div>
 
                   <form onSubmit={handleSignIn} className="space-y-3.5">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                        <Mail className="w-3.5 h-3.5 text-blue-400" />
+                      <label className="block text-xs font-semibold text-[#F3F5F8] mb-1 flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5 text-[#E85D2A]" />
                         <span>{isEs ? 'Correo Electrónico' : 'Email Address'}</span>
                       </label>
                       <input
@@ -288,13 +280,13 @@ export default function LoginGateView() {
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
                         placeholder="nombre@tuempresa.com"
-                        className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                        className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2.5 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                        <Lock className="w-3.5 h-3.5 text-indigo-400" />
+                      <label className="block text-xs font-semibold text-[#F3F5F8] mb-1 flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-[#949EB0]" />
                         <span>{isEs ? 'Contraseña' : 'Password'}</span>
                       </label>
                       <input
@@ -303,14 +295,14 @@ export default function LoginGateView() {
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                        className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2.5 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
                       />
                     </div>
 
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-2.5 rounded-xl text-xs shadow-lg shadow-blue-600/20 transition cursor-pointer disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white font-semibold py-2.5 rounded-lg text-xs shadow-sm transition cursor-pointer disabled:opacity-50"
                     >
                       <span>
                         {submitting
@@ -327,8 +319,8 @@ export default function LoginGateView() {
                 </div>
               ) : (
                 <form onSubmit={handleSignUp} className="space-y-3.5">
-                  <div className="bg-indigo-950/30 border border-indigo-500/30 rounded-2xl p-3 text-[11px] text-slate-300 leading-snug">
-                    <span className="font-bold text-white">
+                  <div className="bg-[#171B26] border border-[#232938] rounded-xl p-3 text-[11px] text-[#949EB0] leading-snug">
+                    <span className="font-bold text-[#F3F5F8]">
                       {isEs ? 'Prueba gratis de 7 días:' : '7-day free trial:'}
                     </span>{' '}
                     {isEs
@@ -338,8 +330,8 @@ export default function LoginGateView() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                        <User className="w-3.5 h-3.5 text-blue-400" />
+                      <label className="block text-xs font-semibold text-[#F3F5F8] mb-1 flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-[#E85D2A]" />
                         <span>{isEs ? 'Nombre Completo' : 'Full Name'}</span>
                       </label>
                       <input
@@ -348,12 +340,12 @@ export default function LoginGateView() {
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder="Tu nombre"
-                        className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                        className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-purple-400" />
+                      <label className="block text-xs font-semibold text-[#F3F5F8] mb-1 flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-[#949EB0]" />
                         <span>{isEs ? 'Empresa / Agencia' : 'Company / Agency'}</span>
                       </label>
                       <input
@@ -362,13 +354,13 @@ export default function LoginGateView() {
                         value={company}
                         onChange={(e) => setCompany(e.target.value)}
                         placeholder="Nombre de tu empresa"
-                        className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                        className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    <label className="block text-xs font-semibold text-[#F3F5F8] mb-1">
                       {isEs ? 'Correo Corporativo' : 'Work Email'}
                     </label>
                     <input
@@ -377,13 +369,13 @@ export default function LoginGateView() {
                       value={signupEmail}
                       onChange={(e) => setSignupEmail(e.target.value)}
                       placeholder="nombre@tuempresa.com"
-                      className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                      className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      <label className="block text-xs font-semibold text-[#F3F5F8] mb-1">
                         {isEs ? 'Contraseña (mín. 6)' : 'Password (min 6)'}
                       </label>
                       <input
@@ -393,18 +385,18 @@ export default function LoginGateView() {
                         value={signupPassword}
                         onChange={(e) => setSignupPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                        className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3.5 py-2 text-xs text-[#F3F5F8] placeholder-[#949EB0]/60 focus:outline-none transition"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      <label className="block text-xs font-semibold text-[#F3F5F8] mb-1">
                         {isEs ? 'Plan Inicial (7d)' : 'Initial Plan (7d)'}
                       </label>
                       <select
                         value={signupPlan}
                         onChange={(e) => setSignupPlan(e.target.value as WorkspacePlan)}
-                        className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none cursor-pointer"
+                        className="w-full bg-[#171B26] border border-[#232938] focus:border-[#E85D2A] rounded-lg px-3 py-2 text-xs text-[#F3F5F8] focus:outline-none cursor-pointer"
                       >
                         <option value="starter">Starter ($39/m)</option>
                         <option value="growth">Growth ($79/m — Popular)</option>
@@ -416,7 +408,7 @@ export default function LoginGateView() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold py-2.5 rounded-xl text-xs shadow-lg shadow-indigo-600/20 transition cursor-pointer disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 bg-[#E85D2A] hover:bg-[#F26B3A] text-white font-semibold py-2.5 rounded-lg text-xs shadow-sm transition cursor-pointer disabled:opacity-50"
                   >
                     <span>
                       {submitting
