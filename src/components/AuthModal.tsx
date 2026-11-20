@@ -11,13 +11,13 @@ import {
   ShieldCheck,
   Briefcase,
   ArrowRight,
-  Zap,
   AlertCircle,
   CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { WorkspacePlan, SAAS_PLANS } from '@/types';
+import { WorkspacePlan, SAAS_PLANS, ROLE_PERMISSIONS, normalizeRole } from '@/types';
+import { BrandMark } from '@/components/ui/BrandMark';
 
 export default function AuthModal() {
   const {
@@ -29,7 +29,6 @@ export default function AuthModal() {
     signIn,
     signUp,
     signInWithGoogle,
-    signInDemo,
     createWorkspace,
   } = useAuth();
   const { language } = useLanguage();
@@ -46,7 +45,7 @@ export default function AuthModal() {
   const [signupPassword, setSignupPassword] = useState('');
   const [signupPlan, setSignupPlan] = useState<WorkspacePlan>('growth');
 
-  // New Workspace (Agency) form state
+  // New Workspace (Agency) form state — shown ONLY inside the app for authenticated admins
   const [wsName, setWsName] = useState('');
   const [wsClientName, setWsClientName] = useState('');
   const [wsPlan, setWsPlan] = useState<WorkspacePlan>('growth');
@@ -54,6 +53,10 @@ export default function AuthModal() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const isWorkspaceMode = authModalTab === 'workspace';
+  const effectiveRole = normalizeRole(user?.role);
+  const canCreateWorkspace = Boolean(user && ROLE_PERMISSIONS[effectiveRole].canManageWorkspaces);
 
   // Escape key listener for accessible dismissal
   useEffect(() => {
@@ -76,7 +79,7 @@ export default function AuthModal() {
     closeAuthModal();
   };
 
-  const handleSwitchTab = (tab: 'signin' | 'signup' | 'workspace') => {
+  const handleSwitchTab = (tab: 'signin' | 'signup') => {
     setErrorMsg(null);
     setSuccessMsg(null);
     setAuthModalTab(tab);
@@ -125,14 +128,23 @@ export default function AuthModal() {
     if (res.error) {
       setErrorMsg(
         isEs
-          ? `Google OAuth: ${res.error}. Puedes usar Acceso Demo Staging o email/contraseña.`
-          : `Google OAuth: ${res.error}. You can use Staging Demo Access or email/password.`
+          ? `Google OAuth: ${res.error}. Ingresa con email y contraseña.`
+          : `Google OAuth: ${res.error}. Sign in with email & password.`
       );
     }
   };
 
   const handleCreateWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canCreateWorkspace) {
+      setErrorMsg(
+        isEs
+          ? 'Solo el Administrador de la Agencia o el Super Admin puede crear nuevos Workspaces.'
+          : 'Only Agency Admins or Super Admins can create new workspaces.'
+      );
+      return;
+    }
+
     setSubmitting(true);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -170,24 +182,40 @@ export default function AuthModal() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-[#0f172a] border border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col"
+        className="bg-white border border-[#DCE3DF] text-[#14213D] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col"
       >
         {/* Modal Header */}
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+        <div className="px-6 py-5 border-b border-[#DCE3DF] flex items-center justify-between bg-[#F4F7F5]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
-              <Zap className="w-5 h-5 fill-white" />
-            </div>
+            {isWorkspaceMode ? (
+              <div className="w-10 h-10 rounded-xl bg-[#D5ECD4] border border-[#C3DAC3] flex items-center justify-center text-[#14213D]">
+                <Building2 className="w-5 h-5" />
+              </div>
+            ) : (
+              <BrandMark size="md" />
+            )}
             <div>
-              <h2 id="auth-modal-title" className="text-base font-bold text-white leading-tight">
-                {isEs ? 'MiSender SaaS & Workspaces' : 'MiSender SaaS & Workspaces'}
+              <h2 id="auth-modal-title" className="text-base font-bold text-[#14213D] leading-tight">
+                {isWorkspaceMode
+                  ? isEs
+                    ? 'Nuevo Workspace para Cliente de tu Agencia'
+                    : 'New Workspace for Agency Client'
+                  : isEs
+                    ? 'Acceso a MiSender SaaS'
+                    : 'Sign in to MiSender SaaS'}
               </h2>
-              <p className="text-xs text-slate-400">
-                {user
-                  ? (isEs ? `Sesión activa: ${user.email}` : `Signed in as ${user.email}`)
-                  : (isEs
-                      ? 'Accede a tu cuenta o inicia tu prueba gratis de 7 días'
-                      : 'Sign in or start your 7-day free SaaS trial')}
+              <p className="text-xs text-[#5C6F68]">
+                {isWorkspaceMode
+                  ? isEs
+                    ? 'Crea un entorno aislado para cada cliente sin mezclar casillas ni leads'
+                    : 'Isolate mailboxes, leads & campaigns for a specific client'
+                  : user
+                    ? isEs
+                      ? `Sesión activa: ${user.email}`
+                      : `Signed in as ${user.email}`
+                    : isEs
+                      ? 'Accede a tu cuenta o crea tu cuenta de agencia (7 días gratis)'
+                      : 'Sign in or create your agency account (7-day free trial)'}
               </p>
             </div>
           </div>
@@ -196,63 +224,54 @@ export default function AuthModal() {
             type="button"
             onClick={handleClose}
             aria-label={isEs ? 'Cerrar modal' : 'Close modal'}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition cursor-pointer"
+            className="p-1.5 text-[#5C6F68] hover:text-[#14213D] hover:bg-[#EEF3F0] rounded-lg transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="px-6 pt-4">
-          <div className="grid grid-cols-3 gap-1.5 bg-slate-900/90 border border-slate-800 p-1 rounded-2xl">
-            <button
-              type="button"
-              onClick={() => handleSwitchTab('signin')}
-              className={`py-2 px-2 rounded-xl text-[11px] font-bold transition cursor-pointer ${
-                authModalTab === 'signin'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {isEs ? 'Iniciar Sesión' : 'Sign In'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSwitchTab('signup')}
-              className={`py-2 px-2 rounded-xl text-[11px] font-bold transition cursor-pointer ${
-                authModalTab === 'signup'
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {isEs ? 'Crear Cuenta (7d)' : 'Sign Up (7d Free)'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSwitchTab('workspace')}
-              className={`py-2 px-2 rounded-xl text-[11px] font-bold transition cursor-pointer ${
-                authModalTab === 'workspace'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {isEs ? 'Nuevo Workspace' : 'New Workspace'}
-            </button>
+        {/* Navigation Tabs: ONLY Sign In and Sign Up in auth mode; NO workspace tab in auth gate */}
+        {!isWorkspaceMode && (
+          <div className="px-6 pt-4">
+            <div className="grid grid-cols-2 gap-1.5 bg-[#EEF3F0] border border-[#DCE3DF] p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => handleSwitchTab('signin')}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  authModalTab === 'signin'
+                    ? 'bg-[#14213D] text-white shadow-sm'
+                    : 'text-[#5C6F68] hover:text-[#14213D]'
+                }`}
+              >
+                {isEs ? 'Iniciar Sesión' : 'Sign In'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSwitchTab('signup')}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  authModalTab === 'signup'
+                    ? 'bg-[#14213D] text-white shadow-sm'
+                    : 'text-[#5C6F68] hover:text-[#14213D]'
+                }`}
+              >
+                {isEs ? 'Crear Cuenta (7d)' : 'Create Account (7d)'}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Body */}
         <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
           {errorMsg && (
-            <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs">
-              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-[#D5ECD4]/60 border border-[#C3DAC3] text-[#14213D] text-xs">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-[#14213D]" />
               <span>{successMsg}</span>
             </div>
           )}
@@ -265,7 +284,7 @@ export default function AuthModal() {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={submitting}
-                className="w-full flex items-center justify-center gap-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition cursor-pointer disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2.5 bg-[#F4F7F5] hover:bg-[#EEF3F0] border border-[#DCE3DF] text-[#14213D] font-semibold py-2.5 px-4 rounded-lg text-xs transition cursor-pointer disabled:opacity-50"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
                   <path
@@ -289,17 +308,17 @@ export default function AuthModal() {
               </button>
 
               <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-slate-800" />
-                <span className="text-[10px] uppercase font-bold text-slate-500">
+                <div className="h-px flex-1 bg-[#DCE3DF]" />
+                <span className="text-[10px] uppercase font-bold text-[#5C6F68]">
                   {isEs ? 'o con email' : 'or with email'}
                 </span>
-                <div className="h-px flex-1 bg-slate-800" />
+                <div className="h-px flex-1 bg-[#DCE3DF]" />
               </div>
 
               <form onSubmit={handleSignIn} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-blue-400" />
+                  <label className="block text-xs font-semibold text-[#5C6F68] mb-1 flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-[#14213D]" />
                     <span>{isEs ? 'Correo Electrónico' : 'Email Address'}</span>
                   </label>
                   <input
@@ -308,13 +327,13 @@ export default function AuthModal() {
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     placeholder="founder@tuagencia.com"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                    className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3.5 py-2 text-xs text-[#14213D] placeholder-[#A1B0AB] focus:outline-none transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-indigo-400" />
+                  <label className="block text-xs font-semibold text-[#5C6F68] mb-1 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-[#5C6F68]" />
                     <span>{isEs ? 'Contraseña' : 'Password'}</span>
                   </label>
                   <input
@@ -323,61 +342,51 @@ export default function AuthModal() {
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                    className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3.5 py-2 text-xs text-[#14213D] placeholder-[#A1B0AB] focus:outline-none transition"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-2.5 rounded-xl text-xs shadow-lg shadow-blue-600/20 transition cursor-pointer disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 bg-[#14213D] hover:bg-[#1E3158] text-white font-semibold py-2.5 rounded-lg text-xs shadow-sm transition cursor-pointer disabled:opacity-50"
                 >
                   <span>
                     {submitting
-                      ? (isEs ? 'Ingresando...' : 'Signing in...')
-                      : (isEs ? 'Iniciar Sesión' : 'Sign In')}
+                      ? isEs
+                        ? 'Ingresando...'
+                        : 'Signing in...'
+                      : isEs
+                        ? 'Iniciar Sesión'
+                        : 'Sign In'}
                   </span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </form>
-
-              {/* Staging Demo Fallback */}
-              <div className="pt-2 border-t border-slate-800/80">
-                <button
-                  type="button"
-                  onClick={() => signInDemo()}
-                  className="w-full flex items-center justify-center gap-2 bg-indigo-950/40 hover:bg-indigo-900/50 border border-indigo-500/30 text-indigo-300 font-semibold py-2 px-3 rounded-xl text-xs transition cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>
-                    {isEs
-                      ? 'Acceso Demo Rápido (Staging sin bloqueo SMTP)'
-                      : 'Instant Staging Demo Sign-In (No SMTP needed)'}
-                  </span>
-                </button>
-              </div>
             </div>
           )}
 
           {/* TAB 2: CREATE SAAS ACCOUNT (7 DAYS FREE) */}
           {authModalTab === 'signup' && (
             <form onSubmit={handleSignUp} className="space-y-3.5">
-              <div className="bg-indigo-950/30 border border-indigo-500/30 rounded-2xl p-3 flex items-center gap-3">
-                <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
-                <div className="text-[11px] text-slate-300 leading-snug">
-                  <span className="font-bold text-white">
-                    {isEs ? 'Crear Cuenta SaaS (7 días gratis):' : 'Create SaaS Account (7 days free):'}
+              <div className="bg-[#D5ECD4]/45 border border-[#C3DAC3] rounded-xl p-3 flex items-center gap-3">
+                <ShieldCheck className="w-5 h-5 text-[#14213D] shrink-0" />
+                <div className="text-[11px] text-[#5C6F68] leading-snug">
+                  <span className="font-bold text-[#14213D]">
+                    {isEs
+                      ? 'Crear Cuenta de Agencia (7 días gratis):'
+                      : 'Create Agency Account (7 days free):'}
                   </span>{' '}
                   {isEs
-                    ? 'Incluye workspace inicial, créditos de verificación y warmup P2P automático.'
-                    : 'Includes initial workspace, verification credits & automated P2P warmup.'}
+                    ? 'Tu primer Workspace principal se crea automáticamente al finalizar el registro.'
+                    : 'Your primary workspace is created automatically once you sign up.'}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-blue-400" />
+                  <label className="block text-xs font-semibold text-[#5C6F68] mb-1 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-[#14213D]" />
                     <span>{isEs ? 'Nombre Completo' : 'Full Name'}</span>
                   </label>
                   <input
@@ -385,14 +394,14 @@ export default function AuthModal() {
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Alex Morgan"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                    placeholder="Sofía Méndez"
+                    className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3 py-2 text-xs text-[#14213D] placeholder-[#A1B0AB] focus:outline-none transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 text-purple-400" />
+                  <label className="block text-xs font-semibold text-[#5C6F68] mb-1 flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-[#5C6F68]" />
                     <span>{isEs ? 'Empresa / Agencia' : 'Company / Agency'}</span>
                   </label>
                   <input
@@ -401,13 +410,13 @@ export default function AuthModal() {
                     value={company}
                     onChange={(e) => setCompany(e.target.value)}
                     placeholder="Growth Agency"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                    className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3 py-2 text-xs text-[#14213D] placeholder-[#A1B0AB] focus:outline-none transition"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#5C6F68] mb-1">
                   {isEs ? 'Email Corporativo' : 'Work Email'}
                 </label>
                 <input
@@ -415,14 +424,14 @@ export default function AuthModal() {
                   required
                   value={signupEmail}
                   onChange={(e) => setSignupEmail(e.target.value)}
-                  placeholder="alex@growthagency.io"
-                  className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                  placeholder="sofia@growthagency.io"
+                  className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3.5 py-2 text-xs text-[#14213D] placeholder-[#A1B0AB] focus:outline-none transition"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-[#5C6F68] mb-1">
                     {isEs ? 'Contraseña (mín. 6)' : 'Password (min 6)'}
                   </label>
                   <input
@@ -432,18 +441,18 @@ export default function AuthModal() {
                     value={signupPassword}
                     onChange={(e) => setSignupPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                    className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3.5 py-2 text-xs text-[#14213D] placeholder-[#A1B0AB] focus:outline-none transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-[#5C6F68] mb-1">
                     {isEs ? 'Plan Trial (7 días)' : 'Trial Plan (7 days)'}
                   </label>
                   <select
                     value={signupPlan}
                     onChange={(e) => setSignupPlan(e.target.value as WorkspacePlan)}
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none cursor-pointer"
+                    className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3 py-2 text-xs text-[#14213D] focus:outline-none cursor-pointer"
                   >
                     <option value="starter">Starter ($39/m)</option>
                     <option value="growth">Growth ($79/m — Popular)</option>
@@ -455,35 +464,39 @@ export default function AuthModal() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold py-2.5 rounded-xl text-xs shadow-lg shadow-indigo-600/20 transition cursor-pointer disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 bg-[#14213D] hover:bg-[#1E3158] text-white font-semibold py-2.5 rounded-lg text-xs shadow-sm transition cursor-pointer disabled:opacity-50"
               >
                 <span>
                   {submitting
-                    ? (isEs ? 'Creando Cuenta...' : 'Creating Account...')
-                    : (isEs ? 'Comenzar Prueba Gratis (7 días)' : 'Start 7-Day Free Trial')}
+                    ? isEs
+                      ? 'Creando Cuenta...'
+                      : 'Creating Account...'
+                    : isEs
+                      ? 'Comenzar Prueba Gratis (7 días)'
+                      : 'Start 7-Day Free Trial'}
                 </span>
                 <Sparkles className="w-3.5 h-3.5" />
               </button>
             </form>
           )}
 
-          {/* TAB 3: NEW WORKSPACE (AGENCY) */}
-          {authModalTab === 'workspace' && (
+          {/* INTERNAL MODAL MODE: CREATE CLIENT WORKSPACE FOR AGENCY */}
+          {isWorkspaceMode && (
             <form onSubmit={handleCreateWorkspace} className="space-y-3.5">
-              <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-2xl p-3 flex items-center gap-3">
-                <Briefcase className="w-5 h-5 text-emerald-400 shrink-0" />
-                <div className="text-[11px] text-slate-300 leading-snug">
-                  <span className="font-bold text-white">
-                    {isEs ? 'Nuevo Workspace (Agencia):' : 'New Workspace (Agency):'}
+              <div className="bg-[#D5ECD4]/45 border border-[#C3DAC3] rounded-xl p-3 flex items-center gap-3">
+                <Briefcase className="w-5 h-5 text-[#14213D] shrink-0" />
+                <div className="text-[11px] text-[#5C6F68] leading-snug">
+                  <span className="font-bold text-[#14213D]">
+                    {isEs ? 'Sub-espacio para Cliente:' : 'Client Sub-Workspace:'}
                   </span>{' '}
                   {isEs
-                    ? 'Aísla casillas, campañas, CRM y límites de facturación por cliente.'
-                    : 'Isolate mailboxes, campaigns, CRM and billing limits per client.'}
+                    ? 'Aísla casillas SMTP, campañas, CRM y métricas para este cliente específico.'
+                    : 'Isolate SMTP mailboxes, campaigns, CRM & analytics for this client.'}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#5C6F68] mb-1">
                   {isEs ? 'Nombre del Workspace' : 'Workspace Name'}
                 </label>
                 <input
@@ -492,12 +505,12 @@ export default function AuthModal() {
                   value={wsName}
                   onChange={(e) => setWsName(e.target.value)}
                   placeholder={isEs ? 'Ej: Outbound Cliente FinTech' : 'e.g. FinTech Client Outbound'}
-                  className="w-full bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                  className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3.5 py-2 text-xs text-[#14213D] placeholder-[#A1B0AB] focus:outline-none transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#5C6F68] mb-1">
                   {isEs ? 'Cliente u Organización' : 'Client or Organization'}
                 </label>
                 <input
@@ -505,12 +518,12 @@ export default function AuthModal() {
                   value={wsClientName}
                   onChange={(e) => setWsClientName(e.target.value)}
                   placeholder="Ej: FinTech Labs S.A."
-                  className="w-full bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                  className="w-full bg-[#F4F7F5] border border-[#DCE3DF] focus:border-[#14213D] rounded-lg px-3.5 py-2 text-xs text-[#14213D] placeholder-[#A1B0AB] focus:outline-none transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#5C6F68] mb-1">
                   {isEs ? 'Plan Inicial del Workspace' : 'Initial Workspace Plan'}
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -524,15 +537,15 @@ export default function AuthModal() {
                         onClick={() => setWsPlan(p)}
                         className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
                           selected
-                            ? 'bg-emerald-950/40 border-emerald-500/60 text-white'
-                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                            ? 'bg-[#D5ECD4]/50 border-[#14213D] text-[#14213D]'
+                            : 'bg-[#F4F7F5] border-[#DCE3DF] text-[#5C6F68] hover:border-[#A1B0AB]'
                         }`}
                       >
-                        <div className="text-xs font-bold">{cfg.name}</div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-xs font-bold text-[#14213D]">{cfg.name}</div>
+                        <div className="text-[10px] text-[#5C6F68] font-mono tabular-nums">
                           ${cfg.monthlyPriceUsd}/m
                         </div>
-                        <div className="text-[9px] text-emerald-400 mt-0.5">
+                        <div className="text-[9px] text-emerald-700 font-semibold font-mono tabular-nums mt-0.5">
                           {cfg.maxAccounts === 999 ? '∞' : cfg.maxAccounts}{' '}
                           {isEs ? 'casillas' : 'mailboxes'}
                         </div>
@@ -544,13 +557,17 @@ export default function AuthModal() {
 
               <button
                 type="submit"
-                disabled={submitting}
-                className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-xs shadow-lg shadow-emerald-600/20 transition cursor-pointer disabled:opacity-50"
+                disabled={submitting || !canCreateWorkspace}
+                className="w-full flex items-center justify-center gap-2 bg-[#14213D] hover:bg-[#1E3158] text-white font-semibold py-2.5 rounded-lg text-xs shadow-sm transition cursor-pointer disabled:opacity-50"
               >
                 <span>
                   {submitting
-                    ? (isEs ? 'Creando Workspace...' : 'Creating Workspace...')
-                    : (isEs ? 'Crear Workspace y Activar' : 'Create & Switch Workspace')}
+                    ? isEs
+                      ? 'Creando Workspace...'
+                      : 'Creating Workspace...'
+                    : isEs
+                      ? 'Crear Workspace y Activar'
+                      : 'Create & Switch Workspace'}
                 </span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>

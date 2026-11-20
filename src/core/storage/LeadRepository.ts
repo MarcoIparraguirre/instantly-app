@@ -33,9 +33,15 @@ export class LeadRepository implements ILeadRepository {
     this.driver = driver;
   }
 
-  getLeads(campaignId?: string): Lead[] {
-    const leads = this.driver.read<Lead[]>(this.filename, initialLeadsSeed);
-    return campaignId ? leads.filter(l => l.campaignId === campaignId) : leads;
+  getLeads(campaignId?: string, workspaceId?: string): Lead[] {
+    let leads = this.driver.read<Lead[]>(this.filename, initialLeadsSeed);
+    if (campaignId) {
+      leads = leads.filter(l => l.campaignId === campaignId);
+    }
+    if (workspaceId) {
+      leads = leads.filter(l => (l.workspaceId || 'ws-primary') === workspaceId);
+    }
+    return leads;
   }
 
   getLeadById(id: string): Lead | undefined {
@@ -44,14 +50,22 @@ export class LeadRepository implements ILeadRepository {
   }
 
   saveLeads(leads: Lead[]): void {
-    this.driver.write(this.filename, leads);
+    const normalized = leads.map(l => ({
+      ...l,
+      workspaceId: l.workspaceId || 'ws-primary'
+    }));
+    this.driver.write(this.filename, normalized);
   }
 
   addLeads(newLeads: Lead[]): void {
     const existing = this.getLeads();
     const map = new Map(existing.map(l => [l.id, l]));
     for (const lead of newLeads) {
-      map.set(lead.id, lead);
+      const prev = map.get(lead.id);
+      map.set(lead.id, {
+        ...lead,
+        workspaceId: lead.workspaceId || prev?.workspaceId || 'ws-primary'
+      });
     }
     this.saveLeads(Array.from(map.values()));
   }
@@ -60,7 +74,10 @@ export class LeadRepository implements ILeadRepository {
     const existing = this.getLeads();
     const idx = existing.findIndex(l => l.id === lead.id);
     if (idx >= 0) {
-      existing[idx] = lead;
+      existing[idx] = {
+        ...lead,
+        workspaceId: lead.workspaceId || existing[idx].workspaceId || 'ws-primary'
+      };
       this.saveLeads(existing);
     }
   }

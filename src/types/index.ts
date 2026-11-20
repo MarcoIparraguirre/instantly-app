@@ -4,7 +4,9 @@ export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled'
 
 export type BillingCycle = 'monthly' | 'annual';
 
-export type BillingProvider = 'stripe' | 'mercadopago' | 'sandbox';
+export type BillingProvider = 'stripe' | 'mercadopago' | 'lemonsqueezy' | 'sandbox';
+
+export type UserRole = 'super_admin' | 'admin' | 'campaign_manager' | 'viewer';
 
 export type AppTab =
   | 'finder'
@@ -13,7 +15,104 @@ export type AppTab =
   | 'unibox'
   | 'crm'
   | 'analytics'
-  | 'billing';
+  | 'team'
+  | 'billing'
+  | 'backoffice';
+
+export interface TeamMember {
+  id: string;
+  workspaceId: string;
+  allowedWorkspaceIds?: string[];
+  agencyId?: string;
+  accessCode?: string;
+  fullName: string;
+  email: string;
+  company?: string;
+  roleId: UserRole;
+  roleName?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RolePermissionConfig {
+  labelEs: string;
+  labelEn: string;
+  descriptionEs: string;
+  descriptionEn: string;
+  allowedTabs: AppTab[];
+  canManageWorkspaces: boolean;
+  canManageTeam: boolean;
+  canManageBilling: boolean;
+  canAccessBackoffice: boolean;
+  isReadOnly: boolean;
+}
+
+export const ROLE_PERMISSIONS: Record<UserRole, RolePermissionConfig> = {
+  super_admin: {
+    labelEs: 'Super Admin',
+    labelEn: 'Super Admin',
+    descriptionEs: 'Dueño del SaaS: da de alta agencias, asigna planes y administra usuarios de agencias.',
+    descriptionEn: 'SaaS Owner: onboards agencies, assigns plans, and manages agency admin users.',
+    allowedTabs: ['backoffice'],
+    canManageWorkspaces: true,
+    canManageTeam: true,
+    canManageBilling: true,
+    canAccessBackoffice: true,
+    isReadOnly: false,
+  },
+  admin: {
+    labelEs: 'Admin Agencia',
+    labelEn: 'Agency Admin',
+    descriptionEs: 'Cliente principal: administra sus Workspaces de clientes, equipo y facturación.',
+    descriptionEn: 'Agency Owner: manages client workspaces, team members, and billing.',
+    allowedTabs: ['finder', 'accounts', 'campaigns', 'unibox', 'crm', 'analytics', 'team', 'billing'],
+    canManageWorkspaces: true,
+    canManageTeam: true,
+    canManageBilling: true,
+    canAccessBackoffice: false,
+    isReadOnly: false,
+  },
+  campaign_manager: {
+    labelEs: 'Gestor de Campañas',
+    labelEn: 'Campaign Manager',
+    descriptionEs: 'Operador / SDR: opera campañas, leads, casillas y Unibox sin ver facturación ni equipo.',
+    descriptionEn: 'Operator / SDR: manages campaigns, leads, mailboxes & Unibox without billing or team access.',
+    allowedTabs: ['finder', 'accounts', 'campaigns', 'unibox', 'crm', 'analytics'],
+    canManageWorkspaces: false,
+    canManageTeam: false,
+    canManageBilling: false,
+    canAccessBackoffice: false,
+    isReadOnly: false,
+  },
+  viewer: {
+    labelEs: 'Solo Lectura',
+    labelEn: 'Read Only',
+    descriptionEs: 'Cliente final de la agencia: visualiza campañas, Unibox, CRM y analíticas sin editar.',
+    descriptionEn: 'Agency end-client: view-only access to campaigns, Unibox, CRM & analytics.',
+    allowedTabs: ['campaigns', 'unibox', 'crm', 'analytics'],
+    canManageWorkspaces: false,
+    canManageTeam: false,
+    canManageBilling: false,
+    canAccessBackoffice: false,
+    isReadOnly: true,
+  },
+};
+
+export function normalizeRole(role?: string | null): UserRole {
+  if (role === 'super_admin' || role === 'admin' || role === 'campaign_manager' || role === 'viewer') {
+    return role;
+  }
+  return 'admin';
+}
+
+export function canAccessTab(role: UserRole | undefined | null, tab: string): boolean {
+  const effectiveRole = normalizeRole(role);
+  return ROLE_PERMISSIONS[effectiveRole].allowedTabs.includes(tab as AppTab);
+}
+
+export function getDefaultTabForRole(role?: UserRole | string | null): AppTab {
+  return normalizeRole(role) === 'super_admin' ? 'backoffice' : 'campaigns';
+}
 
 export interface PlanConfig {
   id: WorkspacePlan;
@@ -67,6 +166,7 @@ export interface Workspace {
   name: string;
   clientName: string;
   credits: number;
+  agencyId?: string;
   ownerId?: string;
   ownerEmail?: string;
   plan?: WorkspacePlan;
@@ -124,6 +224,7 @@ export interface CampaignOptions {
 
 export interface Campaign {
   id: string;
+  workspaceId?: string;
   name: string;
   status: 'draft' | 'active' | 'paused' | 'completed';
   steps: SequenceStep[];
@@ -141,6 +242,7 @@ export type LeadStatus = 'pending' | 'sent' | 'opened' | 'replied' | 'bounced' |
 
 export interface Lead {
   id: string;
+  workspaceId?: string;
   campaignId: string;
   email: string;
   firstName: string;
@@ -164,6 +266,7 @@ export interface DnsCheckItem {
 
 export interface SenderAccount {
   id: string;
+  workspaceId?: string;
   name: string;
   email: string;
   provider?: 'google' | 'microsoft' | 'smtp';
@@ -202,6 +305,7 @@ export interface EmailMessage {
 
 export interface EmailThread {
   id: string;
+  workspaceId?: string;
   campaignId: string;
   leadId: string;
   leadName: string;
@@ -219,6 +323,7 @@ export type DealStage = 'positive' | 'demo' | 'proposal' | 'won' | 'lost';
 
 export interface Deal {
   id: string;
+  workspaceId?: string;
   leadId: string;
   contactName: string;
   contactEmail: string;
@@ -234,7 +339,7 @@ export interface ActionApproval {
   id: string;
   toolName: string;
   description: string;
-  parameters: any;
+  parameters: Record<string, unknown>;
   status: 'pending' | 'approved' | 'rejected';
 }
 
@@ -246,7 +351,7 @@ export interface CopilotMessage {
   approval?: ActionApproval;
   toolResults?: {
     toolName: string;
-    result: any;
+    result: unknown;
   }[];
 }
 

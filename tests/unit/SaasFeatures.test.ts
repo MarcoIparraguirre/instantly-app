@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
@@ -5,11 +6,42 @@ const { mockState, mockSupabase, mockContainer } = vi.hoisted(() => {
   const state = {
     workspaces: [] as Array<Record<string, unknown>>,
     upsertedWorkspaces: [] as Array<Record<string, unknown>>,
+    userProfiles: [] as Array<Record<string, unknown>>,
+    upsertedUserProfiles: [] as Array<Record<string, unknown>>,
     campaigns: [] as Array<Record<string, unknown>>,
     accounts: [] as Array<Record<string, unknown>>,
   };
 
   const fromMock = vi.fn((tableName: string) => {
+    if (tableName === 'user_profiles') {
+      return {
+        select: vi.fn(() => {
+          const result = { data: [...state.userProfiles], error: null };
+          const promise = Promise.resolve(result) as Promise<typeof result> & {
+            order: ReturnType<typeof vi.fn>;
+          };
+          promise.order = vi.fn().mockResolvedValue(result);
+          return promise;
+        }),
+        upsert: vi.fn(async (row: Record<string, unknown>) => {
+          state.upsertedUserProfiles.push(row);
+          const idx = state.userProfiles.findIndex((m) => m.id === row.id);
+          if (idx >= 0) {
+            state.userProfiles[idx] = { ...state.userProfiles[idx], ...row };
+          } else {
+            state.userProfiles.push(row);
+          }
+          return { error: null };
+        }),
+        delete: vi.fn(() => ({
+          eq: vi.fn(async (_col: string, val: string) => {
+            state.userProfiles = state.userProfiles.filter((m) => m.id !== val);
+            return { error: null };
+          }),
+        })),
+      };
+    }
+
     if (tableName !== 'workspaces') {
       return {};
     }
@@ -97,11 +129,13 @@ vi.mock('@/core/container', () => ({
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SupabaseCampaignRepository } from '@/core/storage/supabase/SupabaseCampaignRepository';
 import { GET as getWorkspaces, POST as postWorkspace, PUT as putWorkspace } from '@/app/api/workspaces/route';
-import { POST as postBillingCheckout } from '@/app/api/billing/checkout/route';
+import { GET as getBillingCheckout, POST as postBillingCheckout } from '@/app/api/billing/checkout/route';
+import { POST as postBillingWebhook } from '@/app/api/billing/webhook/route';
 import { GET as getCronDispatch, POST as postCronDispatch } from '@/app/api/cron/dispatch/route';
 import { GET as getCronWarmup, POST as postCronWarmup } from '@/app/api/cron/warmup/route';
 import { GET as getAccountsOAuth, POST as postAccountsOAuth } from '@/app/api/accounts/oauth/route';
-import { Campaign, SAAS_PLANS } from '@/types';
+import { GET as getTeam, POST as postTeam, PUT as putTeam, DELETE as deleteTeam } from '@/app/api/team/route';
+import { Campaign, SAAS_PLANS, ROLE_PERMISSIONS, normalizeRole, canAccessTab } from '@/types';
 
 describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
   const originalEnv = { ...process.env };
@@ -110,10 +144,24 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
     vi.clearAllMocks();
     mockState.workspaces = [];
     mockState.upsertedWorkspaces = [];
+    mockState.userProfiles = [];
+    mockState.upsertedUserProfiles = [];
     (globalThis as unknown as { __misenderWorkspacesStore?: unknown }).__misenderWorkspacesStore = undefined;
+    (globalThis as unknown as { __misenderTeamStore?: unknown }).__misenderTeamStore = undefined;
+    (globalThis as unknown as { __misenderMepRateCache?: unknown }).__misenderMepRateCache = undefined;
 
     delete process.env.STRIPE_SECRET_KEY;
+    delete process.env.STRIPE_WEBHOOK_SECRET;
+    delete process.env.BILLING_WEBHOOK_SECRET;
     delete process.env.MERCADOPAGO_ACCESS_TOKEN;
+    delete process.env.MP_USD_TO_ARS_RATE;
+    delete process.env.LEMONSQUEEZY_API_KEY;
+    delete process.env.LEMONSQUEEZY_STORE_ID;
+    delete process.env.LEMONSQUEEZY_VARIANT_ID;
+    delete process.env.LEMONSQUEEZY_VARIANT_STARTER;
+    delete process.env.LEMONSQUEEZY_VARIANT_GROWTH;
+    delete process.env.LEMONSQUEEZY_VARIANT_AGENCY;
+    delete process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
     delete process.env.GOOGLE_CLIENT_ID;
     delete process.env.MICROSOFT_CLIENT_ID;
     delete process.env.CRON_SECRET;
@@ -122,6 +170,7 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     process.env = { ...originalEnv };
   });
 
@@ -216,16 +265,15 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
   });
 
   describe('/api/workspaces GET, POST, PUT handlers', () => {
-    it('GET seeds ws-primary when empty and returns mapped workspaces', async () => {
+    it('GET returns [] when empty (clean zero state) without auto-seeding ws-primary', async () => {
       const req = new NextRequest('http://localhost:3000/api/workspaces');
       const res = await getWorkspaces(req);
       const data = await res.json();
 
       expect(res.status).toBe(200);
       expect(Array.isArray(data)).toBe(true);
-      expect(data[0].id).toBe('ws-primary');
-      expect(data[0].plan).toBe('growth');
-      expect(mockState.upsertedWorkspaces).toHaveLength(1);
+      expect(data).toHaveLength(0);
+      expect(mockState.upsertedWorkspaces).toHaveLength(0);
     });
 
     it('POST creates a new SaaS workspace with 7-day trial and plan limits', async () => {
@@ -326,12 +374,15 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
       expect(res.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.mode).toBe('sandbox');
-      // $149 * 0.8 = $119.20/mo => $1,430.40/year
+      // $149 * 0.8 = $119.20/mo => $1,430.40/year; default test rate = 1200 ARS/USD => 1,716,480 ARS
       expect(data.pricing).toEqual({
         planId: 'agency',
         billingCycle: 'annual',
         monthlyEquivalent: 119.2,
         totalUsd: 1430.4,
+        totalArs: Math.round(1430.4 * 1200),
+        usdToArsRate: 1200,
+        rateSource: 'fallback',
         discountPercent: 20,
         currency: 'USD',
       });
@@ -361,11 +412,244 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
         billingCycle: 'monthly',
         monthlyEquivalent: 79,
         totalUsd: 79,
+        totalArs: 79 * 1200,
+        usdToArsRate: 1200,
+        rateSource: 'fallback',
         discountPercent: 0,
         currency: 'USD',
       });
       expect(growthData.workspace.maxAccounts).toBe(10);
       expect(growthData.workspace.maxLeads).toBe(10000);
+    });
+
+    it('GET returns usdToArsRate, webhookUrl, and gateway configuration flags', async () => {
+      const unconfiguredReq = new NextRequest('http://localhost:3000/api/billing/checkout');
+      const unconfiguredRes = await getBillingCheckout(unconfiguredReq);
+      const unconfiguredData = await unconfiguredRes.json();
+
+      expect(unconfiguredRes.status).toBe(200);
+      expect(unconfiguredData).toEqual({
+        usdToArsRate: 1200,
+        rateSource: 'fallback',
+        mercadopagoConfigured: false,
+        lemonsqueezyConfigured: false,
+        stripeConfigured: false,
+        webhookUrl: 'http://localhost:3000/api/billing/webhook',
+      });
+
+      process.env.MP_USD_TO_ARS_RATE = '1340';
+      process.env.MERCADOPAGO_ACCESS_TOKEN = 'APP_USR-test-token';
+      process.env.LEMONSQUEEZY_API_KEY = 'ls-api-key';
+      process.env.LEMONSQUEEZY_STORE_ID = 'store-42';
+      process.env.STRIPE_SECRET_KEY = 'sk_test_51abc';
+
+      const configuredReq = new NextRequest('https://app.misender.io/api/billing/checkout');
+      const configuredRes = await getBillingCheckout(configuredReq);
+      const configuredData = await configuredRes.json();
+
+      expect(configuredRes.status).toBe(200);
+      expect(configuredData).toEqual({
+        usdToArsRate: 1340,
+        rateSource: 'env',
+        mercadopagoConfigured: true,
+        lemonsqueezyConfigured: true,
+        stripeConfigured: true,
+        webhookUrl: 'https://app.misender.io/api/billing/webhook',
+      });
+    });
+
+    it('POST handles provider mercadopago (Checkout Pro & recurring preapproval) with totalArs = Math.round(totalUsd * usdToArsRate)', async () => {
+      process.env.MP_USD_TO_ARS_RATE = '1275.5';
+      mockState.workspaces = [
+        {
+          id: 'ws-primary',
+          name: 'Espacio Principal',
+          client_name: 'Vectra Systems',
+          plan: 'starter',
+          subscription_status: 'trialing',
+          max_accounts: 3,
+          max_leads: 1000,
+          credits: 1000,
+        },
+      ];
+
+      // 1. Sandbox fallback still calculates exact totalArs
+      const sandboxReq = new NextRequest('http://localhost:3000/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws-primary',
+          planId: 'starter',
+          billingCycle: 'monthly',
+          provider: 'mercadopago',
+        }),
+      });
+      const sandboxRes = await postBillingCheckout(sandboxReq);
+      const sandboxData = await sandboxRes.json();
+
+      expect(sandboxRes.status).toBe(200);
+      expect(sandboxData.mode).toBe('sandbox');
+      expect(sandboxData.pricing.usdToArsRate).toBe(1275.5);
+      expect(sandboxData.pricing.rateSource).toBe('env');
+      expect(sandboxData.pricing.totalArs).toBe(Math.round(sandboxData.pricing.totalUsd * 1275.5));
+      expect(sandboxData.workspace.billingProvider).toBe('mercadopago');
+
+      // 2. Live MercadoPago Checkout Pro preference & recurring preapproval
+      process.env.MERCADOPAGO_ACCESS_TOKEN = 'APP_USR-live-mp';
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              id: 'pref-123',
+              init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-123',
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          )
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              id: 'pre-456',
+              init_point: 'https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_id=pre-456',
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          )
+        );
+
+      const mpPrefReq = new NextRequest('http://localhost:3000/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws-primary',
+          planId: 'growth',
+          billingCycle: 'monthly',
+          provider: 'mercadopago',
+          recurring: false,
+        }),
+      });
+      const mpPrefRes = await postBillingCheckout(mpPrefReq);
+      const mpPrefData = await mpPrefRes.json();
+
+      expect(mpPrefRes.status).toBe(200);
+      expect(mpPrefData.success).toBe(true);
+      expect(mpPrefData.mode).toBe('mercadopago');
+      expect(mpPrefData.recurring).toBe(false);
+      expect(mpPrefData.preferenceId).toBe('pref-123');
+      expect(mpPrefData.pricing.totalArs).toBe(Math.round(79 * 1275.5));
+
+      const prefCallBody = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+      expect(fetchSpy.mock.calls[0][0]).toBe('https://api.mercadopago.com/checkout/preferences');
+      expect(prefCallBody.items[0].currency_id).toBe('ARS');
+      expect(prefCallBody.items[0].unit_price).toBe(Math.round(79 * 1275.5));
+      expect(prefCallBody.external_reference).toBe('ws-primary:growth:monthly');
+
+      const mpRecReq = new NextRequest('http://localhost:3000/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws-primary',
+          planId: 'agency',
+          billingCycle: 'annual',
+          provider: 'mercadopago',
+          recurring: true,
+        }),
+      });
+      const mpRecRes = await postBillingCheckout(mpRecReq);
+      const mpRecData = await mpRecRes.json();
+
+      expect(mpRecRes.status).toBe(200);
+      expect(mpRecData.mode).toBe('mercadopago');
+      expect(mpRecData.recurring).toBe(true);
+      expect(mpRecData.preapprovalId).toBe('pre-456');
+      expect(mpRecData.pricing.totalArs).toBe(Math.round(1430.4 * 1275.5));
+
+      const recCallBody = JSON.parse(String(fetchSpy.mock.calls[1][1]?.body));
+      expect(fetchSpy.mock.calls[1][0]).toBe('https://api.mercadopago.com/preapproval');
+      expect(recCallBody.auto_recurring.frequency).toBe(12);
+      expect(recCallBody.auto_recurring.transaction_amount).toBe(Math.round(1430.4 * 1275.5));
+      expect(recCallBody.auto_recurring.currency_id).toBe('ARS');
+    });
+
+    it('POST handles provider lemonsqueezy in both sandbox fallback and live checkout API mode', async () => {
+      mockState.workspaces = [
+        {
+          id: 'ws-primary',
+          name: 'Espacio Principal',
+          client_name: 'Vectra Systems',
+          plan: 'starter',
+          subscription_status: 'trialing',
+          max_accounts: 3,
+          max_leads: 1000,
+          credits: 1000,
+        },
+      ];
+
+      // 1. Sandbox fallback when Lemon Squeezy credentials are missing
+      const lsSandboxReq = new NextRequest('http://localhost:3000/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws-primary',
+          planId: 'growth',
+          billingCycle: 'monthly',
+          provider: 'lemonsqueezy',
+        }),
+      });
+      const lsSandboxRes = await postBillingCheckout(lsSandboxReq);
+      const lsSandboxData = await lsSandboxRes.json();
+
+      expect(lsSandboxRes.status).toBe(200);
+      expect(lsSandboxData.success).toBe(true);
+      expect(lsSandboxData.mode).toBe('sandbox');
+      expect(lsSandboxData.workspace.plan).toBe('growth');
+      expect(lsSandboxData.workspace.billingProvider).toBe('lemonsqueezy');
+
+      // 2. Live Lemon Squeezy JSON:API checkout when credentials & variant are set
+      process.env.LEMONSQUEEZY_API_KEY = 'ls-secret-key';
+      process.env.LEMONSQUEEZY_STORE_ID = '998877';
+      process.env.LEMONSQUEEZY_VARIANT_GROWTH = 'var-growth-1';
+
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            data: {
+              id: 'chk-789',
+              attributes: { url: 'https://checkout.lemonsqueezy.com/buy/chk-789' },
+            },
+          }),
+          { status: 201, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+
+      const lsLiveReq = new NextRequest('http://localhost:3000/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws-primary',
+          planId: 'growth',
+          billingCycle: 'monthly',
+          provider: 'lemonsqueezy',
+        }),
+      });
+      const lsLiveRes = await postBillingCheckout(lsLiveReq);
+      const lsLiveData = await lsLiveRes.json();
+
+      expect(lsLiveRes.status).toBe(200);
+      expect(lsLiveData.success).toBe(true);
+      expect(lsLiveData.mode).toBe('lemonsqueezy');
+      expect(lsLiveData.checkoutId).toBe('chk-789');
+      expect(lsLiveData.url).toBe('https://checkout.lemonsqueezy.com/buy/chk-789');
+
+      const lsPayload = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+      expect(fetchSpy.mock.calls[0][0]).toBe('https://api.lemonsqueezy.com/v1/checkouts');
+      expect(lsPayload.data.attributes.checkout_data.custom).toEqual({
+        workspace_id: 'ws-primary',
+        plan_id: 'growth',
+        billing_cycle: 'monthly',
+      });
+      expect(lsPayload.data.relationships.store.data.id).toBe('998877');
+      expect(lsPayload.data.relationships.variant.data.id).toBe('var-growth-1');
     });
 
     it('rejects unknown planId with HTTP 400', async () => {
@@ -377,6 +661,138 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
 
       const res = await postBillingCheckout(req);
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe('/api/billing/webhook MercadoPago & Lemon Squeezy handlers', () => {
+    it('activates workspace on MercadoPago payment approved notification and ignores pending ones', async () => {
+      mockState.workspaces = [
+        {
+          id: 'ws-primary',
+          name: 'Espacio Principal',
+          client_name: 'Vectra Systems',
+          plan: 'starter',
+          subscription_status: 'trialing',
+          max_accounts: 3,
+          max_leads: 1000,
+          credits: 1000,
+        },
+      ];
+
+      const pendingReq = new NextRequest('http://localhost:3000/api/billing/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'payment',
+          external_reference: 'ws-primary:agency:monthly',
+          status: 'pending',
+        }),
+      });
+      const pendingRes = await postBillingWebhook(pendingReq);
+      const pendingData = await pendingRes.json();
+
+      expect(pendingRes.status).toBe(200);
+      expect(pendingData.received).toBe(true);
+      expect(pendingData.handled).toBe(false);
+
+      const approvedReq = new NextRequest('http://localhost:3000/api/billing/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'payment',
+          external_reference: 'ws-primary:agency:monthly',
+          status: 'approved',
+          data: { id: 'mp-pay-999' },
+        }),
+      });
+      const approvedRes = await postBillingWebhook(approvedReq);
+      const approvedData = await approvedRes.json();
+
+      expect(approvedRes.status).toBe(200);
+      expect(approvedData.received).toBe(true);
+      expect(approvedData.handled).toBe(true);
+      expect(approvedData.eventType).toBe('payment');
+      expect(approvedData.workspaceId).toBe('ws-primary');
+      expect(approvedData.workspace.plan).toBe('agency');
+      expect(approvedData.workspace.subscriptionStatus).toBe('active');
+      expect(approvedData.workspace.billingProvider).toBe('mercadopago');
+      expect(approvedData.workspace.billingSubscriptionId).toBe('mp-pay-999');
+      expect(approvedData.workspace.maxAccounts).toBe(SAAS_PLANS.agency.maxAccounts);
+      expect(approvedData.workspace.maxLeads).toBe(SAAS_PLANS.agency.maxLeads);
+      expect(approvedData.workspace.credits).toBe(SAAS_PLANS.agency.credits);
+    });
+
+    it('activates workspace on Lemon Squeezy subscription_created webhook and verifies HMAC when secret is set', async () => {
+      mockState.workspaces = [
+        {
+          id: 'ws-primary',
+          name: 'Espacio Principal',
+          client_name: 'Vectra Systems',
+          plan: 'starter',
+          subscription_status: 'trialing',
+          max_accounts: 3,
+          max_leads: 1000,
+          credits: 1000,
+        },
+      ];
+
+      const lsBody = JSON.stringify({
+        meta: {
+          event_name: 'subscription_created',
+          custom_data: {
+            workspace_id: 'ws-primary',
+            plan_id: 'growth',
+          },
+        },
+        data: {
+          id: 'ls-sub-555',
+          attributes: {
+            status: 'active',
+          },
+        },
+      });
+
+      process.env.LEMONSQUEEZY_WEBHOOK_SECRET = 'ls-webhook-secret';
+
+      const badSigReq = new NextRequest('http://localhost:3000/api/billing/webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-signature': 'deadbeef',
+        },
+        body: lsBody,
+      });
+      const badSigRes = await postBillingWebhook(badSigReq);
+      expect(badSigRes.status).toBe(401);
+
+      const validSig = crypto
+        .createHmac('sha256', 'ls-webhook-secret')
+        .update(lsBody)
+        .digest('hex');
+
+      const validReq = new NextRequest('http://localhost:3000/api/billing/webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-signature': validSig,
+        },
+        body: lsBody,
+      });
+      const validRes = await postBillingWebhook(validReq);
+      const validData = await validRes.json();
+
+      expect(validRes.status).toBe(200);
+      expect(validData.received).toBe(true);
+      expect(validData.handled).toBe(true);
+      expect(validData.eventType).toBe('subscription_created');
+      expect(validData.workspaceId).toBe('ws-primary');
+      expect(validData.workspace.plan).toBe('growth');
+      expect(validData.workspace.subscriptionStatus).toBe('active');
+      expect(validData.workspace.billingProvider).toBe('lemonsqueezy');
+      expect(validData.workspace.billingSubscriptionId).toBe('ls-sub-555');
+      expect(validData.workspace.maxAccounts).toBe(SAAS_PLANS.growth.maxAccounts);
+      expect(validData.workspace.maxLeads).toBe(SAAS_PLANS.growth.maxLeads);
+      expect(validData.workspace.credits).toBe(SAAS_PLANS.growth.credits);
     });
   });
 
@@ -509,6 +925,158 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
           smtpHost: 'smtp.gmail.com',
         })
       );
+    });
+  });
+
+  describe('RBAC permissions (ROLE_PERMISSIONS, canAccessTab) & /api/team management', () => {
+    it('enforces exact tab and capability access across super_admin, admin, campaign_manager, and viewer', () => {
+      // 1. Super Admin (restricted solely to Backoffice SaaS agency & user management)
+      expect(ROLE_PERMISSIONS.super_admin.canAccessBackoffice).toBe(true);
+      expect(ROLE_PERMISSIONS.super_admin.canManageTeam).toBe(true);
+      expect(ROLE_PERMISSIONS.super_admin.canManageBilling).toBe(true);
+      expect(ROLE_PERMISSIONS.super_admin.canManageWorkspaces).toBe(true);
+      expect(ROLE_PERMISSIONS.super_admin.isReadOnly).toBe(false);
+      expect(canAccessTab('super_admin', 'backoffice')).toBe(true);
+      expect(canAccessTab('super_admin', 'campaigns')).toBe(false);
+      expect(canAccessTab('super_admin', 'team')).toBe(false);
+      expect(canAccessTab('super_admin', 'billing')).toBe(false);
+
+      // 2. Agency Admin
+      expect(ROLE_PERMISSIONS.admin.canAccessBackoffice).toBe(false);
+      expect(ROLE_PERMISSIONS.admin.canManageTeam).toBe(true);
+      expect(ROLE_PERMISSIONS.admin.canManageBilling).toBe(true);
+      expect(ROLE_PERMISSIONS.admin.canManageWorkspaces).toBe(true);
+      expect(ROLE_PERMISSIONS.admin.isReadOnly).toBe(false);
+      expect(canAccessTab('admin', 'backoffice')).toBe(false);
+      expect(canAccessTab('admin', 'team')).toBe(true);
+      expect(canAccessTab('admin', 'billing')).toBe(true);
+      expect(canAccessTab('admin', 'campaigns')).toBe(true);
+
+      // 3. Campaign Manager (SDR)
+      expect(ROLE_PERMISSIONS.campaign_manager.canAccessBackoffice).toBe(false);
+      expect(ROLE_PERMISSIONS.campaign_manager.canManageTeam).toBe(false);
+      expect(ROLE_PERMISSIONS.campaign_manager.canManageBilling).toBe(false);
+      expect(ROLE_PERMISSIONS.campaign_manager.canManageWorkspaces).toBe(false);
+      expect(ROLE_PERMISSIONS.campaign_manager.isReadOnly).toBe(false);
+      expect(canAccessTab('campaign_manager', 'campaigns')).toBe(true);
+      expect(canAccessTab('campaign_manager', 'finder')).toBe(true);
+      expect(canAccessTab('campaign_manager', 'accounts')).toBe(true);
+      expect(canAccessTab('campaign_manager', 'unibox')).toBe(true);
+      expect(canAccessTab('campaign_manager', 'billing')).toBe(false);
+      expect(canAccessTab('campaign_manager', 'team')).toBe(false);
+      expect(canAccessTab('campaign_manager', 'backoffice')).toBe(false);
+
+      // 4. Viewer (Client Read-Only)
+      expect(ROLE_PERMISSIONS.viewer.isReadOnly).toBe(true);
+      expect(ROLE_PERMISSIONS.viewer.canManageTeam).toBe(false);
+      expect(ROLE_PERMISSIONS.viewer.canManageBilling).toBe(false);
+      expect(canAccessTab('viewer', 'campaigns')).toBe(true);
+      expect(canAccessTab('viewer', 'unibox')).toBe(true);
+      expect(canAccessTab('viewer', 'crm')).toBe(true);
+      expect(canAccessTab('viewer', 'analytics')).toBe(true);
+      expect(canAccessTab('viewer', 'finder')).toBe(false);
+      expect(canAccessTab('viewer', 'accounts')).toBe(false);
+      expect(canAccessTab('viewer', 'billing')).toBe(false);
+      expect(canAccessTab('viewer', 'team')).toBe(false);
+      expect(canAccessTab('viewer', 'backoffice')).toBe(false);
+
+      expect(normalizeRole('unknown-role')).toBe('admin');
+    });
+
+    it('supports GET by workspaceId/agencyId/email, POST creation with accessCode, PUT role update, and DELETE protection on /api/team', async () => {
+      // Seed only founder super_admin on initial empty GET
+      const getAllReq = new NextRequest('http://localhost:3000/api/team');
+      const getAllRes = await getTeam(getAllReq);
+      const initialMembers = await getAllRes.json();
+
+      expect(getAllRes.status).toBe(200);
+      expect(Array.isArray(initialMembers)).toBe(true);
+      expect(initialMembers).toHaveLength(1);
+      expect(initialMembers[0].id).toBe('admin-default');
+      expect(initialMembers[0].email).toBe('marcos@vectrasystems.com.ar');
+      expect(initialMembers[0].roleId).toBe('super_admin');
+      expect(mockState.upsertedUserProfiles).toHaveLength(1);
+
+      // Lookup by email (case-insensitive)
+      const byEmailReq = new NextRequest('http://localhost:3000/api/team?email=MARCOS@vectrasystems.com.ar');
+      const byEmailRes = await getTeam(byEmailReq);
+      const byEmailData = await byEmailRes.json();
+      expect(byEmailRes.status).toBe(200);
+      expect(byEmailData).toHaveLength(1);
+      expect(byEmailData[0].roleId).toBe('super_admin');
+
+      // POST creates campaign_manager in isolated agency & workspace with accessCode
+      const createSdrReq = new NextRequest('http://localhost:3000/api/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws-agency-99',
+          agencyId: 'ag-99',
+          accessCode: 'Code-9911',
+          fullName: 'Valeria Soto',
+          email: 'valeria@agencia99.com',
+          company: 'Agencia 99',
+          roleId: 'campaign_manager',
+        }),
+      });
+      const createSdrRes = await postTeam(createSdrReq);
+      const sdrData = await createSdrRes.json();
+      expect(createSdrRes.status).toBe(201);
+      expect(sdrData.id).toMatch(/^usr-/);
+      expect(sdrData.workspaceId).toBe('ws-agency-99');
+      expect(sdrData.agencyId).toBe('ag-99');
+      expect(sdrData.accessCode).toBe('Code-9911');
+      expect(sdrData.roleId).toBe('campaign_manager');
+
+      // POST creates viewer client
+      const createViewerReq = new NextRequest('http://localhost:3000/api/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws-agency-99',
+          fullName: 'Cliente Demo',
+          email: 'cliente@empresa.io',
+          roleId: 'viewer',
+        }),
+      });
+      const createViewerRes = await postTeam(createViewerReq);
+      expect(createViewerRes.status).toBe(201);
+
+      // GET filtered by workspaceId returns only ws-agency-99 members
+      const wsFilterReq = new NextRequest('http://localhost:3000/api/team?workspaceId=ws-agency-99');
+      const wsFilterRes = await getTeam(wsFilterReq);
+      const wsFilterData = await wsFilterRes.json();
+      expect(wsFilterData).toHaveLength(2);
+
+      // PUT updates Valeria's role to admin
+      const putReq = new NextRequest('http://localhost:3000/api/team', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: sdrData.id,
+          roleId: 'admin',
+        }),
+      });
+      const putRes = await putTeam(putReq);
+      const putData = await putRes.json();
+      expect(putRes.status).toBe(200);
+      expect(putData.roleId).toBe('admin');
+
+      // DELETE refuses to delete admin-default
+      const protectReq = new NextRequest('http://localhost:3000/api/team?id=admin-default', {
+        method: 'DELETE',
+      });
+      const protectRes = await deleteTeam(protectReq);
+      expect(protectRes.status).toBe(400);
+
+      // DELETE removes created member cleanly
+      const delReq = new NextRequest(`http://localhost:3000/api/team?id=${sdrData.id}`, {
+        method: 'DELETE',
+      });
+      const delRes = await deleteTeam(delReq);
+      const delData = await delRes.json();
+      expect(delRes.status).toBe(200);
+      expect(delData.success).toBe(true);
     });
   });
 });

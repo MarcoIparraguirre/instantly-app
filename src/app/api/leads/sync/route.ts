@@ -9,11 +9,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       campaignId,
+      workspaceId,
       rows,
       emailColumn,
       selectedColumns
     }: {
       campaignId?: string;
+      workspaceId?: string;
       rows?: Record<string, string>[];
       emailColumn?: string;
       selectedColumns?: string[];
@@ -27,6 +29,15 @@ export async function POST(req: NextRequest) {
     }
 
     const targetCampaignId = campaignId || 'campaign-1';
+    let resolvedWorkspaceId =
+      typeof workspaceId === 'string' && workspaceId.trim() ? workspaceId.trim() : undefined;
+    if (!resolvedWorkspaceId && typeof container.campaignRepo?.getCampaignById === 'function') {
+      const targetCampaign = await container.campaignRepo.getCampaignById(targetCampaignId);
+      if (targetCampaign?.workspaceId) {
+        resolvedWorkspaceId = targetCampaign.workspaceId;
+      }
+    }
+    const targetWorkspaceId = resolvedWorkspaceId || 'ws-primary';
     const sheetsService = new GoogleSheetsService();
     const detectedCols = sheetsService.getDetectedColumns(rows);
     const activeEmailCol = emailColumn || sheetsService.detectEmailColumn(detectedCols, rows);
@@ -50,8 +61,8 @@ export async function POST(req: NextRequest) {
       uniqueIncomingMap.set(normEmail, item);
     }
 
-    // Load existing leads for this campaign to perform incremental sync
-    const existingLeads = await container.leadRepo.getLeads(targetCampaignId);
+    // Load existing leads for this campaign & workspace to perform incremental sync
+    const existingLeads = await container.leadRepo.getLeads(targetCampaignId, targetWorkspaceId);
     const existingByEmail = new Map<string, Lead>();
     for (const lead of existingLeads) {
       if (lead.email) {
@@ -73,6 +84,7 @@ export async function POST(req: NextRequest) {
         // Preserve status ('sent', 'replied', 'opened', 'pending') and lastContactedAt
         const updatedLead: Lead = {
           ...existing,
+          workspaceId: existing.workspaceId || targetWorkspaceId,
           firstName: item.firstName || existing.firstName || '',
           lastName: item.lastName || existing.lastName || '',
           companyName: item.companyName || existing.companyName || '',
@@ -92,6 +104,7 @@ export async function POST(req: NextRequest) {
         // Brand new lead -> insert as 'pending'
         const newLead: Lead = {
           id: uuidv4(),
+          workspaceId: targetWorkspaceId,
           campaignId: targetCampaignId,
           email: item.email.trim(),
           firstName: item.firstName || '',
@@ -119,6 +132,7 @@ export async function POST(req: NextRequest) {
         }
         leadsToUpsert.push({
           ...remainingLead,
+          workspaceId: remainingLead.workspaceId || targetWorkspaceId,
           customVariables: filteredVars
         });
       }

@@ -10,11 +10,17 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
     this.client = client;
   }
 
-  async getCampaigns(): Promise<Campaign[]> {
-    const { data, error } = await this.client
+  async getCampaigns(workspaceId?: string): Promise<Campaign[]> {
+    let query = this.client
       .from('campaigns')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('SupabaseCampaignRepository getCampaigns error:', error);
@@ -81,6 +87,7 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
 
     return {
       id: row.id,
+      workspaceId: row.workspace_id || 'ws-primary',
       name: row.name,
       status: row.status,
       steps: row.steps || [],
@@ -120,6 +127,7 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
 
     return {
       id: campaign.id,
+      workspace_id: campaign.workspaceId || 'ws-primary',
       name: campaign.name,
       status: campaign.status,
       steps: campaign.steps,

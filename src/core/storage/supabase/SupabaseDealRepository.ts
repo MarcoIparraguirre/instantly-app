@@ -10,11 +10,17 @@ export class SupabaseDealRepository implements IDealRepository {
     this.client = client;
   }
 
-  async getDeals(): Promise<Deal[]> {
-    const { data, error } = await this.client
+  async getDeals(workspaceId?: string): Promise<Deal[]> {
+    let query = this.client
       .from('deals')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('SupabaseDealRepository getDeals error:', error);
@@ -62,6 +68,7 @@ export class SupabaseDealRepository implements IDealRepository {
   private mapToDomain(row: any): Deal {
     return {
       id: row.id,
+      workspaceId: row.workspace_id || 'ws-primary',
       leadId: row.lead_id || '',
       contactName: row.contact_name,
       contactEmail: row.contact_email,
@@ -77,6 +84,7 @@ export class SupabaseDealRepository implements IDealRepository {
   private mapToDb(deal: Deal): any {
     return {
       id: deal.id,
+      workspace_id: deal.workspaceId || 'ws-primary',
       lead_id: deal.leadId,
       contact_name: deal.contactName,
       contact_email: deal.contactEmail,

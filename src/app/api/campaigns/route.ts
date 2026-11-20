@@ -3,8 +3,10 @@ import { container } from '@/core/container';
 import { v4 as uuidv4 } from 'uuid';
 import { Campaign } from '@/types';
 
-export async function GET() {
-  const campaigns = await container.campaignRepo.getCampaigns();
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const workspaceId = searchParams.get('workspaceId') || undefined;
+  const campaigns = await container.campaignRepo.getCampaigns(workspaceId);
   return NextResponse.json(campaigns);
 }
 
@@ -13,6 +15,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const newCampaign: Campaign = {
       id: uuidv4(),
+      workspaceId: body.workspaceId || 'ws-primary',
       name: body.name || 'New Outbound Campaign',
       status: 'draft',
       steps: body.steps || [

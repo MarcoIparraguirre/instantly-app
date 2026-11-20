@@ -8,8 +8,11 @@ export class DealRepository implements IDealRepository {
 
   constructor(private driver: IJsonStorageDriver) {}
 
-  async getDeals(): Promise<Deal[]> {
-    return this.driver.read<Deal[]>(this.key, initialDeals);
+  async getDeals(workspaceId?: string): Promise<Deal[]> {
+    const deals = this.driver.read<Deal[]>(this.key, initialDeals);
+    return workspaceId
+      ? deals.filter(d => (d.workspaceId || 'ws-primary') === workspaceId)
+      : deals;
   }
 
   async getDealById(id: string): Promise<Deal | undefined> {
@@ -21,9 +24,15 @@ export class DealRepository implements IDealRepository {
     const deals = await this.getDeals();
     const idx = deals.findIndex(d => d.id === deal.id);
     if (idx >= 0) {
-      deals[idx] = deal;
+      deals[idx] = {
+        ...deal,
+        workspaceId: deal.workspaceId || deals[idx].workspaceId || 'ws-primary'
+      };
     } else {
-      deals.unshift(deal);
+      deals.unshift({
+        ...deal,
+        workspaceId: deal.workspaceId || 'ws-primary'
+      });
     }
     this.driver.write(this.key, deals);
   }

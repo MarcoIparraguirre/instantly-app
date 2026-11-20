@@ -10,11 +10,15 @@ export class SupabaseLeadRepository implements ILeadRepository {
     this.client = client;
   }
 
-  async getLeads(campaignId?: string): Promise<Lead[]> {
+  async getLeads(campaignId?: string, workspaceId?: string): Promise<Lead[]> {
     let query = this.client.from('leads').select('*').order('created_at', { ascending: false });
 
     if (campaignId) {
       query = query.eq('campaign_id', campaignId);
+    }
+
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
     }
 
     const { data, error } = await query;
@@ -94,6 +98,7 @@ export class SupabaseLeadRepository implements ILeadRepository {
   private mapToDomain(row: any): Lead {
     return {
       id: row.id,
+      workspaceId: row.workspace_id || 'ws-primary',
       campaignId: row.campaign_id,
       email: row.email,
       firstName: row.first_name || '',
@@ -110,6 +115,7 @@ export class SupabaseLeadRepository implements ILeadRepository {
   private mapToDb(lead: Lead): any {
     return {
       id: lead.id,
+      workspace_id: lead.workspaceId || 'ws-primary',
       campaign_id: lead.campaignId,
       email: lead.email,
       first_name: lead.firstName || '',

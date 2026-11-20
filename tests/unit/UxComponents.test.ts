@@ -82,8 +82,10 @@ describe('UX & CampaignEditor Improvements', () => {
     const campaignEditorCode = fs.readFileSync(path.resolve(process.cwd(), 'src/components/CampaignEditor.tsx'), 'utf-8');
 
     expect(campaignEditorCode).toContain("previewDevice === 'mobile' ? 'max-w-[375px]' : 'max-w-[640px]'");
-    expect(campaignEditorCode).toContain('📱 Mobile Mail (375px)');
-    expect(campaignEditorCode).toContain('💻 Desktop Mail (640px)');
+    expect(campaignEditorCode).toContain('Mobile Mail (375px)');
+    expect(campaignEditorCode).toContain('Desktop Mail (640px)');
+    expect(campaignEditorCode).toContain('<Smartphone');
+    expect(campaignEditorCode).toContain('<Monitor');
     expect(campaignEditorCode).toContain('setPreviewRandomSeed');
   });
 });
