@@ -591,50 +591,104 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // 2. Hydrate Supabase session or verified team/concierge fallback session
       let resolvedWorkspaceId: string | undefined;
-      const hydrateStoredDemoUser = async () => {
+      const hydrateFromServerSession = async () => {
         try {
-          const demoRaw = localStorage.getItem(DEMO_USER_STORAGE_KEY);
-          if (!active || !demoRaw) return;
-          const normalized = normalizeStoredAuthUser(JSON.parse(demoRaw));
-          // Verify against DB so deleted accounts cannot remain logged in
-          const teamMatch = normalized.email
-            ? await lookupTeamMemberByEmail(normalized.email)
-            : null;
+          const res = await fetch('/api/auth/session', { cache: 'no-store' });
+          if (!res.ok || !active) return;
+          const data = await res.json();
+          if (!active || !data?.authenticated || !data?.session?.email) return;
+
+          const s = data.session as {
+            userId: string;
+            email: string;
+            role: UserRole;
+            agencyId?: string;
+            workspaceId: string;
+            allowedWorkspaceIds: string[];
+          };
+          const teamMatch = await lookupTeamMemberByEmail(s.email);
           if (!active) return;
 
-          if (!teamMatch && !isFounderEmail(normalized.email)) {
-            localStorage.removeItem(DEMO_USER_STORAGE_KEY);
-            return;
-          }
-
-          const syncedUser: AuthUser = teamMatch
-            ? {
-                ...normalized,
-                id: teamMatch.id || normalized.id,
-                fullName: teamMatch.fullName || normalized.fullName,
-                company: teamMatch.company || normalized.company,
-                agencyId: teamMatch.agencyId ?? normalized.agencyId,
-                workspaceId: teamMatch.workspaceId || normalized.workspaceId,
-                allowedWorkspaceIds:
-                  teamMatch.allowedWorkspaceIds ?? normalized.allowedWorkspaceIds,
-                role: isFounderEmail(normalized.email)
-                  ? normalized.role
-                  : normalizeRole(teamMatch.roleId),
-              }
-            : normalized;
-
-          setUser(syncedUser);
-          resolvedWorkspaceId = syncedUser.workspaceId;
-          if (isFounderEmail(syncedUser.email)) {
+          const fullName = teamMatch?.fullName || s.email.split('@')[0] || 'Usuario';
+          const role = isFounderEmail(s.email)
+            ? getSavedRoleOverride() || 'super_admin'
+            : normalizeRole(teamMatch?.roleId || s.role);
+          const sessionUser: AuthUser = {
+            id: teamMatch?.id || s.userId,
+            email: s.email,
+            fullName,
+            company: teamMatch?.company,
+            avatarInitials: buildInitials(fullName, s.email),
+            role,
+            agencyId: teamMatch?.agencyId ?? s.agencyId,
+            workspaceId: teamMatch?.workspaceId || s.workspaceId,
+            allowedWorkspaceIds: teamMatch?.allowedWorkspaceIds ?? s.allowedWorkspaceIds,
+            isDemo: false,
+            provider: 'session-cookie',
+          };
+          setUser(sessionUser);
+          resolvedWorkspaceId = sessionUser.workspaceId;
+          if (isFounderEmail(sessionUser.email)) {
             persistFounderSession({
-              email: syncedUser.email,
-              fullName: syncedUser.fullName,
-              company: syncedUser.company,
-              id: syncedUser.id,
-              isDemo: syncedUser.isDemo,
+              email: sessionUser.email,
+              fullName: sessionUser.fullName,
+              company: sessionUser.company,
+              id: sessionUser.id,
+              isDemo: false,
             });
           }
         } catch {}
+      };
+
+      const hydrateStoredDemoUser = async () => {
+        let hydratedLocal = false;
+        try {
+          const demoRaw = localStorage.getItem(DEMO_USER_STORAGE_KEY);
+          if (active && demoRaw) {
+            const normalized = normalizeStoredAuthUser(JSON.parse(demoRaw));
+            const teamMatch = normalized.email
+              ? await lookupTeamMemberByEmail(normalized.email)
+              : null;
+            if (!active) return;
+
+            if (!teamMatch && !isFounderEmail(normalized.email)) {
+              localStorage.removeItem(DEMO_USER_STORAGE_KEY);
+            } else {
+              const syncedUser: AuthUser = teamMatch
+                ? {
+                    ...normalized,
+                    id: teamMatch.id || normalized.id,
+                    fullName: teamMatch.fullName || normalized.fullName,
+                    company: teamMatch.company || normalized.company,
+                    agencyId: teamMatch.agencyId ?? normalized.agencyId,
+                    workspaceId: teamMatch.workspaceId || normalized.workspaceId,
+                    allowedWorkspaceIds:
+                      teamMatch.allowedWorkspaceIds ?? normalized.allowedWorkspaceIds,
+                    role: isFounderEmail(normalized.email)
+                      ? normalized.role
+                      : normalizeRole(teamMatch.roleId),
+                  }
+                : normalized;
+
+              setUser(syncedUser);
+              resolvedWorkspaceId = syncedUser.workspaceId;
+              if (isFounderEmail(syncedUser.email)) {
+                persistFounderSession({
+                  email: syncedUser.email,
+                  fullName: syncedUser.fullName,
+                  company: syncedUser.company,
+                  id: syncedUser.id,
+                  isDemo: syncedUser.isDemo,
+                });
+              }
+              hydratedLocal = true;
+            }
+          }
+        } catch {}
+
+        if (!hydratedLocal && active) {
+          await hydrateFromServerSession();
+        }
       };
 
       const sb = getBrowserSupabase();
@@ -970,59 +1024,98 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: 'Email and password are required' };
       }
 
-      const teamMatch = await lookupTeamMemberByEmail(cleanEmail);
       const isFounder = isFounderEmail(cleanEmail);
-      const resolvedRole: UserRole = isFounder
-        ? 'super_admin'
-        : normalizeRole(teamMatch?.roleId || inferDefaultRoleFromEmail(cleanEmail));
-      const resolvedAllowedWorkspaceIds = teamMatch?.allowedWorkspaceIds;
-      const resolvedWorkspaceId =
-        teamMatch?.workspaceId || resolvedAllowedWorkspaceIds?.[0];
-      const resolvedAgencyId =
-        teamMatch?.agencyId || (isFounder ? 'ag-founder' : undefined);
 
-      const matchesAccessCode = Boolean(
-        teamMatch?.accessCode && password.trim() === teamMatch.accessCode.trim()
-      );
+      // 1. Verify scrypt/accessCode on server and issue HttpOnly session cookie
+      let sessionResOk = false;
+      let sessionError: string | undefined;
 
+      try {
+        const sessionRes = await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: cleanEmail, password }),
+        });
+        const sessionData = await sessionRes.json().catch(() => ({}));
+
+        if (sessionRes.ok && sessionData?.authenticated && sessionData?.user) {
+          sessionResOk = true;
+          const serverUser = sessionData.user as Partial<AuthUser> & { roleId?: UserRole };
+          const resolvedRole: UserRole = isFounder
+            ? 'super_admin'
+            : normalizeRole(serverUser.role || serverUser.roleId || inferDefaultRoleFromEmail(cleanEmail));
+          const resolvedAllowedWorkspaceIds = normalizeOptionalWorkspaceIds(
+            serverUser.allowedWorkspaceIds
+          );
+          const resolvedWorkspaceId =
+            serverUser.workspaceId || resolvedAllowedWorkspaceIds?.[0];
+          const resolvedAgencyId =
+            serverUser.agencyId || (isFounder ? 'ag-founder' : undefined);
+          const fullName = serverUser.fullName || cleanEmail.split('@')[0] || 'Usuario';
+
+          const authenticatedUser: AuthUser = {
+            id: serverUser.id || 'usr-session',
+            email: cleanEmail,
+            fullName,
+            company: serverUser.company,
+            avatarInitials: buildInitials(fullName, cleanEmail),
+            role: resolvedRole,
+            agencyId: resolvedAgencyId,
+            workspaceId: resolvedWorkspaceId,
+            allowedWorkspaceIds: resolvedAllowedWorkspaceIds,
+            isDemo: false,
+            provider: 'session-cookie',
+          };
+
+          try {
+            localStorage.setItem(ROLE_OVERRIDE_STORAGE_KEY, resolvedRole);
+            localStorage.removeItem(DEMO_USER_STORAGE_KEY);
+          } catch {}
+
+          setUser(authenticatedUser);
+          if (isFounder) {
+            persistFounderSession({
+              email: authenticatedUser.email,
+              fullName: authenticatedUser.fullName,
+              company: authenticatedUser.company,
+              id: authenticatedUser.id,
+              isDemo: false,
+            });
+          } else {
+            clearFounderSession();
+          }
+
+          await refreshWorkspaces(resolvedWorkspaceId);
+          setIsAuthModalOpen(false);
+          return { isDemo: false };
+        }
+
+        if (typeof sessionData?.error === 'string') {
+          sessionError = sessionData.error;
+        }
+      } catch {
+        sessionResOk = false;
+      }
+
+      // 2. Fallback to Supabase GoTrue password login for users without user_profiles.access_code
       const sb = getBrowserSupabase();
-      if (!sb) {
-        if (!teamMatch) {
-          return { error: 'Cuenta no encontrada. Verifica tu email o regístrate.' };
-        }
-        if (teamMatch.accessCode && !matchesAccessCode) {
-          return { error: 'Contraseña o código de acceso incorrecto.' };
-        }
-        try {
-          localStorage.setItem(ROLE_OVERRIDE_STORAGE_KEY, resolvedRole);
-        } catch {}
-        const demo = activateDemoUser(
-          cleanEmail,
-          teamMatch.fullName,
-          teamMatch.company,
-          teamMatch.id,
-          resolvedRole,
-          resolvedWorkspaceId,
-          resolvedAllowedWorkspaceIds,
-          resolvedAgencyId
-        );
-        if (isFounder) {
-          persistFounderSession({
-            email: demo.email,
-            fullName: demo.fullName,
-            company: demo.company,
-            id: demo.id,
-            isDemo: true,
-          });
-        } else {
-          clearFounderSession();
-        }
-        await refreshWorkspaces(resolvedWorkspaceId);
-        setIsAuthModalOpen(false);
-        return { isDemo: true };
+      if (!sb || sessionResOk) {
+        return {
+          error: sessionError || 'Contraseña o código de acceso incorrecto.',
+        };
       }
 
       try {
+        const teamMatch = await lookupTeamMemberByEmail(cleanEmail);
+        const resolvedRole: UserRole = isFounder
+          ? 'super_admin'
+          : normalizeRole(teamMatch?.roleId || inferDefaultRoleFromEmail(cleanEmail));
+        const resolvedAllowedWorkspaceIds = teamMatch?.allowedWorkspaceIds;
+        const resolvedWorkspaceId =
+          teamMatch?.workspaceId || resolvedAllowedWorkspaceIds?.[0];
+        const resolvedAgencyId =
+          teamMatch?.agencyId || (isFounder ? 'ag-founder' : undefined);
+
         const { data, error } = await sb.auth.signInWithPassword({
           email: cleanEmail,
           password,
@@ -1031,6 +1124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!error && data.user) {
           try {
             localStorage.setItem(ROLE_OVERRIDE_STORAGE_KEY, resolvedRole);
+            localStorage.removeItem(DEMO_USER_STORAGE_KEY);
           } catch {}
           const mapped = mapSupabaseUser(data.user, teamMatch);
           const resolvedUser: AuthUser = isFounder
@@ -1048,55 +1142,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             clearFounderSession();
           }
-          try {
-            localStorage.removeItem(DEMO_USER_STORAGE_KEY);
-          } catch {}
           await refreshWorkspaces(resolvedWorkspaceId);
           setIsAuthModalOpen(false);
           return { isDemo: false };
         }
 
         const msg = error?.message || '';
-        // Allow team/concierge-provisioned users ONLY when their assigned accessCode matches,
-        // or when Supabase GoTrue verified the password on an unconfirmed signup email.
-        const isConfirmedMatch =
-          matchesAccessCode || (!isFounder && Boolean(teamMatch) && /email not confirmed/i.test(msg));
-
-        if (teamMatch && isConfirmedMatch) {
+        if (!isFounder && Boolean(teamMatch) && /email not confirmed/i.test(msg)) {
           try {
             localStorage.setItem(ROLE_OVERRIDE_STORAGE_KEY, resolvedRole);
           } catch {}
           const demo = activateDemoUser(
             cleanEmail,
-            teamMatch.fullName || cleanEmail.split('@')[0],
-            teamMatch.company,
-            teamMatch.id,
+            teamMatch?.fullName || cleanEmail.split('@')[0],
+            teamMatch?.company,
+            teamMatch?.id,
             resolvedRole,
             resolvedWorkspaceId,
             resolvedAllowedWorkspaceIds,
             resolvedAgencyId
           );
-          if (isFounder) {
-            persistFounderSession({
-              email: demo.email,
-              fullName: demo.fullName,
-              company: demo.company,
-              id: demo.id,
-              isDemo: true,
-            });
-          } else {
-            clearFounderSession();
-          }
-          await refreshWorkspaces(resolvedWorkspaceId);
+          clearFounderSession();
+          await refreshWorkspaces(demo.workspaceId);
           setIsAuthModalOpen(false);
           return { isDemo: true };
         }
 
-        if (teamMatch && teamMatch.accessCode && !matchesAccessCode) {
-          return { error: 'Contraseña o código de acceso incorrecto.' };
-        }
-
-        return { error: msg || 'Email o contraseña incorrectos.' };
+        return { error: msg || sessionError || 'Email o contraseña incorrectos.' };
       } catch (err: unknown) {
         return { error: err instanceof Error ? err.message : 'Sign in failed' };
       }
@@ -1343,6 +1415,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [activateDemoUser, persistFounderSession, refreshWorkspaces]);
 
   const signOut = useCallback(async () => {
+    try {
+      await fetch('/api/auth/session', { method: 'DELETE' });
+    } catch {}
     const sb = getBrowserSupabase();
     if (sb) {
       try {
