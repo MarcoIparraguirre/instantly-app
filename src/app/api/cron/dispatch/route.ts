@@ -128,6 +128,14 @@ async function handleCronDispatch(req: NextRequest) {
       }
     }
 
+    if (container.deliverabilityGuard) {
+      await container.deliverabilityGuard
+        .enforceWorkspaceDeliverability()
+        .catch((err) => {
+          console.warn('Cron dispatch DeliverabilityGuard error:', err);
+        });
+    }
+
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),

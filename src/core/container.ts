@@ -40,6 +40,11 @@ import { WebhookDispatcherService } from './services/WebhookDispatcherService';
 import { InternalWarmupService } from './services/InternalWarmupService';
 import { UniboxClassifierService } from './services/UniboxClassifierService';
 import { PlacementTestService } from './services/PlacementTestService';
+import { DeliverabilityGuardService } from './services/DeliverabilityGuardService';
+import { AiOutreachService } from './services/AiOutreachService';
+import { LeadEnrichmentService } from './services/LeadEnrichmentService';
+import { MultichannelDispatcherService } from './services/MultichannelDispatcherService';
+import { DnsWizardService } from './services/DnsWizardService';
 
 import { IMailer } from './mailers/interfaces';
 import { SmtpMailer } from './mailers/SmtpMailer';
@@ -78,6 +83,11 @@ export interface AppContainer {
   warmupService: InternalWarmupService;
   uniboxClassifier: UniboxClassifierService;
   placementTester: PlacementTestService;
+  deliverabilityGuard: DeliverabilityGuardService;
+  aiOutreach: AiOutreachService;
+  leadEnrichment: LeadEnrichmentService;
+  multichannelDispatcher: MultichannelDispatcherService;
+  dnsWizard: DnsWizardService;
   smtpMailer: IMailer;
   simulatedMailer: IMailer;
   dispatcher: ICampaignDispatcher;
@@ -139,6 +149,18 @@ export function createContainer(customDriver?: IJsonStorageDriver): AppContainer
   const webhookDispatcher = new WebhookDispatcherService(webhookRepo);
   const uniboxClassifier = new UniboxClassifierService(dealRepo);
   const placementTester = new PlacementTestService();
+  const deliverabilityGuard = new DeliverabilityGuardService(
+    accountRepo,
+    dnsChecker,
+    webhookDispatcher
+  );
+  const aiOutreach = new AiOutreachService();
+  const leadEnrichment = new LeadEnrichmentService(emailVerifier);
+  const multichannelDispatcher = new MultichannelDispatcherService(
+    templateRenderer,
+    spintaxService
+  );
+  const dnsWizard = new DnsWizardService(dnsChecker);
 
   const smtpMailer = new SmtpMailer();
   const simulatedMailer = new SimulatedMailer();
@@ -201,6 +223,11 @@ export function createContainer(customDriver?: IJsonStorageDriver): AppContainer
     warmupService,
     uniboxClassifier,
     placementTester,
+    deliverabilityGuard,
+    aiOutreach,
+    leadEnrichment,
+    multichannelDispatcher,
+    dnsWizard,
     smtpMailer,
     simulatedMailer,
     dispatcher,

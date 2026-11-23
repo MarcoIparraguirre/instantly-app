@@ -327,6 +327,14 @@ async function handleCronUniboxSync(req: NextRequest) {
         });
         threadsSaved += finalThreads.length;
       }
+
+      if (container.deliverabilityGuard) {
+        await container.deliverabilityGuard
+          .enforceWorkspaceDeliverability(wsId)
+          .catch(err => {
+            console.warn('Cron unibox-sync DeliverabilityGuard error:', err);
+          });
+      }
     }
 
     return NextResponse.json({
