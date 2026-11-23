@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/core/supabase/client';
+import { hashAccessCode, isHashedAccessCode } from '@/core/security/session';
 import { TeamMember, UserRole, ROLE_PERMISSIONS, normalizeRole } from '@/types';
+
+export interface SanitizedTeamMember extends Omit<TeamMember, 'accessCode'> {
+  hasAccessCode: boolean;
+}
+
+export function sanitizeTeamMember(member: TeamMember): SanitizedTeamMember {
+  const { accessCode, ...rest } = member;
+  return {
+    ...rest,
+    hasAccessCode: Boolean(accessCode && accessCode.trim()),
+  };
+}
 
 interface QueryResult<T = Record<string, unknown>[]> {
   data?: T | null;
@@ -52,12 +65,14 @@ export function normalizeAllowedWorkspaceIds(raw: unknown, primaryWorkspaceId: s
 
 export function createDefaultTeamMembers(): TeamMember[] {
   const nowIso = new Date().toISOString();
+  const founderCode = process.env.FOUNDER_ACCESS_CODE || 'Vectra2026!';
   return [
     {
       id: 'admin-default',
       workspaceId: 'ws-founder',
       allowedWorkspaceIds: ['ws-founder'],
       agencyId: 'ag-founder',
+      accessCode: hashAccessCode(founderCode),
       fullName: 'Marco Iparraguirre',
       email: 'marcos@vectrasystems.com.ar',
       company: 'Vectra Systems',
@@ -233,13 +248,17 @@ export async function GET(req: NextRequest) {
 
     if (!shouldUseSupabase()) {
       const store = getFallbackStore();
-      return NextResponse.json(filterMembers(store, workspaceId, email, agencyId));
+      return NextResponse.json(
+        filterMembers(store, workspaceId, email, agencyId).map(sanitizeTeamMember)
+      );
     }
 
     const { rows, error } = await fetchTeamFromDb();
     if (error) {
       console.warn('GET /api/team Supabase error, using fallback:', error.message || error);
-      return NextResponse.json(filterMembers(getFallbackStore(), workspaceId, email, agencyId));
+      return NextResponse.json(
+        filterMembers(getFallbackStore(), workspaceId, email, agencyId).map(sanitizeTeamMember)
+      );
     }
 
     if (rows.length === 0) {
@@ -251,10 +270,14 @@ export async function GET(req: NextRequest) {
         }
       }
       setFallbackStore(defaults);
-      return NextResponse.json(filterMembers(defaults, workspaceId, email, agencyId));
+      return NextResponse.json(
+        filterMembers(defaults, workspaceId, email, agencyId).map(sanitizeTeamMember)
+      );
     }
 
-    return NextResponse.json(filterMembers(rows, workspaceId, email, agencyId));
+    return NextResponse.json(
+      filterMembers(rows, workspaceId, email, agencyId).map(sanitizeTeamMember)
+    );
   } catch (err: unknown) {
     console.warn('GET /api/team unexpected error, using fallback:', getErrorMessage(err));
     const { searchParams } = new URL(req.url);
@@ -264,7 +287,7 @@ export async function GET(req: NextRequest) {
         searchParams.get('workspaceId'),
         searchParams.get('email'),
         searchParams.get('agencyId')
-      )
+      ).map(sanitizeTeamMember)
     );
   }
 }
@@ -291,17 +314,22 @@ export async function POST(req: NextRequest) {
     const allowedWorkspaceIds = normalizeAllowedWorkspaceIds(body.allowedWorkspaceIds, workspaceId);
     const agencyId =
       typeof body.agencyId === 'string' && body.agencyId.trim() ? body.agencyId.trim() : undefined;
-    const accessCode =
+    const rawAccessCode =
       typeof body.accessCode === 'string' && body.accessCode.trim()
         ? body.accessCode.trim()
         : undefined;
+    const hashedAccessCode = rawAccessCode
+      ? isHashedAccessCode(rawAccessCode)
+        ? rawAccessCode
+        : hashAccessCode(rawAccessCode)
+      : undefined;
 
     const newMember: TeamMember = {
       id: body.id || `usr-${uuidv4()}`,
       workspaceId,
       allowedWorkspaceIds,
       ...(agencyId !== undefined ? { agencyId } : {}),
-      ...(accessCode !== undefined ? { accessCode } : {}),
+      ...(hashedAccessCode !== undefined ? { accessCode: hashedAccessCode } : {}),
       fullName,
       email,
       company: typeof body.company === 'string' ? body.company.trim() : '',
@@ -315,21 +343,23 @@ export async function POST(req: NextRequest) {
     const existingIdx = store.findIndex(
       (m) => m.id === newMember.id || (m.email.toLowerCase() === email && m.workspaceId === workspaceId)
     );
+    let persistedMember: TeamMember = newMember;
     if (existingIdx >= 0) {
       const mergedAllowed =
         body.allowedWorkspaceIds !== undefined
           ? allowedWorkspaceIds
           : normalizeAllowedWorkspaceIds(store[existingIdx].allowedWorkspaceIds, workspaceId);
-      const updatedExisting = {
+      const updatedExisting: TeamMember = {
         ...store[existingIdx],
         ...newMember,
+        accessCode:
+          hashedAccessCode !== undefined ? hashedAccessCode : store[existingIdx].accessCode,
         allowedWorkspaceIds: mergedAllowed,
         id: store[existingIdx].id,
       };
       const nextStore = store.map((m, idx) => (idx === existingIdx ? updatedExisting : m));
       setFallbackStore(nextStore);
-      newMember.id = updatedExisting.id;
-      newMember.allowedWorkspaceIds = mergedAllowed;
+      persistedMember = updatedExisting;
     } else {
       setFallbackStore([...store, newMember]);
     }
@@ -337,14 +367,22 @@ export async function POST(req: NextRequest) {
     if (shouldUseSupabase()) {
       const table = supabase.from('user_profiles') as unknown as UserProfilesTableLike;
       if (typeof table.upsert === 'function') {
-        const { error } = await upsertMemberToSupabase(table, newMember);
+        const { error } = await upsertMemberToSupabase(table, persistedMember);
         if (error) {
           console.warn('POST /api/team Supabase error, kept in fallback:', error.message);
         }
       }
     }
 
-    return NextResponse.json(newMember, { status: 201 });
+    // Return plaintext accessCode once on POST creation response when supplied,
+    // while storing only the scrypt hash in DB and fallbackStore.
+    return NextResponse.json(
+      {
+        ...sanitizeTeamMember(persistedMember),
+        ...(rawAccessCode !== undefined ? { accessCode: rawAccessCode } : {}),
+      },
+      { status: 201 }
+    );
   } catch (err: unknown) {
     return NextResponse.json(
       { error: getErrorMessage(err) || 'Failed to create team member' },
@@ -383,6 +421,16 @@ export async function PUT(req: NextRequest) {
         ? normalizeAllowedWorkspaceIds(body.allowedWorkspaceIds, nextWorkspaceId)
         : normalizeAllowedWorkspaceIds(existing.allowedWorkspaceIds, nextWorkspaceId);
 
+    let nextAccessCode = existing.accessCode;
+    if (body.accessCode !== undefined) {
+      const trimmed = typeof body.accessCode === 'string' ? body.accessCode.trim() : '';
+      nextAccessCode = trimmed
+        ? isHashedAccessCode(trimmed)
+          ? trimmed
+          : hashAccessCode(trimmed)
+        : undefined;
+    }
+
     const updatedMember: TeamMember = {
       ...existing,
       fullName: body.fullName !== undefined ? String(body.fullName).trim() || existing.fullName : existing.fullName,
@@ -391,7 +439,7 @@ export async function PUT(req: NextRequest) {
       workspaceId: nextWorkspaceId,
       allowedWorkspaceIds: nextAllowedWorkspaceIds,
       ...(body.agencyId !== undefined ? { agencyId: String(body.agencyId).trim() || undefined } : {}),
-      ...(body.accessCode !== undefined ? { accessCode: String(body.accessCode).trim() || undefined } : {}),
+      accessCode: nextAccessCode,
       roleId: nextRole,
       roleName: ROLE_PERMISSIONS[nextRole].labelEs,
       updatedAt: new Date().toISOString(),
@@ -412,7 +460,7 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    return NextResponse.json(updatedMember);
+    return NextResponse.json(sanitizeTeamMember(updatedMember));
   } catch (err: unknown) {
     return NextResponse.json(
       { error: getErrorMessage(err) || 'Failed to update team member' },

@@ -54,7 +54,8 @@ export class GoogleSheetsService implements IGoogleSheetsService {
 
   /**
    * Fetches rows from Google Sheets.
-   * If accessToken is provided, queries the Google Sheets API v4.
+   * If accessToken is provided, queries the Google Sheets API v4 with 5,000-row chunked pagination
+   * up to 50,000 rows and resolves tab title when gid is present in the URL.
    * Otherwise, fetches the published / public CSV export endpoint.
    */
   async fetchSheetRows(sheetIdOrUrl: string, accessToken?: string): Promise<Record<string, string>[]> {
@@ -63,27 +64,51 @@ export class GoogleSheetsService implements IGoogleSheetsService {
       throw new Error('Invalid Google Sheet URL or Spreadsheet ID.');
     }
 
-    if (accessToken) {
-      // Authenticated Google Sheets API v4 Call
-      const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A1:ZZ5000`;
-      const res = await fetch(apiUrl, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/json'
-        }
-      });
+    const gid = this.extractSheetGid(sheetIdOrUrl);
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error?.message || `Google Sheets API error: HTTP ${res.status}`);
+    if (accessToken) {
+      const tabTitle = gid ? await this.resolveSheetTabTitle(sheetId, gid, accessToken) : undefined;
+      const chunkSize = 5000;
+      const maxRows = 50000;
+      const allValues: string[][] = [];
+
+      for (let startRow = 1; startRow <= maxRows; startRow += chunkSize) {
+        const endRow = Math.min(startRow + chunkSize - 1, maxRows);
+        const range = `A${startRow}:ZZ${endRow}`;
+        const formattedRange = tabTitle
+          ? `'${tabTitle.replace(/'/g, "''")}'!${range}`
+          : range;
+        const encodedRange = tabTitle ? encodeURIComponent(formattedRange) : formattedRange;
+        const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodedRange}`;
+
+        const res = await fetch(apiUrl, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: 'application/json'
+          }
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error?.message || `Google Sheets API error: HTTP ${res.status}`);
+        }
+
+        const json = await res.json();
+        const chunkValues: string[][] = Array.isArray(json.values) ? json.values : [];
+        if (chunkValues.length === 0) {
+          break;
+        }
+
+        allValues.push(...chunkValues);
+
+        if (chunkValues.length < chunkSize) {
+          break;
+        }
       }
 
-      const json = await res.json();
-      const rawValues: string[][] = json.values || [];
-      return this.parseGridToRecords(rawValues);
+      return this.parseGridToRecords(allValues);
     } else {
       // Public / Link-shared Sheet CSV Export endpoint (preserving tab gid if present)
-      const gid = this.extractSheetGid(sheetIdOrUrl);
       const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv${gid ? `&gid=${gid}` : ''}`;
       const res = await fetch(csvUrl, {
         headers: {
@@ -110,6 +135,41 @@ export class GoogleSheetsService implements IGoogleSheetsService {
       }
 
       return this.parseCsvToRecords(csvText);
+    }
+  }
+
+  /**
+   * Resolves a worksheet tab title matching a numeric gid via spreadsheet metadata API.
+   * Falls back to undefined gracefully if metadata retrieval fails.
+   */
+  private async resolveSheetTabTitle(
+    sheetId: string,
+    gid: string,
+    accessToken: string
+  ): Promise<string | undefined> {
+    try {
+      const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties`;
+      const res = await fetch(metaUrl, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json'
+        }
+      });
+
+      if (!res.ok) return undefined;
+
+      const meta = (await res.json()) as {
+        sheets?: Array<{ properties?: { sheetId?: number | string; title?: string } }>;
+      };
+
+      const matchingSheet = meta.sheets?.find(
+        s => s?.properties?.sheetId !== undefined && String(s.properties.sheetId) === String(gid)
+      );
+
+      const title = matchingSheet?.properties?.title?.trim();
+      return title || undefined;
+    } catch {
+      return undefined;
     }
   }
 
