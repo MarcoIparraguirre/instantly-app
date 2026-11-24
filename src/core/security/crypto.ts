@@ -4,10 +4,20 @@ const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12; // 96-bit IV recommended for AES-GCM
 const PREFIX = 'enc:v1:';
 
+const DEFAULT_ENCRYPTION_KEY = 'misender-secret-key-must-be-changed-in-production-32b';
+
 function getEncryptionKey(): Buffer {
-  const secret = process.env.ENCRYPTION_KEY || 'misender-secret-key-must-be-changed-in-production-32b';
+  const secret = process.env.ENCRYPTION_KEY || DEFAULT_ENCRYPTION_KEY;
   // Derive a consistent 256-bit (32 bytes) key using SHA-256
   return crypto.createHash('sha256').update(secret).digest();
+}
+
+/**
+ * Returns true if ENCRYPTION_KEY is configured in the environment and is not the default fallback secret.
+ */
+export function isProductionEncryptionKeyConfigured(): boolean {
+  const key = (process.env.ENCRYPTION_KEY || '').trim();
+  return Boolean(key && key !== DEFAULT_ENCRYPTION_KEY);
 }
 
 /**
@@ -85,6 +95,36 @@ export function verifyTrackingSignature(signature: string, targetUrl: string, le
   if (signature.length !== expected.length) return false;
   try {
     return crypto.timingSafeEqual(Buffer.from(signature, 'utf8'), Buffer.from(expected, 'utf8'));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Computes an HMAC-SHA256 webhook signature in the format `sha256=<hmac_hex>`.
+ */
+export function signWebhookPayload(payload: string, secret: string): string {
+  if (!secret) return '';
+  const hmacHex = crypto
+    .createHmac('sha256', secret)
+    .update(payload, 'utf8')
+    .digest('hex');
+  return `sha256=${hmacHex}`;
+}
+
+/**
+ * Verifies an HMAC-SHA256 webhook signature (`sha256=<hmac_hex>`) in constant time.
+ */
+export function verifyWebhookSignature(payload: string, sig: string, secret: string): boolean {
+  if (typeof payload !== 'string' || !sig || !secret) return false;
+  const expected = signWebhookPayload(payload, secret);
+  if (!expected) return false;
+
+  const bufSig = Buffer.from(sig.trim(), 'utf8');
+  const bufExpected = Buffer.from(expected, 'utf8');
+  if (bufSig.length !== bufExpected.length) return false;
+  try {
+    return crypto.timingSafeEqual(bufSig, bufExpected);
   } catch {
     return false;
   }

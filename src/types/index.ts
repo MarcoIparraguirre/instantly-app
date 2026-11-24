@@ -282,8 +282,14 @@ export interface SenderAccount {
   warmupToday?: number;
   warmupTotal?: number;
   warmupRescueRate?: number; // e.g. 98%
+  warmupRampDay?: number;
+  warmupNetworkOptIn?: boolean;
   healthScore?: number; // 0 - 100%
   dnsChecks?: DnsCheckItem[];
+  bounceCount?: number;
+  totalSent?: number;
+  pausedReason?: string | null;
+  lastUsedAt?: string | number | null;
 }
 
 export type AiSentimentTag =
@@ -392,6 +398,9 @@ export interface EmailVerificationResult {
   hasMx: boolean;
   mxRecords?: string[];
   isDisposable: boolean;
+  isRoleBased?: boolean;
+  isCatchAll?: boolean;
+  smtpVerified?: boolean;
   reason: string;
 }
 

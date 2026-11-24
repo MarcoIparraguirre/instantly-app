@@ -2,11 +2,15 @@
   "crons": [
     {
       "path": "/api/cron/dispatch",
-      "schedule": "0 13 * * *"
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/unibox-sync",
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/warmup",
-      "schedule": "0 14 * * *"
+      "schedule": "0 */2 * * *"
     }
   ]
 }

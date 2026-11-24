@@ -52,11 +52,40 @@ function authorizeCronRequest(req: NextRequest): { authorized: boolean; error?: 
   return { authorized: true };
 }
 
+const LOCK_TTL_MS = 60_000;
+
+interface CronDispatchLockState {
+  isRunning: boolean;
+  startedAt: number;
+}
+
+function getDispatchLock(): CronDispatchLockState {
+  const g = globalThis as unknown as { __misenderCronDispatchLock?: CronDispatchLockState };
+  if (!g.__misenderCronDispatchLock) {
+    g.__misenderCronDispatchLock = { isRunning: false, startedAt: 0 };
+  }
+  return g.__misenderCronDispatchLock;
+}
+
 async function handleCronDispatch(req: NextRequest) {
   const auth = authorizeCronRequest(req);
   if (!auth.authorized) {
     return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
   }
+
+  const lock = getDispatchLock();
+  const now = Date.now();
+  if (lock.isRunning && now - lock.startedAt < LOCK_TTL_MS) {
+    return NextResponse.json({
+      success: true,
+      skipped: true,
+      reason: 'already_running',
+      startedAt: new Date(lock.startedAt).toISOString()
+    });
+  }
+
+  lock.isRunning = true;
+  lock.startedAt = now;
 
   try {
     const campaigns = await container.campaignRepo.getCampaigns();
@@ -99,6 +128,14 @@ async function handleCronDispatch(req: NextRequest) {
       }
     }
 
+    if (container.deliverabilityGuard) {
+      await container.deliverabilityGuard
+        .enforceWorkspaceDeliverability()
+        .catch((err) => {
+          console.warn('Cron dispatch DeliverabilityGuard error:', err);
+        });
+    }
+
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
@@ -111,6 +148,9 @@ async function handleCronDispatch(req: NextRequest) {
       { success: false, error: err instanceof Error ? err.message : 'Cron dispatch failed' },
       { status: 500 }
     );
+  } finally {
+    lock.isRunning = false;
+    lock.startedAt = 0;
   }
 }
 

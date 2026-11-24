@@ -1,8 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
-import { ActionApproval, Campaign, SequenceStep } from '@/types';
+import { ActionApproval, Campaign } from '@/types';
 import { ICampaignRepository, ILeadRepository, IAccountRepository } from '../interfaces/storage';
 import { ISpamDetectorService } from '../services/SpamDetectorService';
 import { CopilotActionRegistry } from './CopilotActionRegistry';
+import { AiOutreachService } from '../services/AiOutreachService';
 
 export interface CopilotChatInput {
   message?: string;
@@ -14,7 +15,7 @@ export interface CopilotChatInput {
 export interface CopilotChatOutput {
   reply: string;
   approval?: ActionApproval;
-  toolResult?: any;
+  toolResult?: unknown;
   updatedCampaign: Campaign;
 }
 
@@ -24,7 +25,8 @@ export class CopilotService {
     private leadRepo: ILeadRepository,
     private accountRepo: IAccountRepository,
     private spamDetector: ISpamDetectorService,
-    private registry: CopilotActionRegistry
+    private registry: CopilotActionRegistry,
+    private aiOutreachService: AiOutreachService = new AiOutreachService()
   ) {}
 
   async process(input: CopilotChatInput): Promise<CopilotChatOutput> {
@@ -324,6 +326,18 @@ export class CopilotService {
           `4. *"Diagnose campaign health & deliverability"*\n` +
           `5. *"Activate / Pause this campaign"*`;
       }
+
+      if (!approval && rawText.trim().length > 0) {
+        const campaignSummary = this.buildCampaignSummary(campaign);
+        const llmAdvice = await this.aiOutreachService.askCopilotLLM(
+          rawText,
+          campaignSummary,
+          isSpanish ? 'es' : 'en'
+        );
+        if (llmAdvice) {
+          reply = `${llmAdvice}\n\n---\n${reply}`;
+        }
+      }
     }
 
     return {
@@ -331,5 +345,24 @@ export class CopilotService {
       approval,
       updatedCampaign: campaign
     };
+  }
+
+  private buildCampaignSummary(campaign: Campaign): string {
+    const stats = campaign.stats || { sent: 0, opened: 0, replied: 0, bounced: 0, opportunities: 0 };
+    const stepsSummary = campaign.steps.length > 0
+      ? campaign.steps
+          .map(step => {
+            const subjects = step.variants.map(v => v.subject).filter(Boolean).join(' | ');
+            return `Step ${step.stepNumber} (wait ${step.waitDays}d, ${step.variants.length} variant(s)): ${subjects || 'No subject'}`;
+          })
+          .join('; ')
+      : 'No steps configured';
+
+    return [
+      `Campaign: "${campaign.name}" (status: ${campaign.status})`,
+      `Stats: sent=${stats.sent}, opened=${stats.opened}, replied=${stats.replied}, bounced=${stats.bounced}, opportunities=${stats.opportunities}`,
+      `Steps (${campaign.steps.length}): ${stepsSummary}`,
+      `Schedule: ${campaign.schedule?.timing?.from || '09:00'}-${campaign.schedule?.timing?.to || '17:00'} (${campaign.schedule?.timezone || 'UTC'}), dailyLimit=${campaign.schedule?.dailyLimit ?? 50}`
+    ].join('\n');
   }
 }
