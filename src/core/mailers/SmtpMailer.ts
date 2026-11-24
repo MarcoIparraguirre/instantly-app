@@ -16,6 +16,9 @@ export class SmtpMailer implements IMailer {
         host: account.smtpHost,
         port: account.smtpPort,
         secure: account.smtpPort === 465,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
         auth: {
           user: account.smtpUser,
           pass: account.smtpPass
@@ -48,7 +51,7 @@ export class SmtpMailer implements IMailer {
         messageId: info.messageId,
         mode: 'smtp'
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Evict pooled transporter on error so next attempt reconnects cleanly
       const cached = this.transporters.get(key);
       if (cached && typeof cached.close === 'function') {
@@ -61,7 +64,7 @@ export class SmtpMailer implements IMailer {
       return {
         success: false,
         mode: 'smtp',
-        error: err.message || 'SMTP sending error'
+        error: err instanceof Error ? err.message : 'SMTP sending error'
       };
     }
   }

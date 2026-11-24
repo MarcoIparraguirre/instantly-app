@@ -157,8 +157,52 @@ export function normalizePlan(plan?: string | null): WorkspacePlan {
   return 'growth';
 }
 
+export const TRIAL_QUOTA_CAPS = {
+  maxAccounts: 2,
+  maxLeads: 150,
+} as const;
+
+export interface EffectiveWorkspaceLimits {
+  maxAccounts: number;
+  maxLeads: number;
+  credits: number;
+  isTrial: boolean;
+}
+
 export function getPlanConfig(plan?: string | null): PlanConfig {
   return SAAS_PLANS[normalizePlan(plan)];
+}
+
+export function getEffectiveWorkspaceLimits(
+  ws: Pick<Workspace, 'plan' | 'subscriptionStatus' | 'maxAccounts' | 'maxLeads' | 'credits'>
+): EffectiveWorkspaceLimits {
+  const planConfig = getPlanConfig(ws.plan);
+  const baseAccounts = Number.isFinite(Number(ws.maxAccounts))
+    ? Number(ws.maxAccounts)
+    : planConfig.maxAccounts;
+  const baseLeads = Number.isFinite(Number(ws.maxLeads))
+    ? Number(ws.maxLeads)
+    : planConfig.maxLeads;
+  const credits = Number.isFinite(Number(ws.credits))
+    ? Number(ws.credits)
+    : planConfig.credits;
+  const isTrial = (ws.subscriptionStatus || 'trialing') === 'trialing';
+
+  if (isTrial) {
+    return {
+      maxAccounts: Math.min(baseAccounts, TRIAL_QUOTA_CAPS.maxAccounts),
+      maxLeads: Math.min(baseLeads, TRIAL_QUOTA_CAPS.maxLeads),
+      credits,
+      isTrial: true,
+    };
+  }
+
+  return {
+    maxAccounts: baseAccounts,
+    maxLeads: baseLeads,
+    credits,
+    isTrial: false,
+  };
 }
 
 export interface Workspace {

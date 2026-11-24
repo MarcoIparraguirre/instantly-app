@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/core/container';
 import { v4 as uuidv4 } from 'uuid';
 import { Lead } from '@/types';
+import { checkLeadQuota } from '@/core/services/WorkspaceQuotaService';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -35,10 +36,45 @@ export async function POST(req: NextRequest) {
       customVariables: item.customVariables || {}
     }));
 
+    // Enforce workspace lead quota for genuinely new leads (updates to existing leads are exempt)
+    const leadsByWorkspace = new Map<string, Lead[]>();
+    for (const lead of newLeads) {
+      const wsId = lead.workspaceId || 'ws-primary';
+      const bucket = leadsByWorkspace.get(wsId) || [];
+      bucket.push(lead);
+      leadsByWorkspace.set(wsId, bucket);
+    }
+
+    for (const [wsId, wsNewLeads] of leadsByWorkspace.entries()) {
+      const existing = await container.leadRepo.getLeads(undefined, wsId);
+      const existingIds = new Set(existing.map(l => l.id));
+      const existingKeys = new Set(
+        existing.map(l => `${l.campaignId || 'campaign-1'}:${(l.email || '').toLowerCase().trim()}`)
+      );
+      const seenIncoming = new Set<string>();
+      let netNewCount = 0;
+
+      for (const candidate of wsNewLeads) {
+        const key = `${candidate.campaignId || 'campaign-1'}:${(candidate.email || '').toLowerCase().trim()}`;
+        if (existingIds.has(candidate.id) || existingKeys.has(key) || seenIncoming.has(key)) {
+          continue;
+        }
+        seenIncoming.add(key);
+        netNewCount++;
+      }
+
+      if (netNewCount > 0) {
+        const quota = await checkLeadQuota(wsId, netNewCount);
+        if (!quota.allowed) {
+          return NextResponse.json(quota, { status: quota.status });
+        }
+      }
+    }
+
     await container.leadRepo.addLeads(newLeads);
     return NextResponse.json(newLeads, { status: 201 });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to add leads' }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to add leads' }, { status: 500 });
   }
 }
 
@@ -54,8 +90,8 @@ export async function DELETE(req: NextRequest) {
     }
     await container.leadRepo.deleteLeads(campaignId);
     return NextResponse.json({ success: true, clearedCampaignId: campaignId });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to delete leads' }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to delete leads' }, { status: 500 });
   }
 }
 
@@ -98,7 +134,7 @@ export async function PUT(req: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to update leads' }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to update leads' }, { status: 500 });
   }
 }

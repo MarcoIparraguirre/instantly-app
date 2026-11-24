@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { container } from '@/core/container';
 import { encryptCredential, maskCredential } from '@/core/security/crypto';
 import { DnsCheckerService } from '@/core/services/DnsCheckerService';
+import { checkAccountQuota } from '@/core/services/WorkspaceQuotaService';
 import { DnsAuditResult, DnsCheckItem, SenderAccount } from '@/types';
 
 export type BulkImportProvider =
@@ -438,6 +439,23 @@ export async function POST(req: NextRequest) {
       }
     } catch {
       // Ignore repo read failure and proceed with batch dedup
+    }
+
+    const previewSeen = new Set<string>();
+    let incomingNewAccounts = 0;
+    for (const row of rawRows) {
+      const candidateEmail = typeof row?.email === 'string' ? row.email.trim().toLowerCase() : '';
+      if (!candidateEmail || !EMAIL_REGEX.test(candidateEmail)) continue;
+      if (previewSeen.has(candidateEmail) || existingEmails.has(candidateEmail)) continue;
+      previewSeen.add(candidateEmail);
+      incomingNewAccounts++;
+    }
+
+    if (incomingNewAccounts > 0) {
+      const quota = await checkAccountQuota(workspaceId, incomingNewAccounts);
+      if (!quota.allowed) {
+        return NextResponse.json(quota, { status: quota.status });
+      }
     }
 
     const seenInBatch = new Set<string>();

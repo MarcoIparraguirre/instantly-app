@@ -3,6 +3,7 @@ import { container } from '@/core/container';
 import { v4 as uuidv4 } from 'uuid';
 import { SenderAccount } from '@/types';
 import { maskCredential } from '@/core/security/crypto';
+import { checkAccountQuota } from '@/core/services/WorkspaceQuotaService';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -23,13 +24,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
+    const targetWorkspaceId = body.workspaceId || 'ws-primary';
+    const cleanEmail = String(body.email).trim().toLowerCase();
+    const existingAccounts = await container.accountRepo.getAccounts(targetWorkspaceId);
+    const isExistingAccount = existingAccounts.some(
+      a => (body.id && a.id === body.id) || a.email.toLowerCase().trim() === cleanEmail
+    );
+
+    if (!isExistingAccount) {
+      const quota = await checkAccountQuota(targetWorkspaceId, 1);
+      if (!quota.allowed) {
+        return NextResponse.json(quota, { status: quota.status });
+      }
+    }
+
     const isGoogle = (body.smtpHost || '').toLowerCase().includes('gmail') || body.email.includes('@gmail.com');
     const isMicrosoft = (body.smtpHost || '').toLowerCase().includes('outlook') || (body.smtpHost || '').toLowerCase().includes('office');
     const provider = isGoogle ? 'google' : isMicrosoft ? 'microsoft' : 'smtp';
 
     const newAccount: SenderAccount = {
       id: body.id || uuidv4(),
-      workspaceId: body.workspaceId || 'ws-primary',
+      workspaceId: targetWorkspaceId,
       name: body.name || (isGoogle ? 'Gmail Mailbox' : 'Outbound Mailbox'),
       email: body.email.trim(),
       provider,
@@ -89,8 +104,8 @@ export async function POST(req: NextRequest) {
       ...newAccount,
       smtpPass: maskCredential(newAccount.smtpPass)
     }, { status: 201 });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to save account' }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to save account' }, { status: 500 });
   }
 }
 
@@ -103,7 +118,7 @@ export async function DELETE(req: NextRequest) {
     }
     await container.accountRepo.deleteAccount(id);
     return NextResponse.json({ success: true, id });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to delete account' }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to delete account' }, { status: 500 });
   }
 }

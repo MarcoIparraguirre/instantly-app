@@ -217,7 +217,7 @@ export async function POST(req: NextRequest) {
 
     const planId = rawPlanId as WorkspacePlan;
     const planConfig = SAAS_PLANS[planId];
-    const discountMultiplier = billingCycle === 'annual' ? 0.8 : 1;
+    const discountMultiplier = billingCycle === 'annual' ? 0.85 : 1;
     const monthlyEquivalent = Number((planConfig.monthlyPriceUsd * discountMultiplier).toFixed(2));
     const totalUsd =
       billingCycle === 'annual'
@@ -235,7 +235,7 @@ export async function POST(req: NextRequest) {
       totalArs,
       usdToArsRate,
       rateSource,
-      discountPercent: billingCycle === 'annual' ? 20 : 0,
+      discountPercent: billingCycle === 'annual' ? 15 : 0,
       currency: 'USD',
     };
 
@@ -245,8 +245,8 @@ export async function POST(req: NextRequest) {
     if (provider === 'stripe' && process.env.STRIPE_SECRET_KEY) {
       const params = new URLSearchParams({
         mode: 'subscription',
-        success_url: `${origin}/?billing=success&plan=${planId}&workspaceId=${encodeURIComponent(workspaceId)}`,
-        cancel_url: `${origin}/?billing=canceled`,
+        success_url: `${origin}/app?billing=success&plan=${planId}&workspaceId=${encodeURIComponent(workspaceId)}`,
+        cancel_url: `${origin}/app?billing=canceled`,
         client_reference_id: workspaceId,
         'metadata[workspaceId]': workspaceId,
         'metadata[planId]': planId,
@@ -306,7 +306,7 @@ export async function POST(req: NextRequest) {
               transaction_amount: totalArs,
               currency_id: 'ARS',
             },
-            back_url: `${origin}/?billing=success&plan=${planId}&workspaceId=${encodeURIComponent(workspaceId)}`,
+            back_url: `${origin}/app?billing=success&plan=${planId}&workspaceId=${encodeURIComponent(workspaceId)}`,
             status: 'pending',
           }),
         });
@@ -354,9 +354,9 @@ export async function POST(req: NextRequest) {
           external_reference: `${workspaceId}:${planId}:${billingCycle}`,
           notification_url: `${origin}/api/billing/webhook?provider=mercadopago`,
           back_urls: {
-            success: `${origin}/?billing=success&plan=${planId}&workspaceId=${encodeURIComponent(workspaceId)}`,
-            failure: `${origin}/?billing=canceled`,
-            pending: `${origin}/?billing=pending`,
+            success: `${origin}/app?billing=success&plan=${planId}&workspaceId=${encodeURIComponent(workspaceId)}`,
+            failure: `${origin}/app?billing=canceled`,
+            pending: `${origin}/app?billing=pending`,
           },
           auto_return: 'approved',
         }),
@@ -414,7 +414,7 @@ export async function POST(req: NextRequest) {
                   },
                 },
                 product_options: {
-                  redirect_url: `${origin}/?billing=success&plan=${planId}&workspaceId=${encodeURIComponent(workspaceId)}`,
+                  redirect_url: `${origin}/app?billing=success&plan=${planId}&workspaceId=${encodeURIComponent(workspaceId)}`,
                 },
               },
               relationships: {

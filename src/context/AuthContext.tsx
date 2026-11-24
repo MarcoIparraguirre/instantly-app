@@ -1340,7 +1340,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await sb.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/app` : undefined,
         },
       });
       if (error) {

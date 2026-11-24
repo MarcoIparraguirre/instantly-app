@@ -343,7 +343,7 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
   });
 
   describe('/api/billing/checkout plan upgrade calculation', () => {
-    it('calculates monthly and annual (-20%) upgrade pricing and updates workspace entitlements', async () => {
+    it('calculates monthly and annual (-15%) upgrade pricing and updates workspace entitlements', async () => {
       mockState.workspaces = [
         {
           id: 'ws-primary',
@@ -374,16 +374,16 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
       expect(res.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.mode).toBe('sandbox');
-      // $149 * 0.8 = $119.20/mo => $1,430.40/year; default test rate = 1200 ARS/USD => 1,716,480 ARS
+      // $149 * 0.85 = $126.65/mo => $1,519.80/year; default test rate = 1200 ARS/USD => 1,823,760 ARS
       expect(data.pricing).toEqual({
         planId: 'agency',
         billingCycle: 'annual',
-        monthlyEquivalent: 119.2,
-        totalUsd: 1430.4,
-        totalArs: Math.round(1430.4 * 1200),
+        monthlyEquivalent: 126.65,
+        totalUsd: 1519.8,
+        totalArs: Math.round(1519.8 * 1200),
         usdToArsRate: 1200,
         rateSource: 'fallback',
-        discountPercent: 20,
+        discountPercent: 15,
         currency: 'USD',
       });
       expect(data.workspace.plan).toBe('agency');
@@ -562,12 +562,12 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
       expect(mpRecData.mode).toBe('mercadopago');
       expect(mpRecData.recurring).toBe(true);
       expect(mpRecData.preapprovalId).toBe('pre-456');
-      expect(mpRecData.pricing.totalArs).toBe(Math.round(1430.4 * 1275.5));
+      expect(mpRecData.pricing.totalArs).toBe(Math.round(1519.8 * 1275.5));
 
       const recCallBody = JSON.parse(String(fetchSpy.mock.calls[1][1]?.body));
       expect(fetchSpy.mock.calls[1][0]).toBe('https://api.mercadopago.com/preapproval');
       expect(recCallBody.auto_recurring.frequency).toBe(12);
-      expect(recCallBody.auto_recurring.transaction_amount).toBe(Math.round(1430.4 * 1275.5));
+      expect(recCallBody.auto_recurring.transaction_amount).toBe(Math.round(1519.8 * 1275.5));
       expect(recCallBody.auto_recurring.currency_id).toBe('ARS');
     });
 

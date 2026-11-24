@@ -29,6 +29,7 @@ import {
   BillingProvider,
   SAAS_PLANS,
   WorkspacePlan,
+  getEffectiveWorkspaceLimits,
   normalizePlan,
   normalizeRole,
 } from '@/types';
@@ -249,10 +250,11 @@ export default function BillingView() {
 
   const activePlanId = normalizePlan(currentWorkspace.plan);
   const activePlanConfig = SAAS_PLANS[activePlanId];
-  const maxAccounts = currentWorkspace.maxAccounts ?? activePlanConfig.maxAccounts;
-  const maxLeads = currentWorkspace.maxLeads ?? activePlanConfig.maxLeads;
-  const credits = currentWorkspace.credits ?? activePlanConfig.credits;
   const subStatus = currentWorkspace.subscriptionStatus || 'trialing';
+  const effectiveLimits = getEffectiveWorkspaceLimits(currentWorkspace);
+  const maxAccounts = effectiveLimits.maxAccounts;
+  const maxLeads = effectiveLimits.maxLeads;
+  const credits = effectiveLimits.credits;
 
   const accountsPct =
     maxAccounts >= 999
@@ -396,7 +398,7 @@ export default function BillingView() {
 
   const formatPrice = (monthlyUsd: number): string => {
     if (billingCycle === 'monthly') return `$${monthlyUsd}`;
-    const discounted = Number((monthlyUsd * 0.8).toFixed(2));
+    const discounted = Number((monthlyUsd * 0.85).toFixed(2));
     return Number.isInteger(discounted) ? `$${discounted}` : `$${discounted.toFixed(2)}`;
   };
 
@@ -522,13 +524,17 @@ export default function BillingView() {
               />
             </div>
             <div className="text-[11px] text-[#5C6F68] font-mono tabular-nums">
-              {maxAccounts >= 999
+              {effectiveLimits.isTrial
                 ? isEs
-                  ? 'Capacidad ilimitada en plan Agency'
-                  : 'Unlimited capacity on Agency plan'
-                : isEs
-                  ? `${Math.max(0, maxAccounts - accountsCount)} cupos disponibles en tu plan`
-                  : `${Math.max(0, maxAccounts - accountsCount)} mailbox slots remaining`}
+                  ? `Tope de prueba gratis (${Math.max(0, maxAccounts - accountsCount)} disponibles · ${activePlanConfig.maxAccounts >= 999 ? '∞' : activePlanConfig.maxAccounts} al activar ${activePlanConfig.name})`
+                  : `Free trial cap (${Math.max(0, maxAccounts - accountsCount)} left · ${activePlanConfig.maxAccounts >= 999 ? '∞' : activePlanConfig.maxAccounts} when ${activePlanConfig.name} activates)`
+                : maxAccounts >= 999
+                  ? isEs
+                    ? 'Capacidad ilimitada en plan Agency'
+                    : 'Unlimited capacity on Agency plan'
+                  : isEs
+                    ? `${Math.max(0, maxAccounts - accountsCount)} cupos disponibles en tu plan`
+                    : `${Math.max(0, maxAccounts - accountsCount)} mailbox slots remaining`}
             </div>
           </div>
 
@@ -552,9 +558,13 @@ export default function BillingView() {
               />
             </div>
             <div className="text-[11px] text-[#5C6F68] font-mono tabular-nums">
-              {isEs
-                ? `${leadsPct}% de tu cuota mensual utilizada`
-                : `${leadsPct}% of monthly lead capacity used`}
+              {effectiveLimits.isTrial
+                ? isEs
+                  ? `${leadsPct}% usado (tope prueba · ${activePlanConfig.maxLeads.toLocaleString()} al activar)`
+                  : `${leadsPct}% used (trial cap · ${activePlanConfig.maxLeads.toLocaleString()} on activation)`
+                : isEs
+                  ? `${leadsPct}% de tu cuota mensual utilizada`
+                  : `${leadsPct}% of monthly lead capacity used`}
             </div>
           </div>
 
@@ -583,7 +593,7 @@ export default function BillingView() {
         {/* Billing Controls: Cycle Toggle + 3-Gateway Selector + MercadoPago ARS/Recurring Bar */}
         <div className="bg-white border border-[#DCE3DF] shadow-sm rounded-xl p-4 space-y-4">
           <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
-            {/* Monthly vs Annual (20% Off) */}
+            {/* Monthly vs Annual (15% Off) */}
             <div className="flex items-center gap-3">
               <span className="text-xs font-semibold text-[#5C6F68]">
                 {isEs ? 'Ciclo de facturación:' : 'Billing cycle:'}
@@ -617,7 +627,7 @@ export default function BillingView() {
                         : 'bg-[#D5ECD4] text-[#14213D] border-[#C3DAC3]'
                     }`}
                   >
-                    -20%
+                    -15%
                   </span>
                 </button>
               </div>
@@ -729,7 +739,7 @@ export default function BillingView() {
             const isTrialingThis = activePlanId === meta.id && subStatus === 'trialing';
             const features = isEs ? meta.featuresEs : meta.featuresEn;
             const tagline = isEs ? meta.taglineEs : meta.taglineEn;
-            const discountMultiplier = billingCycle === 'annual' ? 0.8 : 1;
+            const discountMultiplier = billingCycle === 'annual' ? 0.85 : 1;
             const monthlyEquivalentUsd = Number((cfg.monthlyPriceUsd * discountMultiplier).toFixed(2));
             const totalUsd =
               billingCycle === 'annual'
@@ -784,8 +794,8 @@ export default function BillingView() {
                       {billingCycle === 'annual' ? (
                         <p className="text-[11px] text-emerald-700 mt-1 font-mono tabular-nums font-medium">
                           {isEs
-                            ? `Facturado $${totalUsd}/año (ahorras 20%)`
-                            : `Billed $${totalUsd}/year (save 20%)`}
+                            ? `Facturado $${totalUsd}/año (ahorras 15%)`
+                            : `Billed $${totalUsd}/year (save 15%)`}
                         </p>
                       ) : (
                         <p className="text-[11px] text-[#5C6F68] mt-1">
