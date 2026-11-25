@@ -82,7 +82,7 @@ function makeHealthyAudit(
     },
     ctd: {
       valid: true,
-      details: `Custom Tracking Domain activo en track.${domain} -> prox.instantly.ai`,
+      details: `Custom Tracking Domain activo en track.${domain} -> track.misender.app`,
     },
     overallHealth: 100,
     ...overrides,
@@ -160,7 +160,7 @@ describe('Onboarding Infra (DNS Wizard, Cloudflare 1-Click, Bulk Importer)', () 
 
         expect(ctd?.host).toBe('track');
         expect(ctd?.type).toBe('CNAME');
-        expect(ctd?.value).toBe('prox.instantly.ai');
+        expect(ctd?.value).toBe('track.misender.app');
         expect(ctd?.status).toBe('missing');
 
         const registrarIds = blueprint.registrarGuides.map((g) => g.id);
@@ -302,7 +302,7 @@ describe('Onboarding Infra (DNS Wizard, Cloudflare 1-Click, Bulk Importer)', () 
       const createdCname = result.provisioned.find((r) => r.category === 'CNAME');
       expect(createdCname).toMatchObject({
         fqdn: 'click.ventas.com.ar',
-        value: 'prox.instantly.ai',
+        value: 'track.misender.app',
         proxied: false,
       });
     });
@@ -331,7 +331,7 @@ describe('Onboarding Infra (DNS Wizard, Cloudflare 1-Click, Bulk Importer)', () 
                   id: 'existing-ctd',
                   type: 'CNAME',
                   name: 'track.acme.io',
-                  content: 'prox.instantly.ai',
+                  content: 'track.misender.app',
                 },
               ],
             }),

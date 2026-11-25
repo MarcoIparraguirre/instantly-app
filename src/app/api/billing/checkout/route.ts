@@ -465,6 +465,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const isProduction =
+      process.env.VERCEL_ENV === 'production' &&
+      process.env.ALLOW_BILLING_SANDBOX !== 'true';
+    const callerRole = req.headers.get('x-user-role')?.trim() || '';
+
+    if (isProduction && callerRole !== 'super_admin') {
+      return NextResponse.json(
+        {
+          error:
+            'La pasarela de pago seleccionada no está disponible en este momento. Elige otro medio de pago o contáctanos.',
+          code: 'BILLING_PROVIDER_UNCONFIGURED',
+          provider,
+        },
+        { status: 503 }
+      );
+    }
+
     // Staging / Sandbox mode: update workspace entitlements immediately
     const store = getFallbackStore();
     let existing: Workspace | undefined = store.find((w) => w.id === workspaceId);

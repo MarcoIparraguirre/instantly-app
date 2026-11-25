@@ -332,7 +332,7 @@ function buildDnsChecksFromAudit(
       {
         type: 'CTD',
         valid: Boolean(audit.ctd?.valid),
-        expected: 'track CNAME prox.instantly.ai',
+        expected: 'track CNAME track.misender.app',
         current: audit.ctd?.valid ? 'Active' : 'Inactive',
         description: audit.ctd?.details || 'CTD audit result',
       },

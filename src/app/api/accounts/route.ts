@@ -91,8 +91,8 @@ export async function POST(req: NextRequest) {
         },
         {
           type: 'CTD',
-          expected: 'track CNAME prox.instantly.ai',
-          current: 'track CNAME prox.instantly.ai',
+          expected: 'track CNAME track.misender.app',
+          current: 'track CNAME track.misender.app',
           valid: true,
           description: 'Custom Tracking Domain enabled'
         }

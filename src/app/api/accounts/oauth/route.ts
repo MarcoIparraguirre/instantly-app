@@ -114,7 +114,7 @@ function buildDnsChecks(
         {
           type: 'CTD',
           valid: audit.ctd.valid,
-          expected: 'track CNAME prox.instantly.ai',
+          expected: 'track CNAME track.misender.app',
           current: audit.ctd.valid ? 'Activo' : 'Inactivo',
           description: audit.ctd.details
         }
@@ -155,7 +155,7 @@ function buildDnsChecks(
       },
       {
         type: 'CTD',
-        expected: 'track CNAME prox.instantly.ai',
+        expected: 'track CNAME track.misender.app',
         current: 'Pendiente de verificación',
         valid: true,
         description: 'Custom Tracking Domain opcional'

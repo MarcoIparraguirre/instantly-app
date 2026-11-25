@@ -257,12 +257,12 @@ const TOUR_STATIONS: TourStation[] = [
     stepsEs: [
       'Consulta tus medidores de uso en tiempo real y los días restantes de tu prueba gratis de 7 días.',
       'Elige ciclo Mensual o Anual (-15%) y selecciona MercadoPago (ARS), Lemon Squeezy (USD) o Stripe (USD).',
-      'Despliega el Asistente de Conexión de Pasarelas y Webhooks para copiar tu URL de webhook o probar un pago en Sandbox.',
+      'Confirma tu suscripción para desbloquear al instante los cupos completos de casillas, leads y créditos del plan.',
     ],
     stepsEn: [
       'Review live usage meters for connected mailboxes, active leads, and your remaining 7-day trial period.',
       'Switch between Monthly and Annual (-15%) billing and pick MercadoPago (ARS), Lemon Squeezy (USD), or Stripe (USD).',
-      'Expand the Gateway & Webhook Setup Assistant to copy your webhook URL or simulate an approved payment in Sandbox.',
+      'Confirm your subscription to immediately unlock full mailbox, lead, and verification credit limits for your plan.',
     ],
     tipEs:
       'Escalar al plan Growth (10 casillas) o Agency (casillas y workspaces multi-cliente ilimitados) con facturación anual reduce 15% el costo operativo por dominio.',
