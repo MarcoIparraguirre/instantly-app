@@ -340,10 +340,61 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
       expect(data.maxLeads).toBe(SAAS_PLANS.growth.maxLeads);
       expect(data.credits).toBe(SAAS_PLANS.growth.credits);
     });
+
+    it('blocks non-super_admin from mutating billing fields on PUT /api/workspaces while allowing name updates', async () => {
+      mockState.workspaces = [
+        {
+          id: 'ws-sec-1',
+          name: 'Starter Org',
+          client_name: 'Starter',
+          plan: 'starter',
+          subscription_status: 'trialing',
+          max_accounts: 3,
+          max_leads: 1000,
+          credits: 1000,
+        },
+      ];
+
+      const forbiddenReq = new NextRequest('http://localhost:3000/api/workspaces', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': 'admin',
+        },
+        body: JSON.stringify({
+          id: 'ws-sec-1',
+          plan: 'agency',
+          subscriptionStatus: 'active',
+          credits: 99999,
+        }),
+      });
+      const forbiddenRes = await putWorkspace(forbiddenReq);
+      const forbiddenData = await forbiddenRes.json();
+      expect(forbiddenRes.status).toBe(403);
+      expect(forbiddenData.code).toBe('FORBIDDEN_BILLING_MUTATION');
+
+      const renameReq = new NextRequest('http://localhost:3000/api/workspaces', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': 'admin',
+        },
+        body: JSON.stringify({
+          id: 'ws-sec-1',
+          name: 'Renamed Org',
+        }),
+      });
+      const renameRes = await putWorkspace(renameReq);
+      const renameData = await renameRes.json();
+      expect(renameRes.status).toBe(200);
+      expect(renameData.name).toBe('Renamed Org');
+      expect(renameData.plan).toBe('starter');
+      expect(renameData.credits).toBe(1000);
+    });
   });
 
   describe('/api/billing/checkout plan upgrade calculation', () => {
-    it('calculates monthly and annual (-20%) upgrade pricing and updates workspace entitlements', async () => {
+    it('calculates monthly and annual (-15%) upgrade pricing and updates workspace entitlements', async () => {
       mockState.workspaces = [
         {
           id: 'ws-primary',
@@ -374,16 +425,16 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
       expect(res.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.mode).toBe('sandbox');
-      // $149 * 0.8 = $119.20/mo => $1,430.40/year; default test rate = 1200 ARS/USD => 1,716,480 ARS
+      // $149 * 0.85 = $126.65/mo => $1,519.80/year; default test rate = 1200 ARS/USD => 1,823,760 ARS
       expect(data.pricing).toEqual({
         planId: 'agency',
         billingCycle: 'annual',
-        monthlyEquivalent: 119.2,
-        totalUsd: 1430.4,
-        totalArs: Math.round(1430.4 * 1200),
+        monthlyEquivalent: 126.65,
+        totalUsd: 1519.8,
+        totalArs: Math.round(1519.8 * 1200),
         usdToArsRate: 1200,
         rateSource: 'fallback',
-        discountPercent: 20,
+        discountPercent: 15,
         currency: 'USD',
       });
       expect(data.workspace.plan).toBe('agency');
@@ -562,12 +613,12 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
       expect(mpRecData.mode).toBe('mercadopago');
       expect(mpRecData.recurring).toBe(true);
       expect(mpRecData.preapprovalId).toBe('pre-456');
-      expect(mpRecData.pricing.totalArs).toBe(Math.round(1430.4 * 1275.5));
+      expect(mpRecData.pricing.totalArs).toBe(Math.round(1519.8 * 1275.5));
 
       const recCallBody = JSON.parse(String(fetchSpy.mock.calls[1][1]?.body));
       expect(fetchSpy.mock.calls[1][0]).toBe('https://api.mercadopago.com/preapproval');
       expect(recCallBody.auto_recurring.frequency).toBe(12);
-      expect(recCallBody.auto_recurring.transaction_amount).toBe(Math.round(1430.4 * 1275.5));
+      expect(recCallBody.auto_recurring.transaction_amount).toBe(Math.round(1519.8 * 1275.5));
       expect(recCallBody.auto_recurring.currency_id).toBe('ARS');
     });
 
@@ -661,6 +712,71 @@ describe('SaaS Features, Billing, Crons, OAuth & Repository Options', () => {
 
       const res = await postBillingCheckout(req);
       expect(res.status).toBe(400);
+    });
+
+    it('blocks sandbox auto-activation in VERCEL_ENV=production for non-super_admin and allows super_admin', async () => {
+      mockState.workspaces = [
+        {
+          id: 'ws-prod-sec',
+          name: 'Prod WS',
+          client_name: 'Client',
+          plan: 'starter',
+          subscription_status: 'trialing',
+          max_accounts: 3,
+          max_leads: 1000,
+          credits: 1000,
+        },
+      ];
+
+      const prevVercelEnv = process.env.VERCEL_ENV;
+      const prevAllowSandbox = process.env.ALLOW_BILLING_SANDBOX;
+      process.env.VERCEL_ENV = 'production';
+      delete process.env.ALLOW_BILLING_SANDBOX;
+
+      try {
+        const adminReq = new NextRequest('http://localhost:3000/api/billing/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-role': 'admin',
+          },
+          body: JSON.stringify({
+            workspaceId: 'ws-prod-sec',
+            planId: 'agency',
+            billingCycle: 'monthly',
+            provider: 'stripe',
+          }),
+        });
+        const adminRes = await postBillingCheckout(adminReq);
+        const adminData = await adminRes.json();
+        expect(adminRes.status).toBe(503);
+        expect(adminData.code).toBe('BILLING_PROVIDER_UNCONFIGURED');
+
+        const superReq = new NextRequest('http://localhost:3000/api/billing/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-role': 'super_admin',
+          },
+          body: JSON.stringify({
+            workspaceId: 'ws-prod-sec',
+            planId: 'agency',
+            billingCycle: 'monthly',
+            provider: 'stripe',
+          }),
+        });
+        const superRes = await postBillingCheckout(superReq);
+        const superData = await superRes.json();
+        expect(superRes.status).toBe(200);
+        expect(superData.mode).toBe('sandbox');
+        expect(superData.workspace.plan).toBe('agency');
+      } finally {
+        if (prevVercelEnv === undefined) delete process.env.VERCEL_ENV;
+        else process.env.VERCEL_ENV = prevVercelEnv;
+
+        if (prevAllowSandbox === undefined) delete process.env.ALLOW_BILLING_SANDBOX;
+        else process.env.ALLOW_BILLING_SANDBOX = prevAllowSandbox;
+      }
     });
   });
 

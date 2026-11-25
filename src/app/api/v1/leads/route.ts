@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { container } from '@/core/container';
 import { Lead } from '@/types';
+import { checkLeadQuota } from '@/core/services/WorkspaceQuotaService';
 
 const EMAIL_REGEX =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
@@ -160,6 +161,18 @@ export async function POST(req: NextRequest) {
     }
 
     if (leadsToAdd.length > 0) {
+      const newCountByWs = new Map<string, number>();
+      for (const lead of leadsToAdd) {
+        const wsId = lead.workspaceId || workspaceId;
+        newCountByWs.set(wsId, (newCountByWs.get(wsId) || 0) + 1);
+      }
+      for (const [wsId, count] of newCountByWs.entries()) {
+        const quota = await checkLeadQuota(wsId, count);
+        if (!quota.allowed) {
+          return NextResponse.json(quota, { status: quota.status });
+        }
+      }
+
       await container.leadRepo.addLeads(leadsToAdd);
     }
 

@@ -20,7 +20,7 @@ describe('DnsCheckerService (Unit Tests)', () => {
       { exchange: 'aspmx.l.google.com', priority: 1 }
     ]);
 
-    vi.spyOn(dns.promises, 'resolveCname').mockResolvedValue(['prox.instantly.ai']);
+    vi.spyOn(dns.promises, 'resolveCname').mockResolvedValue(['track.misender.app']);
 
     const audit = await service.auditDomain('testdomain.com', 'google');
     expect(audit.domain).toBe('testdomain.com');

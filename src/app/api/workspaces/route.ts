@@ -237,6 +237,36 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Workspace id is required' }, { status: 400 });
     }
 
+    const callerRole = req.headers.get('x-user-role')?.trim() || '';
+    const isRestrictedCaller = Boolean(callerRole && callerRole !== 'super_admin');
+    if (isRestrictedCaller) {
+      const privilegedFields = [
+        'plan',
+        'subscriptionStatus',
+        'trialEndsAt',
+        'maxAccounts',
+        'maxLeads',
+        'credits',
+        'billingProvider',
+        'billingSubscriptionId',
+        'ownerId',
+        'ownerEmail',
+      ] as const;
+      const attemptedPrivileged = privilegedFields.some(
+        (key) => (body as Record<string, unknown>)[key] !== undefined
+      );
+      if (attemptedPrivileged) {
+        return NextResponse.json(
+          {
+            error:
+              'Forbidden: Only super_admin can modify workspace plan, credits, or subscription entitlements',
+            code: 'FORBIDDEN_BILLING_MUTATION',
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     const store = getFallbackStore();
     let existing: Workspace | undefined;
 

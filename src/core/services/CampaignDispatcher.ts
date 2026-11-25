@@ -95,7 +95,7 @@ export class CampaignDispatcher implements ICampaignDispatcher {
       throw new Error(`Campaign ${campaignId} not found`);
     }
 
-    const allLeads = await this.leadRepo.getLeads(campaignId);
+    const allLeads = await this.leadRepo.getLeads(campaignId, campaign.workspaceId);
     const now = Date.now();
 
     // Select leads ready for dispatch:
@@ -134,7 +134,7 @@ export class CampaignDispatcher implements ICampaignDispatcher {
 
     const batchSize = options?.batchSize && options.batchSize > 0 ? options.batchSize : readyLeads.length;
     const leads = readyLeads.slice(0, batchSize);
-    const allAccounts = await this.accountRepo.getAccounts();
+    const allAccounts = await this.accountRepo.getAccounts(campaign.workspaceId);
     let accounts = allAccounts.filter(
       a => campaign.senderAccountIds.length === 0 || campaign.senderAccountIds.includes(a.id)
     );

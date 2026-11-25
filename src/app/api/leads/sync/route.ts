@@ -3,6 +3,7 @@ import { GoogleSheetsService } from '@/core/services/GoogleSheetsService';
 import { container } from '@/core/container';
 import { v4 as uuidv4 } from 'uuid';
 import { Lead } from '@/types';
+import { checkLeadQuota } from '@/core/services/WorkspaceQuotaService';
 
 export async function POST(req: NextRequest) {
   try {
@@ -138,6 +139,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (newAddedCount > 0) {
+      const quota = await checkLeadQuota(targetWorkspaceId, newAddedCount);
+      if (!quota.allowed) {
+        return NextResponse.json(quota, { status: quota.status });
+      }
+    }
+
     await container.leadRepo.addLeads(leadsToUpsert);
 
     return NextResponse.json({
@@ -149,10 +157,10 @@ export async function POST(req: NextRequest) {
       selectedColumns: activeSelectedCols,
       leads: leadsToUpsert
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error syncing leads:', err);
     return NextResponse.json(
-      { error: err.message || 'Error al sincronizar los contactos en la base de datos' },
+      { error: err instanceof Error ? err.message : 'Error al sincronizar los contactos en la base de datos' },
       { status: 500 }
     );
   }

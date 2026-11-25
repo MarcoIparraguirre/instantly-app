@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { container } from '@/core/container';
 import { DnsAuditResult, DnsCheckItem, SenderAccount } from '@/types';
 import { maskCredential } from '@/core/security/crypto';
+import { checkAccountQuota } from '@/core/services/WorkspaceQuotaService';
 
 type OAuthProvider = 'google' | 'microsoft';
 
@@ -113,7 +114,7 @@ function buildDnsChecks(
         {
           type: 'CTD',
           valid: audit.ctd.valid,
-          expected: 'track CNAME prox.instantly.ai',
+          expected: 'track CNAME track.misender.app',
           current: audit.ctd.valid ? 'Activo' : 'Inactivo',
           description: audit.ctd.details
         }
@@ -154,7 +155,7 @@ function buildDnsChecks(
       },
       {
         type: 'CTD',
-        expected: 'track CNAME prox.instantly.ai',
+        expected: 'track CNAME track.misender.app',
         current: 'Pendiente de verificación',
         valid: true,
         description: 'Custom Tracking Domain opcional'
@@ -295,6 +296,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const resolvedWorkspaceId = workspaceId || 'ws-primary';
+    if (!existingId) {
+      const quota = await checkAccountQuota(resolvedWorkspaceId, 1);
+      if (!quota.allowed) {
+        return NextResponse.json(quota, { status: quota.status });
+      }
+    }
+
     const accessToken =
       typeof body.accessToken === 'string' && body.accessToken.trim()
         ? body.accessToken.trim()
@@ -304,7 +313,7 @@ export async function POST(req: NextRequest) {
 
     const newAccount: SenderAccount = {
       id: existingId || requestedId || uuidv4(),
-      workspaceId: workspaceId || 'ws-primary',
+      workspaceId: resolvedWorkspaceId,
       name: cleanName,
       email: cleanEmail,
       provider,

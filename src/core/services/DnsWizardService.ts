@@ -138,7 +138,8 @@ interface EspPresetConfig {
   dkimNote: { es: string; en: string };
 }
 
-const TRACKING_CNAME_TARGET = 'prox.instantly.ai';
+const TRACKING_CNAME_TARGET =
+  process.env.NEXT_PUBLIC_TRACKING_CNAME_TARGET?.trim() || 'track.misender.app';
 const DEFAULT_TTL = 3600;
 const DOMAIN_REGEX =
   /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;

@@ -594,17 +594,25 @@ describe('Automations Engine, Crons & Public API v1', () => {
   });
 
   describe('Continuous Crons (/api/cron/unibox-sync, /api/cron/dispatch) & vercel.json', () => {
-    it('vercel.json schedules dispatch (15m), unibox-sync (15m), and warmup (2h)', () => {
+    it('vercel.json uses Hobby-compatible daily crons and GitHub Actions schedules 15m dispatch/unibox/warmup', () => {
       const raw = fs.readFileSync(path.resolve(process.cwd(), 'vercel.json'), 'utf8');
       const parsed = JSON.parse(raw) as { crons: Array<{ path: string; schedule: string }> };
 
       expect(parsed.crons).toEqual(
         expect.arrayContaining([
-          { path: '/api/cron/dispatch', schedule: '*/15 * * * *' },
-          { path: '/api/cron/unibox-sync', schedule: '*/15 * * * *' },
-          { path: '/api/cron/warmup', schedule: '0 */2 * * *' }
+          { path: '/api/cron/dispatch', schedule: '0 13 * * *' },
+          { path: '/api/cron/warmup', schedule: '0 14 * * *' }
         ])
       );
+
+      const workflowRaw = fs.readFileSync(
+        path.resolve(process.cwd(), '.github/workflows/cron-jobs.yml'),
+        'utf8'
+      );
+      expect(workflowRaw).toContain("cron: '*/15 * * * *'");
+      expect(workflowRaw).toContain('/api/cron/dispatch');
+      expect(workflowRaw).toContain('/api/cron/unibox-sync');
+      expect(workflowRaw).toContain('/api/cron/warmup');
     });
 
     it('dispatch cron returns { skipped: true, reason: "already_running" } on overlapping invocations within 60s', async () => {
